@@ -1,0 +1,8 @@
+# Root-level (monorepo)
+.DS_Store
+Thumbs.db
+*.log
+
+# Editor / IDE (optional local)
+.idea/
+.vscode/
