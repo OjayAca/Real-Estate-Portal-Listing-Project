@@ -4,19 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Agency;
 use App\Models\Agent;
 use App\Models\Amenity;
 use App\Models\Inquiry;
 use App\Models\Property;
 use App\Models\User;
+use App\Models\ViewingBooking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\Rules\Password;
 
 class PortalController extends Controller
@@ -25,6 +30,16 @@ class PortalController extends Controller
     private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'];
     private const INQUIRY_STATUSES = ['New', 'Read', 'Responded', 'Closed'];
     private const AGENT_STATUSES = ['pending', 'approved', 'suspended'];
+    private const FEATURED_IMAGE_MAX_SIZE_KB = 25600;
+    private const FEATURED_IMAGE_MIN_WIDTH = 1200;
+    private const FEATURED_IMAGE_MIN_HEIGHT = 675;
+    private const FEATURED_IMAGE_MAX_WIDTH = 4000;
+    private const FEATURED_IMAGE_MAX_HEIGHT = 4000;
+    private const FEATURED_IMAGE_TARGET_WIDTH = 1600;
+    private const FEATURED_IMAGE_TARGET_HEIGHT = 900;
+    private const FEATURED_IMAGE_JPEG_QUALITY = 82;
+    private const FEATURED_IMAGE_WEBP_QUALITY = 82;
+    private const FEATURED_IMAGE_PNG_COMPRESSION = 8;
 
     public function amenitiesIndex(): JsonResponse
     {
@@ -61,6 +76,10 @@ class PortalController extends Controller
             ]);
 
             if ($user->role === UserRole::AGENT) {
+                $agency = ! empty($validated['agency_name'])
+                    ? $this->resolveAgency($validated['agency_name'])
+                    : null;
+
                 $agent = Agent::query()->create([
                     'user_id' => $user->id,
                     'first_name' => $user->first_name,
@@ -68,6 +87,7 @@ class PortalController extends Controller
                     'email' => $user->email,
                     'phone' => $user->phone ?? 'Not provided',
                     'license_number' => $validated['license_number'],
+                    'agency_id' => $agency?->agency_id,
                     'agency_name' => $validated['agency_name'] ?? null,
                     'approval_status' => 'pending',
                     'bio' => $validated['bio'] ?? null,
@@ -84,7 +104,7 @@ class PortalController extends Controller
                 }
             }
 
-            return $user->load('agentProfile');
+            return $user->load('agentProfile.agency');
         });
 
         $token = $user->createToken('portal-auth')->plainTextToken;
@@ -105,7 +125,7 @@ class PortalController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()->with('agentProfile')->where('email', $credentials['email'])->first();
+        $user = User::query()->with('agentProfile.agency')->where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             return response()->json(['message' => 'The provided credentials are incorrect.'], 422);
@@ -127,7 +147,7 @@ class PortalController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => $this->formatUser($request->user()->load('agentProfile')),
+            'user' => $this->formatUser($request->user()->load('agentProfile.agency')),
             'unread_notifications' => $request->user()->unreadNotifications()->count(),
         ]);
     }
@@ -219,7 +239,7 @@ class PortalController extends Controller
 
     public function dashboard(Request $request): JsonResponse
     {
-        $user = $request->user()->load('agentProfile');
+        $user = $request->user()->load('agentProfile.agency');
 
         if ($user->isAdmin()) {
             return response()->json([
@@ -229,6 +249,7 @@ class PortalController extends Controller
                     'agents' => Agent::query()->count(),
                     'properties' => Property::query()->count(),
                     'inquiries' => Inquiry::query()->count(),
+                    'bookings' => ViewingBooking::query()->count(),
                     'unread_notifications' => $user->unreadNotifications()->count(),
                 ],
                 'recent_users' => User::query()->with('agentProfile')->latest()->take(5)->get()->map(fn (User $entry) => $this->formatUser($entry)),
@@ -390,7 +411,7 @@ class PortalController extends Controller
     public function agentPropertyStore(Request $request): JsonResponse
     {
         $agent = $this->requireApprovedAgent($request->user());
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request);
+        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent);
         $payload['agent_id'] = $agent->agent_id;
         $payload['slug'] = $this->generateSlug($payload['title']);
         $payload['listed_at'] = now();
@@ -408,7 +429,7 @@ class PortalController extends Controller
     {
         $agent = $this->requireApprovedAgent($request->user());
         $this->guardOwnProperty($agent, $property);
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request, true);
+        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, true, $property);
 
         if (array_key_exists('title', $payload)) {
             $payload['slug'] = $this->generateSlug($payload['title'], $property);
@@ -429,6 +450,11 @@ class PortalController extends Controller
     {
         $agent = $this->requireApprovedAgent($request->user());
         $this->guardOwnProperty($agent, $property);
+
+        if ($this->isManagedFeaturedImagePath($property->featured_image)) {
+            Storage::disk('public')->delete($property->featured_image);
+        }
+
         $property->delete();
 
         return response()->json(['message' => 'Property listing deleted.']);
@@ -612,7 +638,7 @@ class PortalController extends Controller
     /**
      * @return array{0: array<string, mixed>, 1: array<int>|null}
      */
-    private function validatePropertyPayload(Request $request, bool $isUpdate = false): array
+    private function validatePropertyPayload(Request $request, Agent $agent, bool $isUpdate = false, ?Property $property = null): array
     {
         $required = $isUpdate ? ['sometimes'] : ['required'];
 
@@ -629,15 +655,226 @@ class PortalController extends Controller
             'city' => array_merge($required, ['string', 'max:100']),
             'province' => array_merge($required, ['string', 'max:100']),
             'featured_image' => ['nullable', 'string', 'max:255'],
+            'featured_image_upload' => [
+                'nullable',
+                'file',
+                File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(self::FEATURED_IMAGE_MAX_SIZE_KB),
+                Rule::dimensions()
+                    ->minWidth(self::FEATURED_IMAGE_MIN_WIDTH)
+                    ->minHeight(self::FEATURED_IMAGE_MIN_HEIGHT)
+                    ->maxWidth(self::FEATURED_IMAGE_MAX_WIDTH)
+                    ->maxHeight(self::FEATURED_IMAGE_MAX_HEIGHT),
+            ],
             'status' => ['nullable', Rule::in(self::PROPERTY_STATUSES)],
             'amenity_ids' => ['nullable', 'array'],
             'amenity_ids.*' => ['integer', 'exists:amenities,amenity_id'],
         ]);
 
+        if ($request->hasFile('featured_image_upload')) {
+            $validated['featured_image'] = $this->storeFeaturedImage($request->file('featured_image_upload'), $agent, $property);
+        }
+
         $amenityIds = $validated['amenity_ids'] ?? ($isUpdate ? null : []);
         unset($validated['amenity_ids']);
+        unset($validated['featured_image_upload']);
 
         return [$validated, $amenityIds];
+    }
+
+    private function storeFeaturedImage(UploadedFile $file, Agent $agent, ?Property $existingProperty = null): string
+    {
+        $path = $this->optimizeAndStoreFeaturedImage($file, $agent);
+
+        if ($existingProperty && $this->isManagedFeaturedImagePath($existingProperty->featured_image)) {
+            Storage::disk('public')->delete($existingProperty->featured_image);
+        }
+
+        return $path;
+    }
+
+    private function optimizeAndStoreFeaturedImage(UploadedFile $file, Agent $agent): string
+    {
+        $sourcePath = $file->getRealPath();
+        $mimeType = $file->getMimeType() ?: $file->getClientMimeType();
+
+        if (! $sourcePath || ! $mimeType) {
+            return $file->store("properties/agent-{$agent->agent_id}", 'public');
+        }
+
+        $sourceImage = $this->createImageResource($sourcePath, $mimeType);
+
+        if (! $sourceImage) {
+            return $file->store("properties/agent-{$agent->agent_id}", 'public');
+        }
+
+        try {
+            $sourceImage = $this->applyExifOrientationIfNeeded($sourceImage, $sourcePath, $mimeType);
+
+            $sourceWidth = imagesx($sourceImage);
+            $sourceHeight = imagesy($sourceImage);
+
+            $targetImage = $this->resizeImageResource(
+                $sourceImage,
+                $sourceWidth,
+                $sourceHeight,
+                self::FEATURED_IMAGE_TARGET_WIDTH,
+                self::FEATURED_IMAGE_TARGET_HEIGHT,
+                $mimeType
+            );
+
+            $extension = $this->imageExtensionForMimeType($mimeType);
+            $path = "properties/agent-{$agent->agent_id}/".Str::random(40).'.'.$extension;
+            $binary = $this->encodeImageResource($targetImage, $mimeType);
+
+            Storage::disk('public')->put($path, $binary);
+
+            if ($targetImage !== $sourceImage) {
+                imagedestroy($targetImage);
+            }
+
+            return $path;
+        } finally {
+            imagedestroy($sourceImage);
+        }
+    }
+
+    private function createImageResource(string $path, string $mimeType): mixed
+    {
+        return match ($mimeType) {
+            'image/jpeg', 'image/jpg' => @imagecreatefromjpeg($path),
+            'image/png' => @imagecreatefrompng($path),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+            default => false,
+        };
+    }
+
+    private function applyExifOrientationIfNeeded(mixed $image, string $path, string $mimeType): mixed
+    {
+        if (! function_exists('exif_read_data') || ! in_array($mimeType, ['image/jpeg', 'image/jpg'], true)) {
+            return $image;
+        }
+
+        $exif = @exif_read_data($path);
+        $orientation = $exif['Orientation'] ?? null;
+
+        $rotatedImage = match ($orientation) {
+            3 => imagerotate($image, 180, 0),
+            6 => imagerotate($image, -90, 0),
+            8 => imagerotate($image, 90, 0),
+            default => $image,
+        };
+
+        if ($rotatedImage !== $image) {
+            imagedestroy($image);
+        }
+
+        return $rotatedImage;
+    }
+
+    private function resizeImageResource(
+        mixed $sourceImage,
+        int $sourceWidth,
+        int $sourceHeight,
+        int $targetMaxWidth,
+        int $targetMaxHeight,
+        string $mimeType
+    ): mixed {
+        $scale = min(
+            $targetMaxWidth / max($sourceWidth, 1),
+            $targetMaxHeight / max($sourceHeight, 1),
+            1
+        );
+
+        $targetWidth = max((int) round($sourceWidth * $scale), 1);
+        $targetHeight = max((int) round($sourceHeight * $scale), 1);
+
+        if ($targetWidth === $sourceWidth && $targetHeight === $sourceHeight) {
+            return $sourceImage;
+        }
+
+        $targetImage = imagecreatetruecolor($targetWidth, $targetHeight);
+
+        if (in_array($mimeType, ['image/png', 'image/webp'], true)) {
+            imagealphablending($targetImage, false);
+            imagesavealpha($targetImage, true);
+            $transparent = imagecolorallocatealpha($targetImage, 0, 0, 0, 127);
+            imagefilledrectangle($targetImage, 0, 0, $targetWidth, $targetHeight, $transparent);
+        }
+
+        imagecopyresampled(
+            $targetImage,
+            $sourceImage,
+            0,
+            0,
+            0,
+            0,
+            $targetWidth,
+            $targetHeight,
+            $sourceWidth,
+            $sourceHeight
+        );
+
+        return $targetImage;
+    }
+
+    private function encodeImageResource(mixed $image, string $mimeType): string
+    {
+        ob_start();
+
+        match ($mimeType) {
+            'image/jpeg', 'image/jpg' => imagejpeg($image, null, self::FEATURED_IMAGE_JPEG_QUALITY),
+            'image/png' => imagepng($image, null, self::FEATURED_IMAGE_PNG_COMPRESSION),
+            'image/webp' => imagewebp($image, null, self::FEATURED_IMAGE_WEBP_QUALITY),
+            default => imagejpeg($image, null, self::FEATURED_IMAGE_JPEG_QUALITY),
+        };
+
+        return (string) ob_get_clean();
+    }
+
+    private function imageExtensionForMimeType(string $mimeType): string
+    {
+        return match ($mimeType) {
+            'image/jpeg', 'image/jpg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => strtolower($mimeType),
+        };
+    }
+
+    private function isManagedFeaturedImagePath(?string $path): bool
+    {
+        return is_string($path) && Str::startsWith($path, 'properties/');
+    }
+
+    private function resolveFeaturedImageUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        $baseUrl = rtrim(config('app.url'), '/');
+
+        if (app()->bound('request')) {
+            $requestRoot = request()->root();
+
+            if ($requestRoot) {
+                $baseUrl = rtrim($requestRoot, '/');
+            }
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL) || Str::startsWith($path, ['//', 'data:'])) {
+            return $path;
+        }
+
+        if (Str::startsWith($path, '/storage/')) {
+            return $baseUrl.$path;
+        }
+
+        if (Str::startsWith($path, 'storage/')) {
+            return $baseUrl.'/'.ltrim($path, '/');
+        }
+
+        return $baseUrl.'/storage/'.ltrim($path, '/');
     }
 
     private function generateSlug(string $title, ?Property $existing = null): string
@@ -655,6 +892,27 @@ class PortalController extends Controller
         }
 
         return $candidate;
+    }
+
+    private function resolveAgency(string $name): Agency
+    {
+        $trimmed = trim($name);
+        $slug = Str::slug($trimmed);
+        $candidate = $slug;
+        $counter = 1;
+
+        while (Agency::query()->where('slug', $candidate)->where('name', '!=', $trimmed)->exists()) {
+            $candidate = $slug.'-'.$counter;
+            $counter++;
+        }
+
+        return Agency::query()->firstOrCreate(
+            ['name' => $trimmed],
+            [
+                'slug' => $candidate,
+                'agency_type' => 'Agency',
+            ],
+        );
     }
 
     private function pushNotification(User $user, string $type, string $title, string $message, array $context = []): void
@@ -696,7 +954,14 @@ class PortalController extends Controller
             'email' => $agent->email,
             'phone' => $agent->phone,
             'license_number' => $agent->license_number,
+            'agency_id' => $agent->agency_id,
             'agency_name' => $agent->agency_name,
+            'agency' => $agent->relationLoaded('agency') && $agent->agency ? [
+                'agency_id' => $agent->agency->agency_id,
+                'name' => $agent->agency->name,
+                'slug' => $agent->agency->slug,
+                'agency_type' => $agent->agency->agency_type,
+            ] : null,
             'approval_status' => $agent->approval_status,
             'bio' => $agent->bio,
         ];
@@ -728,7 +993,7 @@ class PortalController extends Controller
             'city' => $property->city,
             'province' => $property->province,
             'status' => $property->status,
-            'featured_image' => $property->featured_image,
+            'featured_image' => $this->resolveFeaturedImageUrl($property->featured_image),
             'listed_at' => optional($property->listed_at)->toIso8601String(),
             'created_at' => optional($property->created_at)->toIso8601String(),
             'inquiries_count' => $property->inquiries_count ?? null,

@@ -4,11 +4,20 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
   const isAvailable = property.status.toLowerCase() === 'available';
 
   return (
-    <article className="property-card" onClick={() => onView(property)}>
-      <div
-        className="property-visual"
-        style={{ backgroundImage: `url(${property.featured_image || ''})` }}
-      >
+    <article 
+      className="property-card" 
+      onClick={() => onView(property)} 
+      role="button" 
+      tabIndex={0} 
+      onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') onView(property) }}
+      aria-label={`View details for ${property.title}`}
+    >
+      <div className="property-visual">
+        <div 
+          className="property-visual-img" 
+          style={{ backgroundImage: `url(${property.featured_image || ''})` }}
+          aria-hidden="true"
+        />
         <span className="property-type">{property.property_type}</span>
         <span className={`property-status status-${property.status.toLowerCase()}`}>
           {property.status}
@@ -19,7 +28,7 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
           <div>
             <h3>{property.title}</h3>
             <p className="property-loc">
-              <MapPin size={14} />
+              <MapPin size={14} aria-hidden="true" />
               {property.city}, {property.province}
             </p>
           </div>
@@ -28,22 +37,22 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
         <strong className="property-price">PHP {property.price.toLocaleString()}</strong>
         <p className="property-copy">{property.description}</p>
         
-        <div className="property-meta">
+        <div className="property-meta" aria-label="Property specifications">
           <span className="meta-item" title="Bedrooms">
-            <BedDouble size={16} />
-            {property.bedrooms} Bed
+            <BedDouble size={16} aria-hidden="true" />
+            <span className="sr-only">Bedrooms: </span>{property.bedrooms} Bed
           </span>
           <span className="meta-item" title="Bathrooms">
-            <Bath size={16} />
-            {property.bathrooms} Bath
+            <Bath size={16} aria-hidden="true" />
+            <span className="sr-only">Bathrooms: </span>{property.bathrooms} Bath
           </span>
           <span className="meta-item" title="Floor Area">
-            <Square size={16} />
-            {property.area_sqm || 'N/A'} sqm
+            <Square size={16} aria-hidden="true" />
+            <span className="sr-only">Area: </span>{property.area_sqm || 'N/A'} sqm
           </span>
         </div>
         
-        <div className="chip-row">
+        <div className="chip-row" aria-label="Amenities">
           {property.amenities.slice(0, 3).map((amenity) => (
             <span className="chip" key={amenity.amenity_id}>{amenity.amenity_name}</span>
           ))}
@@ -53,18 +62,32 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
         </div>
         
         <div className="property-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="ghost-button" onClick={() => onView(property)}>
+          <button 
+            className="ghost-button" 
+            onClick={() => onView(property)} 
+            aria-label={`View full details for ${property.title}`}
+            tabIndex={0}
+          >
             Details
           </button>
           {onSave && (
-            <button className="ghost-button" onClick={() => onSave(property)} title={saved ? 'Remove saved property' : 'Save property'}>
-              {saved ? <BookmarkCheck size={16} fill="currentColor" /> : <Bookmark size={16} />}
+            <button 
+              className="ghost-button" 
+              onClick={() => onSave(property)} 
+              title={saved ? 'Remove saved property' : 'Save property'}
+              aria-label={saved ? `Remove ${property.title} from saved properties` : `Save ${property.title}`}
+            >
+              {saved ? <BookmarkCheck size={16} fill="currentColor" aria-hidden="true" /> : <Bookmark size={16} aria-hidden="true" />}
               {saved ? 'Saved' : 'Save'}
             </button>
           )}
           {onInquire && isAvailable && (
-            <button className="primary-button" onClick={() => onInquire(property)}>
-              Inquire
+            <button 
+              className="primary-button" 
+              onClick={() => onInquire(property)}
+              aria-label={`Book a viewing for ${property.title}`}
+            >
+              Book Viewing
             </button>
           )}
         </div>

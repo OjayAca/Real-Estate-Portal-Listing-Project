@@ -64,4 +64,12 @@ class Property extends Model
     {
         return $this->hasMany(Inquiry::class, 'property_id', 'property_id');
     }
+
+    /**
+     * @return HasMany<ViewingBooking, $this>
+     */
+    public function viewingBookings(): HasMany
+    {
+        return $this->hasMany(ViewingBooking::class, 'property_id', 'property_id');
+    }
 }

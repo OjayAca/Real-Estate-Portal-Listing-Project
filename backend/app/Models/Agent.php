@@ -21,6 +21,7 @@ class Agent extends Model
         'email',
         'phone',
         'license_number',
+        'agency_id',
         'agency_name',
         'approval_status',
         'bio',
@@ -35,11 +36,43 @@ class Agent extends Model
     }
 
     /**
+     * @return BelongsTo<Agency, $this>
+     */
+    public function agency(): BelongsTo
+    {
+        return $this->belongsTo(Agency::class, 'agency_id', 'agency_id');
+    }
+
+    /**
      * @return HasMany<Property, $this>
      */
     public function properties(): HasMany
     {
         return $this->hasMany(Property::class, 'agent_id', 'agent_id');
+    }
+
+    /**
+     * @return HasMany<AgentAvailability, $this>
+     */
+    public function availabilities(): HasMany
+    {
+        return $this->hasMany(AgentAvailability::class, 'agent_id', 'agent_id');
+    }
+
+    /**
+     * @return HasMany<ViewingBooking, $this>
+     */
+    public function viewingBookings(): HasMany
+    {
+        return $this->hasMany(ViewingBooking::class, 'agent_id', 'agent_id');
+    }
+
+    /**
+     * @return HasMany<AgentReview, $this>
+     */
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(AgentReview::class, 'agent_id', 'agent_id');
     }
 
     /**

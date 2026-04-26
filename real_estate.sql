@@ -1,7 +1,5 @@
-CREATE DATABASE real_estate_portal;
-
-
-
+CREATE DATABASE IF NOT EXISTS real_estate_portal;
+USE real_estate_portal;
 
 CREATE TABLE agents (
     agent_id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -11,7 +9,6 @@ CREATE TABLE agents (
     phone           VARCHAR(20)  NOT NULL,
     license_number  VARCHAR(50)  NOT NULL,
     agency_name     VARCHAR(150) NULL,
-
     CONSTRAINT pk_agents PRIMARY KEY (agent_id),
     CONSTRAINT uq_agent_email UNIQUE (email),
     CONSTRAINT uq_agent_license UNIQUE (license_number)
@@ -21,7 +18,6 @@ CREATE TABLE amenities (
     amenity_id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
     amenity_name       VARCHAR(100) NOT NULL,
     amenity_category   VARCHAR(60)  NULL,
-
     CONSTRAINT pk_amenities PRIMARY KEY (amenity_id),
     CONSTRAINT uq_amenity_name UNIQUE (amenity_name)
 );
@@ -50,7 +46,6 @@ CREATE TABLE properties (
                         'Rented',
                         'Inactive'
                     )               NOT NULL DEFAULT 'Available',
-
     CONSTRAINT pk_properties PRIMARY KEY (property_id),
     CONSTRAINT fk_property_agent FOREIGN KEY (agent_id)
         REFERENCES agents(agent_id)
@@ -62,7 +57,6 @@ CREATE TABLE properties (
 CREATE TABLE property_amenities (
     property_id INT UNSIGNED NOT NULL,
     amenity_id  INT UNSIGNED NOT NULL,
-
     CONSTRAINT pk_property_amenities PRIMARY KEY (property_id, amenity_id),
     CONSTRAINT fk_pa_property FOREIGN KEY (property_id)
         REFERENCES properties(property_id)
@@ -87,7 +81,6 @@ CREATE TABLE inquiries (
                     'Responded',
                     'Closed'
                   )            NOT NULL DEFAULT 'New',
-
     CONSTRAINT pk_inquiries PRIMARY KEY (inquiry_id),
     CONSTRAINT fk_inquiry_property FOREIGN KEY (property_id)
         REFERENCES properties(property_id)
