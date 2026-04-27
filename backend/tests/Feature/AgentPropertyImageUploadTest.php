@@ -159,6 +159,40 @@ class AgentPropertyImageUploadTest extends TestCase
         $response->assertJsonPath('data.featured_image', $expectedUrl);
     }
 
+    public function test_agent_profile_summary_featured_images_are_resolved_to_public_urls(): void
+    {
+        Storage::fake('public');
+        [$user, $agent] = $this->createApprovedAgent();
+        Sanctum::actingAs($user);
+
+        $property = Property::query()->create([
+            'agent_id' => $agent->agent_id,
+            'title' => 'Summary Image Listing',
+            'slug' => 'summary-image-listing',
+            'description' => 'A listing that should expose a resolved image URL in agent summaries.',
+            'property_type' => 'House',
+            'price' => 5750000,
+            'bedrooms' => 4,
+            'bathrooms' => 3,
+            'parking_spaces' => 2,
+            'area_sqm' => 180,
+            'address_line' => '12 Summary Street',
+            'city' => 'Makati',
+            'province' => 'Metro Manila',
+            'featured_image' => 'properties/agent-'.$agent->agent_id.'/summary-image.jpg',
+            'status' => 'Available',
+            'listed_at' => now(),
+        ]);
+
+        $response = $this->getJson("/api/agents/{$agent->agent_id}", ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $response->assertJsonPath(
+            'data.active_listings.0.featured_image',
+            rtrim(config('app.url'), '/').'/storage/'.$property->featured_image
+        );
+    }
+
     /**
      * @return array{0: User, 1: Agent}
      */

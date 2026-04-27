@@ -9,6 +9,40 @@ import { Home, Building2, LayoutDashboard, LogOut, CodeSquare, CheckCircle2, Use
 const navClass = ({ isActive }) =>
   isActive ? 'nav-link nav-link-active' : 'nav-link';
 
+function canAccessDashboard(user) {
+  if (!user) {
+    return false;
+  }
+
+  return user.role !== 'user' || Boolean(user.email_verified_at);
+}
+
+function getUserStatusLabel(user) {
+  if (!user) {
+    return '';
+  }
+
+  if (user.role === 'agent') {
+    const approvalStatus = user.agent_profile?.approval_status;
+
+    if (approvalStatus === 'approved') {
+      return 'agent approved';
+    }
+
+    if (approvalStatus === 'suspended') {
+      return 'agent suspended';
+    }
+
+    return 'agent pending review';
+  }
+
+  if (user.role === 'admin') {
+    return 'admin';
+  }
+
+  return user.email_verified_at ? user.role : 'email verification pending';
+}
+
 export default function Layout() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -48,7 +82,7 @@ export default function Layout() {
             <Users size={18} aria-hidden="true" />
             <span>Agents</span>
           </NavLink>
-          {user ? (
+          {canAccessDashboard(user) ? (
             <NavLink className={navClass} to="/dashboard">
               <LayoutDashboard size={18} aria-hidden="true" />
               <span>Dashboard</span>
@@ -56,12 +90,12 @@ export default function Layout() {
           ) : null}
         </nav>
         <div className="topbar-actions">
-          {user ? <NotificationBell /> : null}
+          {canAccessDashboard(user) ? <NotificationBell /> : null}
           {user ? (
             <>
               <div className="user-chip">
                 <span>{user.full_name}</span>
-                <small>{user.role}</small>
+                <small>{getUserStatusLabel(user)}</small>
               </div>
               <button className="ghost-button" disabled={loggingOut} onClick={() => setShowLogoutConfirm(true)} title="Sign Out" aria-label="Sign out of your account">
                 <LogOut size={18} aria-hidden="true" />

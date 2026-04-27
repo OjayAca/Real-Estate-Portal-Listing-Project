@@ -214,23 +214,12 @@ function AgentPropertyForm({
   const [imagePreviewUrl, setImagePreviewUrl] = useState(() => initialProperty?.featured_image || '');
 
   useEffect(() => {
-    setValues(mapPropertyToFormValues(initialProperty));
-    setImageSelectionError('');
-  }, [initialProperty, mode]);
-
-  useEffect(() => {
-    if (!values.featured_image_file) {
-      setImagePreviewUrl(values.featured_image || '');
-      return undefined;
-    }
-
-    const objectUrl = URL.createObjectURL(values.featured_image_file);
-    setImagePreviewUrl(objectUrl);
-
     return () => {
-      URL.revokeObjectURL(objectUrl);
+      if (imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
     };
-  }, [values.featured_image, values.featured_image_file]);
+  }, [imagePreviewUrl]);
 
   const amenityGroups = useMemo(() => {
     return amenities.reduce((groups, amenity) => {
@@ -254,7 +243,11 @@ function AgentPropertyForm({
     const [file] = event.target.files || [];
 
     if (!file) {
+      if (imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
       updateValue('featured_image_file', null);
+      setImagePreviewUrl(values.featured_image || '');
       setImageSelectionError('');
       return;
     }
@@ -269,6 +262,11 @@ function AgentPropertyForm({
         return;
       }
 
+      if (imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+
+      setImagePreviewUrl(URL.createObjectURL(file));
       updateValue('featured_image_file', file);
       setImageSelectionError('');
     } catch (error) {

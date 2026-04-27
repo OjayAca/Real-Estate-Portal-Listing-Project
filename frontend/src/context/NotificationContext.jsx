@@ -1,43 +1,59 @@
-import { createContext, useContext, useEffect, useEffectEvent, useMemo, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useCallback, useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { apiRequest } from '../api/client';
 import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext(null);
 
+function canUseNotifications(user) {
+  if (!user) {
+    return false;
+  }
+
+  return user.role !== 'user' || Boolean(user.email_verified_at);
+}
+
 export function NotificationProvider({ children }) {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [popup, setPopup] = useState(null);
+  const unreadCountRef = useRef(0);
+
+  useEffect(() => {
+    unreadCountRef.current = unreadCount;
+  }, [unreadCount]);
 
   const syncNotifications = useEffectEvent(async (isInitial = false) => {
-    if (!token || !user) {
+    if (!canUseNotifications(user)) {
       return;
     }
 
     try {
-      const data = await apiRequest('/notifications', { token });
-      setNotifications(data.data || []);
-      setUnreadCount((current) => {
-        const next = data.unread_count || 0;
-        if (!isInitial && next > current) {
-          const newestUnread = (data.data || []).find((entry) => !entry.read_at);
-          if (newestUnread) {
-            setPopup(newestUnread);
-          }
+      const data = await apiRequest('/notifications');
+      const nextNotifications = data.data || [];
+      const nextUnreadCount = data.unread_count || 0;
+
+      if (!isInitial && nextUnreadCount > unreadCountRef.current) {
+        const newestUnread = nextNotifications.find((entry) => !entry.read_at);
+        if (newestUnread) {
+          setPopup(newestUnread);
         }
-        return next;
-      });
+      }
+
+      unreadCountRef.current = nextUnreadCount;
+      setNotifications(nextNotifications);
+      setUnreadCount(nextUnreadCount);
     } catch {
       // Ignore transient polling failures in the client.
     }
   });
 
   useEffect(() => {
-    if (!token || !user) {
-      setNotifications((current) => (current.length ? [] : current));
-      setUnreadCount((current) => (current ? 0 : current));
-      setPopup(null);
+    if (!canUseNotifications(user)) {
+      setNotifications([]);
+      setUnreadCount(0);
+      unreadCountRef.current = 0;
       return;
     }
 
@@ -47,7 +63,7 @@ export function NotificationProvider({ children }) {
     return () => {
       window.clearInterval(timer);
     };
-  }, [token, user]);
+  }, [user]);
 
   useEffect(() => {
     if (!popup) {
@@ -58,10 +74,9 @@ export function NotificationProvider({ children }) {
     return () => window.clearTimeout(timer);
   }, [popup]);
 
-  const markRead = async (notificationId) => {
+  const markRead = useCallback(async (notificationId) => {
     await apiRequest(`/notifications/${notificationId}/read`, {
       method: 'PATCH',
-      token,
     });
 
     setNotifications((current) =>
@@ -75,12 +90,11 @@ export function NotificationProvider({ children }) {
       ),
     );
     setUnreadCount((current) => Math.max(current - 1, 0));
-  };
+  }, []);
 
-  const markAllRead = async () => {
+  const markAllRead = useCallback(async () => {
     await apiRequest('/notifications/read-all', {
       method: 'POST',
-      token,
     });
 
     setNotifications((current) =>
@@ -90,7 +104,7 @@ export function NotificationProvider({ children }) {
       })),
     );
     setUnreadCount(0);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -100,7 +114,7 @@ export function NotificationProvider({ children }) {
       popup,
       unreadCount,
     }),
-    [notifications, popup, unreadCount],
+    [markAllRead, markRead, notifications, popup, unreadCount],
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

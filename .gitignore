@@ -2,6 +2,16 @@
 .DS_Store
 Thumbs.db
 *.log
+.env
+**/.env
+database.sqlite
+**/database.sqlite
+dist/
+**/dist/
+vendor/
+**/vendor/
+node_modules/
+**/node_modules/
 
 # Editor / IDE (optional local)
 .idea/

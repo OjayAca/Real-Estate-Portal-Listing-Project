@@ -16,7 +16,7 @@ const baseFilters = {
 };
 
 export default function PropertiesPage() {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const [filters, setFilters] = useState(baseFilters);
   const [amenities, setAmenities] = useState([]);
@@ -51,7 +51,7 @@ export default function PropertiesPage() {
     setBookingDate(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
     setBookingNotes('');
     setSelectedSlot('');
-  }, [selected?.property_id]);
+  }, [selected]);
 
   useEffect(() => {
     apiRequest('/amenities')
@@ -60,15 +60,15 @@ export default function PropertiesPage() {
   }, []);
 
   useEffect(() => {
-    if (!token || user?.role !== 'user') {
+    if (user?.role !== 'user' || !user?.email_verified_at) {
       setSavedIds([]);
       return;
     }
 
-    apiRequest('/saved-properties', { token })
+    apiRequest('/saved-properties')
       .then((data) => setSavedIds((data.data || []).map((entry) => entry.property_id)))
       .catch(() => setSavedIds([]));
-  }, [token, user]);
+  }, [user]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams();
@@ -92,7 +92,7 @@ export default function PropertiesPage() {
         setMeta({ current_page: 1, last_page: 1 });
       })
       .finally(() => setBusy(false));
-  }, [deferredSearch, filters.amenity_id, filters.city, filters.max_price, filters.min_price, filters.property_type, page]);
+  }, [deferredSearch, filters, page]);
 
   // Handle Escape key to close the drawer
   useEffect(() => {
@@ -128,7 +128,7 @@ export default function PropertiesPage() {
       .finally(() => setSlotsBusy(false));
   }, [bookingDate, selected]);
 
-  const canBook = useMemo(() => user?.role === 'user', [user]);
+  const canUseBuyerActions = useMemo(() => user?.role === 'user' && Boolean(user?.email_verified_at), [user]);
 
   const updateFilter = (name, value) => {
     startTransition(() => {
@@ -138,8 +138,8 @@ export default function PropertiesPage() {
   };
 
   const toggleSave = async (property) => {
-    if (!token || user?.role !== 'user') {
-      setMessage('Log in as a user account to save properties.');
+    if (!canUseBuyerActions) {
+      setMessage('Verify your email and log in as a buyer to save properties.');
       return;
     }
 
@@ -152,7 +152,7 @@ export default function PropertiesPage() {
         message: `Are you sure you want to remove "${property.title}" from your saved collection?`,
         tone: 'warning',
         onConfirm: async () => {
-          await apiRequest(`/saved-properties/${property.property_id}`, { method: 'DELETE', token });
+          await apiRequest(`/saved-properties/${property.property_id}`, { method: 'DELETE' });
           setSavedIds((current) => current.filter((entry) => entry !== property.property_id));
           setMessage('Property removed from saved list.');
           setConfirmState(null);
@@ -161,14 +161,14 @@ export default function PropertiesPage() {
       return;
     }
 
-    await apiRequest(`/saved-properties/${property.property_id}`, { method: 'POST', token });
+    await apiRequest(`/saved-properties/${property.property_id}`, { method: 'POST' });
     setSavedIds((current) => [...current, property.property_id]);
     setMessage('Property saved successfully.');
   };
 
   const bookViewing = async (property) => {
-    if (!token || user?.role !== 'user') {
-      setMessage('Create or log in to a buyer account to book a viewing.');
+    if (!canUseBuyerActions) {
+      setMessage('Verify your email and log in as a buyer to book a viewing.');
       return;
     }
 
@@ -181,7 +181,6 @@ export default function PropertiesPage() {
     try {
       await apiRequest(`/properties/${property.property_id}/viewings`, {
         method: 'POST',
-        token,
         body: { scheduled_start: selectedSlot, notes: bookingNotes },
       });
       setBookingNotes('');
@@ -288,7 +287,7 @@ export default function PropertiesPage() {
             {properties.length > 0 ? properties.map((property, idx) => (
               <div key={property.property_id} className={`animate-enter animate-delay-${(idx % 3) + 1}`}>
                 <PropertyCard
-                  onInquire={canBook ? bookViewing : null}
+                  onInquire={canUseBuyerActions ? bookViewing : null}
                   onSave={user?.role === 'user' ? toggleSave : null}
                   onView={setSelected}
                   property={property}
@@ -371,7 +370,7 @@ export default function PropertiesPage() {
                 <div><dt>Status</dt><dd style={{ color: selected.status === 'Available' ? 'var(--status-success)' : 'var(--text-main)' }}>{selected.status}</dd></div>
               </dl>
                
-              {canBook && selected.status.toLowerCase() === 'available' ? (
+              {canUseBuyerActions && selected.status.toLowerCase() === 'available' ? (
                 <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--border-subtle)' }}>
                   <div className="booking-panel-header">
                     <div>
@@ -423,7 +422,7 @@ export default function PropertiesPage() {
                     {bookingBusy ? 'Booking Viewing...' : 'Book Viewing Slot'}
                   </button>
                 </div>
-              ) : !canBook ? (
+              ) : !canUseBuyerActions ? (
                 <p className="empty-copy">Sign in as a client to reserve a viewing slot with this agent.</p>
               ) : (
                 <p className="empty-copy">This property is currently not available for scheduling.</p>

@@ -21,7 +21,7 @@ function formatReviewDate(value) {
 }
 
 export default function AgentsPage() {
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const [agents, setAgents] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [search, setSearch] = useState('');
@@ -75,8 +75,8 @@ export default function AgentsPage() {
       return;
     }
 
-    if (!token || user?.role !== 'user') {
-      setMessage('Log in as a buyer account to leave a review.');
+    if (user?.role !== 'user' || !user?.email_verified_at) {
+      setMessage('Verify your email and log in as a buyer account to leave a review.');
       return;
     }
 
@@ -84,7 +84,6 @@ export default function AgentsPage() {
     try {
       await apiRequest(`/agents/${selectedDetail.agent.agent_id}/reviews`, {
         method: 'POST',
-        token,
         body: {
           rating: Number(reviewForm.rating),
           review_text: reviewForm.review_text.trim() || null,

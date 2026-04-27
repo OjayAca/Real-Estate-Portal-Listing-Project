@@ -5,8 +5,11 @@ use App\Http\Controllers\Api\PortalController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function (): void {
-    Route::post('/register', [PortalController::class, 'register']);
-    Route::post('/login', [PortalController::class, 'login']);
+    Route::post('/register', [PortalController::class, 'register'])->middleware('throttle:auth');
+    Route::post('/login', [PortalController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/forgot-password', [PortalController::class, 'forgotPassword'])->middleware('throttle:auth');
+    Route::post('/reset-password', [PortalController::class, 'resetPassword'])->middleware('throttle:auth');
+    Route::get('/me', [PortalController::class, 'me']);
 });
 
 Route::get('/amenities', [PortalController::class, 'amenitiesIndex']);
@@ -17,21 +20,13 @@ Route::get('/properties/{property}', [PortalController::class, 'propertyShow']);
 Route::get('/properties/{property}/viewing-slots', [AgentEcosystemController::class, 'propertyViewingSlots']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('/auth/me', [PortalController::class, 'me']);
     Route::post('/auth/logout', [PortalController::class, 'logout']);
+    Route::post('/auth/email/verification-notification', [PortalController::class, 'sendVerificationNotification'])
+        ->middleware('throttle:verification-notification');
     Route::get('/dashboard', [PortalController::class, 'dashboard']);
     Route::get('/notifications', [PortalController::class, 'notificationsIndex']);
     Route::patch('/notifications/{notification}/read', [PortalController::class, 'notificationRead']);
     Route::post('/notifications/read-all', [PortalController::class, 'notificationsReadAll']);
-
-    Route::middleware('role:user')->group(function (): void {
-        Route::get('/saved-properties', [PortalController::class, 'savedPropertiesIndex']);
-        Route::post('/saved-properties/{property}', [PortalController::class, 'saveProperty']);
-        Route::delete('/saved-properties/{property}', [PortalController::class, 'unsaveProperty']);
-        Route::post('/properties/{property}/inquiries', [PortalController::class, 'createInquiry']);
-        Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing']);
-        Route::post('/agents/{agent}/reviews', [AgentEcosystemController::class, 'agentReviewStore']);
-    });
 
     Route::prefix('agent')->middleware('role:agent')->group(function (): void {
         Route::get('/properties', [PortalController::class, 'agentPropertiesIndex']);
@@ -52,4 +47,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/agents/{agent}', [PortalController::class, 'adminAgentUpdate']);
         Route::patch('/properties/{property}', [PortalController::class, 'adminPropertyUpdate']);
     });
+});
+
+Route::middleware(['auth:sanctum', 'verified', 'role:user'])->group(function (): void {
+    Route::get('/saved-properties', [PortalController::class, 'savedPropertiesIndex']);
+    Route::post('/saved-properties/{property}', [PortalController::class, 'saveProperty']);
+    Route::delete('/saved-properties/{property}', [PortalController::class, 'unsaveProperty']);
+    Route::post('/properties/{property}/inquiries', [PortalController::class, 'createInquiry']);
+    Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing']);
+    Route::post('/agents/{agent}/reviews', [AgentEcosystemController::class, 'agentReviewStore']);
 });

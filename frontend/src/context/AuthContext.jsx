@@ -1,25 +1,17 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { apiRequest } from '../api/client';
 
-const STORAGE_KEY = 'estateflow_token';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => window.localStorage.getItem(STORAGE_KEY));
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(Boolean(window.localStorage.getItem(STORAGE_KEY)));
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     let ignore = false;
-    setLoading(true);
 
-    apiRequest('/auth/me', { token })
+    apiRequest('/auth/me')
       .then((data) => {
         if (!ignore) {
           setUser(data.user);
@@ -27,8 +19,6 @@ export function AuthProvider({ children }) {
       })
       .catch(() => {
         if (!ignore) {
-          window.localStorage.removeItem(STORAGE_KEY);
-          setToken(null);
           setUser(null);
         }
       })
@@ -41,11 +31,6 @@ export function AuthProvider({ children }) {
     return () => {
       ignore = true;
     };
-  }, [token]);
-
-  const persistToken = useCallback((nextToken) => {
-    window.localStorage.setItem(STORAGE_KEY, nextToken);
-    setToken(nextToken);
   }, []);
 
   const login = useCallback(async (payload) => {
@@ -54,10 +39,9 @@ export function AuthProvider({ children }) {
       body: payload,
     });
 
-    persistToken(data.token);
     setUser(data.user);
     return data;
-  }, [persistToken]);
+  }, []);
 
   const register = useCallback(async (payload) => {
     const data = await apiRequest('/auth/register', {
@@ -65,25 +49,20 @@ export function AuthProvider({ children }) {
       body: payload,
     });
 
-    persistToken(data.token);
     setUser(data.user);
     return data;
-  }, [persistToken]);
+  }, []);
 
   const logout = useCallback(async () => {
-    if (token) {
-      await apiRequest('/auth/logout', {
-        method: 'POST',
-        token,
-      }).catch(() => null);
-    }
+    await apiRequest('/auth/logout', {
+      method: 'POST',
+    }).catch(() => null);
 
-    window.localStorage.removeItem(STORAGE_KEY);
-    setToken(null);
     setUser(null);
-  }, [token]);
+    setLoading(false);
+  }, []);
 
-  const authFetch = useCallback((path, options = {}) => apiRequest(path, { ...options, token }), [token]);
+  const authFetch = useCallback((path, options = {}) => apiRequest(path, options), []);
 
   const value = useMemo(
     () => ({
@@ -92,11 +71,10 @@ export function AuthProvider({ children }) {
       login,
       logout,
       register,
-      token,
       user,
       setUser,
     }),
-    [authFetch, loading, login, logout, register, token, user],
+    [authFetch, loading, login, logout, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
