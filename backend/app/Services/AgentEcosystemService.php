@@ -356,7 +356,7 @@ class AgentEcosystemService
             ],
         );
 
-        $agent->forceFill(['agency_id' => $agency->agency_id])->save();
+        $agent->update(['agency_id' => $agency->agency_id]);
         $agent->setRelation('agency', $agency);
     }
 

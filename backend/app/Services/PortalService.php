@@ -534,7 +534,7 @@ class PortalService
         [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent);
         $payload['agent_id'] = $agent->agent_id;
         $payload['slug'] = $this->generateSlug($payload['title']);
-        $payload['listed_at'] = now();
+        $payload['listed_at'] = ($payload['status'] ?? 'Available') === 'Available' ? now() : null;
 
         $property = Property::query()->create($payload);
         $property->amenities()->sync($amenityIds);
@@ -553,6 +553,10 @@ class PortalService
 
         if (array_key_exists('title', $payload)) {
             $payload['slug'] = $this->generateSlug($payload['title'], $property);
+        }
+
+        if (($payload['status'] ?? null) === 'Available' && ! $property->listed_at) {
+            $payload['listed_at'] = now();
         }
 
         $property->update($payload);
@@ -783,7 +787,7 @@ class PortalService
         $sourcePath = $file->getRealPath();
         $mimeType = $file->getMimeType() ?: $file->getClientMimeType();
 
-        if (! $sourcePath || ! $mimeType) {
+        if (! $sourcePath || ! $mimeType || ! function_exists('imagecreatetruecolor')) {
             return $file->store("properties/agent-{$agent->agent_id}", 'public');
         }
 
@@ -799,6 +803,10 @@ class PortalService
             $sourceWidth = imagesx($sourceImage);
             $sourceHeight = imagesy($sourceImage);
 
+            if ($sourceWidth <= 0 || $sourceHeight <= 0) {
+                return $file->store("properties/agent-{$agent->agent_id}", 'public');
+            }
+
             $targetImage = $this->resizeImageResource(
                 $sourceImage,
                 $sourceWidth,
@@ -807,6 +815,10 @@ class PortalService
                 self::FEATURED_IMAGE_TARGET_HEIGHT,
                 $mimeType
             );
+
+            if (! $targetImage) {
+                return $file->store("properties/agent-{$agent->agent_id}", 'public');
+            }
 
             $extension = $this->imageExtensionForMimeType($mimeType);
             $path = "properties/agent-{$agent->agent_id}/".Str::random(40).'.'.$extension;
@@ -819,8 +831,12 @@ class PortalService
             }
 
             return $path;
+        } catch (\Throwable $e) {
+            return $file->store("properties/agent-{$agent->agent_id}", 'public');
         } finally {
-            imagedestroy($sourceImage);
+            if (is_resource($sourceImage) || (PHP_VERSION_ID >= 80000 && $sourceImage instanceof \GdImage)) {
+                imagedestroy($sourceImage);
+            }
         }
     }
 
