@@ -641,11 +641,44 @@ class PortalService
         ]);
     }
 
-    public function adminOverview(): JsonResponse
+    public function adminOverview(Request $request): JsonResponse
     {
-        $users = User::query()->with('agentProfile')->latest()->take(10)->get();
-        $agents = Agent::query()->with('user')->latest()->take(10)->get();
-        $properties = Property::query()->with(['agent.user', 'amenities'])->latest()->take(10)->get();
+        $userSearch = $request->query('user_search');
+        $agentSearch = $request->query('agent_search');
+        $propertySearch = $request->query('property_search');
+
+        $usersQuery = User::query()->with('agentProfile')->latest();
+        if ($userSearch) {
+            $usersQuery->where(function ($query) use ($userSearch): void {
+                $query->where('first_name', 'like', "%{$userSearch}%")
+                    ->orWhere('last_name', 'like', "%{$userSearch}%")
+                    ->orWhere('email', 'like', "%{$userSearch}%");
+            });
+        }
+        $users = $usersQuery->take(50)->get();
+
+        $agentsQuery = Agent::query()->with('user')->latest();
+        if ($agentSearch) {
+            $agentsQuery->where(function ($query) use ($agentSearch): void {
+                $query->where('first_name', 'like', "%{$agentSearch}%")
+                    ->orWhere('last_name', 'like', "%{$agentSearch}%")
+                    ->orWhere('agency_name', 'like', "%{$agentSearch}%")
+                    ->orWhere('email', 'like', "%{$agentSearch}%");
+            });
+        }
+        $agents = $agentsQuery->take(50)->get();
+
+        $propertiesQuery = Property::query()->with(['agent.user', 'amenities'])->latest();
+        if ($propertySearch) {
+            $propertiesQuery->where(function ($query) use ($propertySearch): void {
+                $query->where('title', 'like', "%{$propertySearch}%")
+                    ->orWhere('city', 'like', "%{$propertySearch}%")
+                    ->orWhere('province', 'like', "%{$propertySearch}%")
+                    ->orWhere('address_line', 'like', "%{$propertySearch}%");
+            });
+        }
+        $properties = $propertiesQuery->take(50)->get();
+
         $inquiries = Inquiry::query()->with(['property.agent.user', 'user'])->latest()->take(10)->get();
 
         return response()->json([

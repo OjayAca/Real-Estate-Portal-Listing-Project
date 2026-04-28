@@ -138,9 +138,9 @@ class PortalController extends Controller
         return $this->portalService->agentInquiryUpdate($request, $inquiry);
     }
 
-    public function adminOverview(): JsonResponse
+    public function adminOverview(Request $request): JsonResponse
     {
-        return $this->portalService->adminOverview();
+        return $this->portalService->adminOverview($request);
     }
 
     public function adminUserUpdate(Request $request, User $user): JsonResponse

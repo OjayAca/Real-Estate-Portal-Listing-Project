@@ -584,6 +584,38 @@ export default function DashboardPage() {
   const [agentBookings, setAgentBookings] = useState([]);
   const [agentBookingsBusy, setAgentBookingsBusy] = useState(false);
 
+  const [userSearch, setUserSearch] = useState('');
+  const [agentSearch, setAgentSearch] = useState('');
+  const [propertySearch, setPropertySearch] = useState('');
+
+  const loadAdminOverview = useMemo(() => {
+    return async (uSearch = '', aSearch = '', pSearch = '') => {
+      try {
+        const params = new URLSearchParams();
+        if (uSearch) params.append('user_search', uSearch);
+        if (aSearch) params.append('agent_search', aSearch);
+        if (pSearch) params.append('property_search', pSearch);
+        
+        const overview = await authFetch(`/admin/overview?${params.toString()}`);
+        setAdminOverview(overview);
+      } catch (error) {
+        setMessage(error.message);
+      }
+    };
+  }, [authFetch]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      loadAdminOverview(userSearch, agentSearch, propertySearch);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [userSearch, agentSearch, propertySearch, user?.role, loadAdminOverview]);
+
   useEffect(() => {
     if (!user) {
       return;
@@ -605,10 +637,7 @@ export default function DashboardPage() {
         }
 
         if (user.role === 'admin') {
-          const overview = await authFetch('/admin/overview');
-          if (!ignore) {
-            setAdminOverview(overview);
-          }
+          await loadAdminOverview(userSearch, agentSearch, propertySearch);
         }
       } catch (error) {
         if (ignore) {
@@ -630,7 +659,7 @@ export default function DashboardPage() {
     return () => {
       ignore = true;
     };
-  }, [authFetch, user]);
+  }, [authFetch, user, loadAdminOverview]);
 
   useEffect(() => {
     if (user?.role !== 'agent') {
@@ -743,12 +772,11 @@ export default function DashboardPage() {
     const data = await authFetch(path, { method: 'PATCH', body });
     setMessage(data.message);
     if (user?.role === 'admin') {
-      const [nextDashboard, nextOverview] = await Promise.all([
+      const [nextDashboard] = await Promise.all([
         authFetch('/dashboard'),
-        authFetch('/admin/overview'),
+        loadAdminOverview(userSearch, agentSearch, propertySearch),
       ]);
       setDashboard(nextDashboard);
-      setAdminOverview(nextOverview);
     }
   };
 
@@ -1265,14 +1293,25 @@ export default function DashboardPage() {
       {user.role === 'admin' && adminOverview ? (
         <>
           <section className="section-panel admin-panel animate-enter animate-delay-2">
-            <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+            <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
               <div>
                 <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><Users size={14} aria-hidden="true" /> Directory</p>
                 <h2 style={{ margin: 0 }}>System Users</h2>
               </div>
+              <div style={{ minWidth: '300px' }}>
+                <input
+                  aria-label="Search users by name or email"
+                  placeholder="Search users by name or email..."
+                  type="text"
+                  value={userSearch}
+                  onChange={(event) => setUserSearch(event.target.value)}
+                  style={{ marginTop: 0 }}
+                />
+              </div>
             </div>
             
             <div className="table-stack">
+              {adminOverview.users.length === 0 && <p className="empty-copy">No users match your search.</p>}
               {adminOverview.users.map((entry) => (
                 <div className="table-row" key={entry.id}>
                   <div>
@@ -1280,21 +1319,9 @@ export default function DashboardPage() {
                     <span>{entry.email}</span>
                   </div>
                   <div className="table-actions">
-                    <select
-                      value={entry.role}
-                      aria-label={`Change role for ${entry.full_name}`}
-                      onChange={(event) => openAdminConfirm({
-                        title: 'Confirm Role Change',
-                        message: `Change ${entry.full_name}'s role to ${event.target.value}?`,
-                        path: `/admin/users/${entry.id}`,
-                        body: { is_active: entry.is_active, role: event.target.value },
-                        tone: 'warning',
-                      })}
-                    >
-                      <option value="user">User</option>
-                      <option value="agent">Agent</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    <span className="chip" style={{ background: 'var(--primary-light)', color: 'var(--primary-base)', borderColor: 'var(--primary-base)' }}>
+                      {entry.role}
+                    </span>
                     <button
                       className={entry.is_active ? 'ghost-button' : 'primary-button'}
                       aria-label={entry.is_active ? `Suspend ${entry.full_name}` : `Restore ${entry.full_name}`}
@@ -1302,7 +1329,7 @@ export default function DashboardPage() {
                         title: entry.is_active ? 'Suspend User Access' : 'Restore User Access',
                         message: `Are you sure you want to ${entry.is_active ? 'suspend' : 'restore'} access for ${entry.full_name}?`,
                         path: `/admin/users/${entry.id}`,
-                        body: { is_active: !entry.is_active, role: entry.role },
+                        body: { is_active: !entry.is_active },
                         tone: entry.is_active ? 'danger' : 'warning',
                       })}
                       type="button"
@@ -1316,10 +1343,25 @@ export default function DashboardPage() {
           </section>
           
           <section className="section-panel admin-panel animate-enter animate-delay-3">
-            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><UserCheck size={14} aria-hidden="true" /> Approvals</p>
-            <h2>Agent Authorizations</h2>
+            <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+              <div>
+                <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><UserCheck size={14} aria-hidden="true" /> Approvals</p>
+                <h2 style={{ margin: 0 }}>Agent Authorizations</h2>
+              </div>
+              <div style={{ minWidth: '300px' }}>
+                <input
+                  aria-label="Search agents by name or agency"
+                  placeholder="Search agents by name or agency..."
+                  type="text"
+                  value={agentSearch}
+                  onChange={(event) => setAgentSearch(event.target.value)}
+                  style={{ marginTop: 0 }}
+                />
+              </div>
+            </div>
+
             <div className="table-stack">
-              {adminOverview.agents.length === 0 && <p className="empty-copy">No agents pending review.</p>}
+              {adminOverview.agents.length === 0 && <p className="empty-copy">No agents match your search or pending review.</p>}
               {adminOverview.agents.map((entry) => (
                 <div className="table-row" key={entry.agent_id}>
                   <div>
@@ -1349,10 +1391,25 @@ export default function DashboardPage() {
           </section>
           
           <section className="section-panel admin-panel animate-enter">
-            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><Building size={14} aria-hidden="true" /> Inventory</p>
-            <h2>Property Status Review</h2>
+            <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+              <div>
+                <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><Building size={14} aria-hidden="true" /> Inventory</p>
+                <h2 style={{ margin: 0 }}>Property Status Review</h2>
+              </div>
+              <div style={{ minWidth: '300px' }}>
+                <input
+                  aria-label="Search properties by title or location"
+                  placeholder="Search properties by title or location..."
+                  type="text"
+                  value={propertySearch}
+                  onChange={(event) => setPropertySearch(event.target.value)}
+                  style={{ marginTop: 0 }}
+                />
+              </div>
+            </div>
+
             <div className="table-stack">
-              {adminOverview.properties.length === 0 && <p className="empty-copy">No properties needing review.</p>}
+              {adminOverview.properties.length === 0 && <p className="empty-copy">No properties match your search or needing review.</p>}
               {adminOverview.properties.map((entry) => (
                 <div className="table-row" key={entry.property_id}>
                   <div>
