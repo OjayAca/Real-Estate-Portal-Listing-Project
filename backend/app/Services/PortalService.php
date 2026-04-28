@@ -31,6 +31,7 @@ class PortalService
 {
     private const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
     private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'];
+    private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Sold', 'Rented'];
     private const INQUIRY_STATUSES = ['New', 'Read', 'Responded', 'Closed'];
     private const AGENT_STATUSES = ['pending', 'approved', 'suspended'];
     private const FEATURED_IMAGE_MAX_SIZE_KB = 25600;
@@ -531,7 +532,7 @@ class PortalService
     public function agentPropertyStore(Request $request): JsonResponse
     {
         $agent = $this->requireApprovedAgent($request->user());
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent);
+        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, false, null, self::AGENT_ALLOWED_STATUSES);
         $payload['agent_id'] = $agent->agent_id;
         $payload['slug'] = $this->generateSlug($payload['title']);
         $payload['listed_at'] = ($payload['status'] ?? 'Available') === 'Available' ? now() : null;
@@ -549,7 +550,15 @@ class PortalService
     {
         $agent = $this->requireApprovedAgent($request->user());
         $this->guardOwnProperty($agent, $property);
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, true, $property);
+
+        $allowedStatuses = self::AGENT_ALLOWED_STATUSES;
+        // Agents can only set/keep Draft status if the property is already in Draft status.
+        // This prevents reverting a listed property (Available, Sold, Rented) back to Draft.
+        if ($property->status !== 'Draft') {
+            $allowedStatuses = array_values(array_diff($allowedStatuses, ['Draft']));
+        }
+
+        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, true, $property, $allowedStatuses);
 
         if (array_key_exists('title', $payload)) {
             $payload['slug'] = $this->generateSlug($payload['title'], $property);
@@ -726,11 +735,13 @@ class PortalService
     }
 
     /**
+     * @param  array<string>|null  $allowedStatuses
      * @return array{0: array<string, mixed>, 1: array<int>|null}
      */
-    private function validatePropertyPayload(Request $request, Agent $agent, bool $isUpdate = false, ?Property $property = null): array
+    private function validatePropertyPayload(Request $request, Agent $agent, bool $isUpdate = false, ?Property $property = null, ?array $allowedStatuses = null): array
     {
         $required = $isUpdate ? ['sometimes'] : ['required'];
+        $allowedStatuses ??= self::PROPERTY_STATUSES;
 
         $validated = $request->validate([
             'title' => array_merge($required, ['string', 'max:150']),
@@ -755,7 +766,7 @@ class PortalService
                     ->maxWidth(self::FEATURED_IMAGE_MAX_WIDTH)
                     ->maxHeight(self::FEATURED_IMAGE_MAX_HEIGHT),
             ],
-            'status' => ['nullable', Rule::in(self::PROPERTY_STATUSES)],
+            'status' => ['nullable', Rule::in($allowedStatuses)],
             'amenity_ids' => ['nullable', 'array'],
             'amenity_ids.*' => ['integer', 'exists:amenities,amenity_id'],
         ]);

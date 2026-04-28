@@ -30,6 +30,7 @@ import {
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
 const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'];
+const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Sold', 'Rented'];
 const WEEKDAY_OPTIONS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const FEATURED_IMAGE_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 const FEATURED_IMAGE_MIN_WIDTH = 1200;
@@ -427,9 +428,22 @@ function AgentPropertyForm({
           <label>
             Status
             <select value={values.status} onChange={(event) => updateValue('status', event.target.value)}>
-              {PROPERTY_STATUSES.map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
+              {(() => {
+                const isDraft = initialProperty?.status === 'Draft' || mode === 'create';
+                let options = [...AGENT_ALLOWED_STATUSES];
+
+                if (!isDraft) {
+                  options = options.filter((s) => s !== 'Draft');
+                }
+
+                if (initialProperty?.status === 'Inactive' && !options.includes('Inactive')) {
+                  options.push('Inactive');
+                }
+
+                return options.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ));
+              })()}
             </select>
             {getFieldError(fieldErrors, 'status') ? <span className="field-error">{getFieldError(fieldErrors, 'status')}</span> : null}
           </label>
