@@ -82,6 +82,20 @@ class AdminDashboardSearchTest extends TestCase
         $this->assertEquals('user', $user->fresh()->role->value);
     }
 
+    public function test_admin_cannot_be_suspended(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $targetAdmin = User::factory()->create(['role' => 'admin', 'is_active' => true]);
+
+        $response = $this->actingAs($admin)->patchJson("/api/admin/users/{$targetAdmin->id}", [
+            'is_active' => false,
+        ]);
+
+        $response->assertStatus(403);
+        $response->assertJsonPath('message', 'Administrator accounts cannot be suspended.');
+        $this->assertTrue($targetAdmin->fresh()->is_active);
+    }
+
     public function test_admin_can_search_properties_by_title_or_location(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

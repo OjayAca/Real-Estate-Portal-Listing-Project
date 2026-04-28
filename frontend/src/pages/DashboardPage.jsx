@@ -1325,6 +1325,7 @@ export default function DashboardPage() {
                     <button
                       className={entry.is_active ? 'ghost-button' : 'primary-button'}
                       aria-label={entry.is_active ? `Suspend ${entry.full_name}` : `Restore ${entry.full_name}`}
+                      disabled={entry.role === 'admin' && entry.is_active}
                       onClick={() => openAdminConfirm({
                         title: entry.is_active ? 'Suspend User Access' : 'Restore User Access',
                         message: `Are you sure you want to ${entry.is_active ? 'suspend' : 'restore'} access for ${entry.full_name}?`,

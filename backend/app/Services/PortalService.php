@@ -703,6 +703,10 @@ class PortalService
             'role' => ['nullable', Rule::in(UserRole::values())],
         ]);
 
+        if ($user->isAdmin() && $validated['is_active'] === false) {
+            return response()->json(['message' => 'Administrator accounts cannot be suspended.'], 403);
+        }
+
         if (($validated['role'] ?? null) === UserRole::AGENT->value && ! $user->agentProfile) {
             return response()->json(['message' => 'Create an agent profile before promoting this user to agent.'], 422);
         }
