@@ -26,7 +26,7 @@ export default function NotificationBell() {
     <div className="notification-wrap">
       <button 
         ref={buttonRef}
-        className="bell-icon" 
+        className="icon-button" 
         onClick={() => setOpen((current) => !current)}
         title="Notifications"
       >

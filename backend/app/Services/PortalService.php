@@ -117,8 +117,6 @@ class PortalService
             $request->session()->regenerate();
         }
 
-        $token = $user->createToken('portal-auth')->plainTextToken;
-
         if (! $user->hasVerifiedEmail()) {
             $user->sendEmailVerificationNotification();
         }
@@ -127,7 +125,6 @@ class PortalService
             'message' => $user->isAgent()
                 ? 'Agent account created. An admin still needs to approve the agent profile.'
                 : 'Account created successfully.',
-            'token' => $token,
             'user' => $this->formatUser($user),
             'requires_email_verification' => ! $user->hasVerifiedEmail(),
         ], 201);
@@ -155,11 +152,8 @@ class PortalService
             $request->session()->regenerate();
         }
 
-        $token = $user->createToken('portal-auth')->plainTextToken;
-
         return response()->json([
             'message' => 'Logged in successfully.',
-            'token' => $token,
             'user' => $this->formatUser($user),
             'requires_email_verification' => ! $user->hasVerifiedEmail(),
         ]);
@@ -378,7 +372,28 @@ class PortalService
         }
 
         if ($user->isAgent()) {
-            $agent = $this->requireApprovedAgent($user);
+            $agent = $user->agentProfile;
+
+            if (! $agent) {
+                abort(404, 'No agent profile is linked to this account.');
+            }
+
+            if (! $agent->isApproved()) {
+                return response()->json([
+                    'role' => $user->role->value,
+                    'stats' => [
+                        'properties' => 0,
+                        'active_listings' => 0,
+                        'new_inquiries' => 0,
+                        'closed_inquiries' => 0,
+                        'unread_notifications' => $user->unreadNotifications()->count(),
+                    ],
+                    'profile' => $this->formatAgent($agent),
+                    'properties' => [],
+                    'recent_inquiries' => [],
+                ]);
+            }
+
             $properties = Property::query()->with(['agent.user', 'amenities'])->where('agent_id', $agent->agent_id)->latest()->take(5)->get();
             $inquiries = Inquiry::query()->with(['property.agent.user', 'user'])
                 ->whereHas('property', fn ($builder) => $builder->where('agent_id', $agent->agent_id))
@@ -393,6 +408,7 @@ class PortalService
                     'active_listings' => Property::query()->where('agent_id', $agent->agent_id)->where('status', 'Available')->count(),
                     'new_inquiries' => Inquiry::query()->whereHas('property', fn ($builder) => $builder->where('agent_id', $agent->agent_id))->where('status', 'New')->count(),
                     'closed_inquiries' => Inquiry::query()->whereHas('property', fn ($builder) => $builder->where('agent_id', $agent->agent_id))->where('status', 'Closed')->count(),
+                    'unread_notifications' => $user->unreadNotifications()->count(),
                 ],
                 'profile' => $this->formatAgent($agent),
                 'properties' => $properties->map(fn (Property $entry) => $this->formatProperty($entry)),
@@ -615,7 +631,11 @@ class PortalService
 
         $validated = $request->validate([
             'status' => ['required', Rule::in(self::INQUIRY_STATUSES)],
-            'response_message' => ['nullable', 'string'],
+            'response_message' => [
+                Rule::requiredIf(fn () => $request->status === 'Responded' || $request->status === 'Closed'),
+                'nullable',
+                'string',
+            ],
         ]);
 
         $inquiry->status = $validated['status'];
@@ -711,6 +731,17 @@ class PortalService
             return response()->json(['message' => 'Create an agent profile before promoting this user to agent.'], 422);
         }
 
+        if ($user->isAgent() && ($validated['role'] ?? $user->role->value) !== UserRole::AGENT->value) {
+            $activeListings = Property::query()
+                ->where('agent_id', $user->agentProfile?->agent_id)
+                ->whereIn('status', ['Available', 'Sold', 'Rented'])
+                ->count();
+
+            if ($activeListings > 0) {
+                return response()->json(['message' => 'This agent has active or historical listings and cannot be demoted. Delete or reassign listings first.'], 422);
+            }
+        }
+
         $user->update([
             'is_active' => $validated['is_active'],
             'role' => $validated['role'] ?? $user->role->value,
@@ -730,6 +761,10 @@ class PortalService
 
         $agent->update(['approval_status' => $validated['approval_status']]);
 
+        if ($agent->isApproved()) {
+            $this->ensureDefaultAvailability($agent);
+        }
+
         if ($agent->user) {
             $this->pushNotification(
                 $agent->user,
@@ -744,6 +779,25 @@ class PortalService
             'message' => 'Agent status updated.',
             'data' => $this->formatAgent($agent->fresh()->load('user')),
         ]);
+    }
+
+    private function ensureDefaultAvailability(Agent $agent): void
+    {
+        if (DB::table('agent_availabilities')->where('agent_id', $agent->agent_id)->exists()) {
+            return;
+        }
+
+        foreach ([1, 2, 3, 4, 5] as $day) {
+            DB::table('agent_availabilities')->insert([
+                'agent_id' => $agent->agent_id,
+                'day_of_week' => $day,
+                'start_time' => '09:00',
+                'end_time' => '17:00',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     public function adminPropertyUpdate(Request $request, Property $property): JsonResponse

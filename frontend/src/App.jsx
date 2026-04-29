@@ -7,14 +7,6 @@ import HomePage from './pages/HomePage';
 import PropertiesPage from './pages/PropertiesPage';
 import { useAuth } from './context/AuthContext';
 
-function canAccessDashboard(user) {
-  if (!user) {
-    return false;
-  }
-
-  return user.role !== 'user' || Boolean(user.email_verified_at);
-}
-
 function DashboardRoute() {
   const { loading, user } = useAuth();
   const location = useLocation();
@@ -25,10 +17,6 @@ function DashboardRoute() {
 
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-
-  if (!canAccessDashboard(user)) {
-    return <p className="empty-copy">Verify your email address before opening the dashboard.</p>;
   }
 
   return <DashboardPage />;

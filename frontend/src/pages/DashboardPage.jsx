@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import MetricCard from '../components/MetricCard';
 import ConfirmModal from '../components/ConfirmModal';
+import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import {
   AlertCircle,
   Bath,
   BedDouble,
+  Bell,
   Building,
   CalendarDays,
   CheckCircle,
@@ -18,6 +20,7 @@ import {
   Layers3,
   Mail,
   MapPin,
+  MessageSquare,
   Pencil,
   Plus,
   Save,
@@ -58,7 +61,12 @@ const emptyPropertyForm = {
 function createFallbackDashboard(profile) {
   return {
     role: 'agent',
-    stats: {},
+    stats: {
+      properties: 0,
+      active_listings: 0,
+      new_inquiries: 0,
+      closed_inquiries: 0,
+    },
     profile: profile || null,
     properties: [],
     recent_inquiries: [],
@@ -564,7 +572,7 @@ function AgentPropertyForm({
 }
 
 export default function DashboardPage() {
-  const { authFetch, loading, user } = useAuth();
+  const { authFetch, loading, user, sendVerification } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [adminOverview, setAdminOverview] = useState(null);
   const [message, setMessage] = useState('');
@@ -583,10 +591,32 @@ export default function DashboardPage() {
   const [agentScheduleSaving, setAgentScheduleSaving] = useState(false);
   const [agentBookings, setAgentBookings] = useState([]);
   const [agentBookingsBusy, setAgentBookingsBusy] = useState(false);
+  const [agentInquiries, setAgentInquiries] = useState([]);
+  const [agentInquiriesBusy, setAgentInquiriesBusy] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [respondingInquiry, setRespondingInquiry] = useState(null);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [responseBusy, setResponseBusy] = useState(false);
 
   const [userSearch, setUserSearch] = useState('');
   const [agentSearch, setAgentSearch] = useState('');
   const [propertySearch, setPropertySearch] = useState('');
+
+  const [verificationBusy, setVerificationBusy] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
+
+  const handleResendVerification = async () => {
+    setVerificationBusy(true);
+    setVerificationMessage('');
+    try {
+      const response = await sendVerification();
+      setVerificationMessage(response.message || 'Verification link sent to your email.');
+    } catch (error) {
+      setVerificationMessage(error.message);
+    } finally {
+      setVerificationBusy(false);
+    }
+  };
 
   const loadAdminOverview = useMemo(() => {
     return async (uSearch = '', aSearch = '', pSearch = '') => {
@@ -659,7 +689,7 @@ export default function DashboardPage() {
     return () => {
       ignore = true;
     };
-  }, [authFetch, user, loadAdminOverview]);
+  }, [authFetch, user, loadAdminOverview, userSearch, agentSearch, propertySearch]);
 
   useEffect(() => {
     if (user?.role !== 'agent') {
@@ -682,10 +712,12 @@ export default function DashboardPage() {
     return () => {
       ignore = true;
     };
-  }, [user]);
+  }, [user?.role]);
 
   const agentProfile = dashboard?.profile || user?.agent_profile || null;
-  const isApprovedAgent = user?.role === 'agent' && agentProfile?.approval_status === 'approved';
+  const isApprovedAgent = user?.role === 'agent' && 
+    agentProfile?.approval_status === 'approved' && 
+    Boolean(user?.email_verified_at);
 
   useEffect(() => {
     if (!isApprovedAgent) {
@@ -763,10 +795,48 @@ export default function DashboardPage() {
         }
       });
 
+    authFetch('/agent/inquiries')
+      .then((data) => {
+        if (!ignore) {
+          setAgentInquiries(data.data || []);
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setAgentMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setAgentInquiriesBusy(false);
+        }
+      });
+
     return () => {
       ignore = true;
     };
   }, [authFetch, isApprovedAgent]);
+
+  const handleInquiryResponse = async (inquiryId) => {
+    if (!responseMessage.trim()) return;
+    setResponseBusy(true);
+    try {
+      const response = await authFetch(`/agent/inquiries/${inquiryId}`, {
+        method: 'PATCH',
+        body: { status: 'Responded', response_message: responseMessage },
+      });
+      setAgentInquiries((current) => current.map((entry) => (
+        entry.inquiry_id === inquiryId ? response.data : entry
+      )));
+      setRespondingInquiry(null);
+      setResponseMessage('');
+      setAgentMessage(response.message);
+    } catch (error) {
+      setAgentMessage(error.message);
+    } finally {
+      setResponseBusy(false);
+    }
+  };
 
   const updateAdminRecord = async (path, body) => {
     const data = await authFetch(path, { method: 'PATCH', body });
@@ -966,12 +1036,14 @@ export default function DashboardPage() {
     return <p className="empty-copy"><AlertCircle size={24} className="notification-popup-icon" /> Secure authentication required to view this dashboard.</p>;
   }
 
-  if (!dashboard) {
-    return <p className="empty-copy"><Clock3 size={24} className="notification-popup-icon" /> Assembling secure dashboard data...</p>;
-  }
-
   // Pre-map icons for common metric labels
   const metricIcons = {
+    users: Users,
+    agents: UserCheck,
+    properties: Building,
+    inquiries: Mail,
+    bookings: CalendarDays,
+    unread_notifications: Bell,
     total_users: Users,
     total_agents: UserCheck,
     total_properties: Building,
@@ -979,6 +1051,9 @@ export default function DashboardPage() {
     draft_properties: FileText,
     available_properties: CheckCircle,
     active_inquiries: Mail,
+    active_listings: CheckCircle,
+    new_inquiries: Mail,
+    closed_inquiries: ShieldCheck,
     saved_properties: Save,
     approved: CheckCircle,
   };
@@ -987,7 +1062,7 @@ export default function DashboardPage() {
     return metricIcons[label.toLowerCase().replace(/ /g, '_')] || ShieldCheck;
   };
 
-  const statsEntries = Object.entries(dashboard.stats || {});
+  const statsEntries = Object.entries(dashboard?.stats || {});
 
   return (
     <div className="page-grid dashboard-grid animate-enter">
@@ -1001,13 +1076,35 @@ export default function DashboardPage() {
           Clearance Level: <strong style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>{user.role}</strong>
         </p>
         
+        {user.email_verified_at === null ? (
+          <div className="inline-message animate-enter" style={{ marginTop: '2rem', marginBottom: '1rem', border: '1px solid var(--tone-warning-border)', background: 'var(--tone-warning-bg)' }}>
+            <Mail size={24} style={{ color: 'var(--tone-warning-color)' }} aria-hidden="true" />
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', color: 'var(--text-main)', marginBottom: '0.25rem' }}>Verify Your Email Address</strong>
+              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                {verificationMessage || 'To protect your account and access all features, please verify your email. If you did not receive the link, we can send it again.'}
+              </p>
+            </div>
+            <button 
+              className="primary-button" 
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem' }} 
+              disabled={verificationBusy}
+              onClick={handleResendVerification}
+            >
+              {verificationBusy ? 'Sending...' : 'Resend Link'}
+            </button>
+          </div>
+        ) : null}
+        
         {message ? (
           <p className="inline-message animate-enter" style={{ marginTop: '1.5rem', marginBottom: 0 }} role="status">
             {message}
           </p>
         ) : null}
         
-        {statsEntries.length > 0 ? (
+        {!dashboard && !message ? (
+           <p className="empty-copy" style={{ marginTop: '2rem' }}><Clock3 size={24} className="notification-popup-icon" /> Assembling secure dashboard data...</p>
+        ) : statsEntries.length > 0 ? (
           <div className="metrics-grid">
             {statsEntries.map(([label, value], index) => {
               const cleanLabel = label.replace(/_/g, ' ');
@@ -1027,7 +1124,7 @@ export default function DashboardPage() {
         ) : null}
       </section>
 
-      {user.role === 'user' ? (
+      {user.role === 'user' && dashboard ? (
         <>
           <section className="section-panel animate-enter animate-delay-2">
             <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><Save size={14} aria-hidden="true" /> Curated Collection</p>
@@ -1035,7 +1132,13 @@ export default function DashboardPage() {
             <div className="list-stack">
               {(dashboard.saved_properties || []).length === 0 && <p className="empty-copy" style={{ padding: '2rem' }}>You haven't saved any properties yet.</p>}
               {(dashboard.saved_properties || []).map((property) => (
-                <div className="list-card" key={property.property_id}>
+                <div 
+                  className="list-card" 
+                  key={property.property_id} 
+                  onClick={() => setSelectedProperty(property)}
+                  role="button"
+                  style={{ cursor: 'pointer' }}
+                >
                   <strong>{property.title}</strong>
                   <span>{property.city}, {property.province}</span>
                 </div>
@@ -1051,8 +1154,21 @@ export default function DashboardPage() {
               {(dashboard.recent_inquiries || []).map((entry) => (
                  <div className="list-card" key={entry.inquiry_id}>
                   <strong>{entry.property?.title}</strong>
-                  <span style={{ color: 'var(--brand-base)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontSize: '0.75rem', fontWeight: 500 }}>{entry.status}</span>
+                  <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ color: 'var(--brand-base)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.75rem', fontWeight: 500 }}>{entry.status}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(entry.created_at).toLocaleDateString()}</span>
+                  </div>
                   <p style={{ margin: 0, fontWeight: 300, fontStyle: 'italic', color: 'var(--text-light)', lineHeight: 1.6 }}>"{entry.message}"</p>
+                  
+                  {entry.response_message && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--input-bg)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--primary-base)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-base)' }}>Response from Agent:</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5 }}>{entry.response_message}</p>
+                      <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {entry.responded_at ? new Date(entry.responded_at).toLocaleString() : ''}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1101,6 +1217,7 @@ export default function DashboardPage() {
                   <div className="table-actions" style={{ marginTop: '1rem' }}>
                     <select
                       aria-label={`Update booking status for ${entry.property?.title}`}
+                      disabled={!isApprovedAgent}
                       value={entry.status}
                       onChange={(event) => updateBookingStatus(entry.booking_id, event.target.value)}
                     >
@@ -1109,6 +1226,71 @@ export default function DashboardPage() {
                       ))}
                     </select>
                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="section-panel animate-enter">
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><MessageSquare size={14} aria-hidden="true" /> Lead Management</p>
+            <h2>Property Inquiries</h2>
+            <div className="list-stack">
+              {agentInquiriesBusy ? <p className="empty-copy" style={{ padding: '2rem' }}>Loading lead inquiries...</p> : null}
+              {!agentInquiriesBusy && agentInquiries.length === 0 ? <p className="empty-copy" style={{ padding: '2rem' }}>No inquiries received yet.</p> : null}
+              {!agentInquiriesBusy && agentInquiries.map((entry) => (
+                <div className="list-card" key={entry.inquiry_id}>
+                  <div className="flex-row" style={{ justifyContent: 'space-between' }}>
+                    <strong>{entry.property?.title}</strong>
+                    <span className={`property-status status-${entry.status.toLowerCase()}`}>{entry.status}</span>
+                  </div>
+                  <div style={{ margin: '0.5rem 0' }}>
+                    <p style={{ margin: 0, fontWeight: 500 }}>{entry.buyer_name}</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>{entry.buyer_email} · {entry.buyer_phone || 'No phone'}</p>
+                  </div>
+                  <p style={{ margin: '1rem 0', padding: '1rem', background: 'var(--input-bg)', borderRadius: 'var(--radius-md)', fontStyle: 'italic' }}>
+                    "{entry.message}"
+                  </p>
+
+                  {entry.response_message && (
+                    <div style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600 }}>Your Response:</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.response_message}</p>
+                    </div>
+                  )}
+
+                  {isApprovedAgent && (
+                    <div className="table-actions">
+                      {respondingInquiry === entry.inquiry_id ? (
+                        <div style={{ width: '100%' }}>
+                          <textarea
+                            autoFocus
+                            placeholder="Type your response to the buyer..."
+                            rows={3}
+                            value={responseMessage}
+                            onChange={(e) => setResponseMessage(e.target.value)}
+                            style={{ marginBottom: '1rem' }}
+                          />
+                          <div className="flex-row" style={{ gap: '1rem' }}>
+                            <button 
+                              className="primary-button" 
+                              disabled={responseBusy || !responseMessage.trim()}
+                              onClick={() => handleInquiryResponse(entry.inquiry_id)}
+                            >
+                              {responseBusy ? 'Sending...' : 'Send Response'}
+                            </button>
+                            <button className="ghost-button" onClick={() => setRespondingInquiry(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button className="ghost-button" onClick={() => {
+                          setRespondingInquiry(entry.inquiry_id);
+                          setResponseMessage(entry.response_message || '');
+                        }}>
+                          {entry.response_message ? 'Edit Response' : 'Respond to Lead'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1442,6 +1624,12 @@ export default function DashboardPage() {
           </section>
         </>
       ) : null}
+
+      <PropertyDetailsDrawer
+        property={selectedProperty}
+        onClose={() => setSelectedProperty(null)}
+        onMessage={setMessage}
+      />
 
       <ConfirmModal
         isOpen={!!confirmState}

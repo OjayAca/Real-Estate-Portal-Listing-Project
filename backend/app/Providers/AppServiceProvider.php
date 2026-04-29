@@ -32,5 +32,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('verification-notification', function (Request $request): Limit {
             return Limit::perMinute(6)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
         });
+
+        RateLimiter::for('api', function (Request $request): Limit {
+            return Limit::perMinute(60)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('strict', function (Request $request): Limit {
+            return Limit::perMinute(10)->by((string) ($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
     }
 }

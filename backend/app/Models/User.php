@@ -91,7 +91,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
-     * @return BelongsToMany<Property, $this, SavedProperty>
+     * @return BelongsToMany<Property, $this>
      */
     public function savedProperties(): BelongsToMany
     {

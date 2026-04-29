@@ -2,20 +2,13 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import ConfirmModal from './ConfirmModal';
-import { Home, Building2, LayoutDashboard, LogOut, CodeSquare, CheckCircle2, Users } from 'lucide-react';
+import { Home, Building2, LayoutDashboard, LogOut, CodeSquare, CheckCircle2, Users, Sun, Moon } from 'lucide-react';
 
 const navClass = ({ isActive }) =>
   isActive ? 'nav-link nav-link-active' : 'nav-link';
-
-function canAccessDashboard(user) {
-  if (!user) {
-    return false;
-  }
-
-  return user.role !== 'user' || Boolean(user.email_verified_at);
-}
 
 function getUserStatusLabel(user) {
   if (!user) {
@@ -47,6 +40,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { popup } = useNotifications();
+  const { theme, toggleTheme } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -82,7 +76,7 @@ export default function Layout() {
             <Users size={18} aria-hidden="true" />
             <span>Agents</span>
           </NavLink>
-          {canAccessDashboard(user) ? (
+          {user ? (
             <NavLink className={navClass} to="/dashboard">
               <LayoutDashboard size={18} aria-hidden="true" />
               <span>Dashboard</span>
@@ -90,7 +84,16 @@ export default function Layout() {
           ) : null}
         </nav>
         <div className="topbar-actions">
-          {canAccessDashboard(user) ? <NotificationBell /> : null}
+          <button 
+            className="icon-button" 
+            onClick={toggleTheme} 
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          {user ? <NotificationBell /> : null}
           {user ? (
             <>
               <div className="user-chip">

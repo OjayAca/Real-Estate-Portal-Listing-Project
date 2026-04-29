@@ -110,7 +110,12 @@ export default function HomePage() {
         </div>
         <div className="card-grid" style={{ marginTop: '2.5rem' }}>
           {visible.map((property) => (
-            <PropertyCard key={property.property_id} property={property} onView={handleView} />
+            <PropertyCard 
+              key={property.property_id} 
+              property={property} 
+              onView={handleView}
+              onInquire={handleView}
+            />
           ))}
         </div>
       </section>

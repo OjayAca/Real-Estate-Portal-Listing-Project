@@ -69,7 +69,6 @@ class AgentEcosystemService
         }
 
         $this->ensureAgencyLink($agent);
-        $this->ensureDefaultAvailability($agent);
 
         $agent->loadMissing([
             'agency',
@@ -113,7 +112,6 @@ class AgentEcosystemService
             return response()->json(['message' => 'This property does not have an approved agent schedule yet.'], 422);
         }
 
-        $this->ensureDefaultAvailability($agent);
         $date = $request->query('date')
             ? Carbon::parse($request->query('date'))->startOfDay()
             : now()->startOfDay()->addDay();
@@ -145,8 +143,6 @@ class AgentEcosystemService
         if (! $agent || ! $agent->isApproved()) {
             return response()->json(['message' => 'This property does not have an approved viewing schedule yet.'], 422);
         }
-
-        $this->ensureDefaultAvailability($agent);
 
         $start = Carbon::parse($validated['scheduled_start'])->seconds(0);
         $end = (clone $start)->addMinutes(30);
@@ -193,7 +189,6 @@ class AgentEcosystemService
         $agent = $request->user()->agentProfile;
         abort_unless($agent, 404, 'No agent profile is linked to this account.');
 
-        $this->ensureDefaultAvailability($agent);
         $agent->loadMissing('availabilities');
 
         return response()->json([
@@ -358,22 +353,6 @@ class AgentEcosystemService
 
         $agent->update(['agency_id' => $agency->agency_id]);
         $agent->setRelation('agency', $agency);
-    }
-
-    private function ensureDefaultAvailability(Agent $agent): void
-    {
-        if ($agent->availabilities()->exists()) {
-            return;
-        }
-
-        collect([1, 2, 3, 4, 5])->each(function (int $day) use ($agent): void {
-            $agent->availabilities()->create([
-                'day_of_week' => $day,
-                'start_time' => '09:00',
-                'end_time' => '17:00',
-                'is_active' => true,
-            ]);
-        });
     }
 
     /**

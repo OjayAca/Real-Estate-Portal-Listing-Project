@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { KeyRound, UserPlus, ArrowRight, ShieldCheck } from 'lucide-react';
 
@@ -18,10 +18,13 @@ const initialState = {
 
 export default function AuthPage({ mode }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, register } = useAuth();
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const title = useMemo(() => (mode === 'login' ? 'Welcome Back' : 'Join EstateFlow'), [mode]);
 
@@ -41,7 +44,7 @@ export default function AuthPage({ mode }) {
       } else {
         await register(form);
       }
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     } catch (submissionError) {
       setError(submissionError.message);
     } finally {

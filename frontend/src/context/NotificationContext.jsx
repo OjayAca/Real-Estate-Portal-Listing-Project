@@ -51,8 +51,8 @@ export function NotificationProvider({ children }) {
 
   useEffect(() => {
     if (!canUseNotifications(user)) {
-      setNotifications([]);
-      setUnreadCount(0);
+      if (notifications.length > 0) setNotifications([]);
+      if (unreadCount !== 0) setUnreadCount(0);
       unreadCountRef.current = 0;
       return;
     }
@@ -63,7 +63,7 @@ export function NotificationProvider({ children }) {
     return () => {
       window.clearInterval(timer);
     };
-  }, [user]);
+  }, [user, notifications.length, unreadCount]);
 
   useEffect(() => {
     if (!popup) {

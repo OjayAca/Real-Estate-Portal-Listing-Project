@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { AlertTriangle, LogOut, Trash2, X } from 'lucide-react';
 
 const toneConfig = {
-  danger: { color: '#ff4d4d', bg: 'rgba(255, 60, 60, 0.1)', border: 'rgba(255, 60, 60, 0.2)', Icon: Trash2 },
-  warning: { color: 'var(--brand-base)', bg: 'rgba(197, 168, 128, 0.1)', border: 'rgba(197, 168, 128, 0.2)', Icon: AlertTriangle },
+  danger: { color: 'var(--tone-danger-color)', bg: 'var(--tone-danger-bg)', border: 'var(--tone-danger-border)', Icon: Trash2 },
+  warning: { color: 'var(--tone-warning-color)', bg: 'var(--tone-warning-bg)', border: 'var(--tone-warning-border)', Icon: AlertTriangle },
 };
 
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', tone = 'danger' }) {
@@ -45,9 +45,9 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
         style={{ maxWidth: '420px', width: '90%', position: 'relative', boxShadow: 'var(--shadow-lg)', padding: '2.5rem 2rem' }}
       >
         <button
-          className="text-button"
+          className="icon-button"
           onClick={onCancel}
-          style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '50%', border: '1px solid var(--border-subtle)' }}
+          style={{ position: 'absolute', top: '1rem', right: '1rem', width: '32px', height: '32px' }}
           aria-label="Close modal"
         >
           <X size={16} aria-hidden="true" />

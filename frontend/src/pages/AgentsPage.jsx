@@ -196,10 +196,10 @@ export default function AgentsPage() {
             <div className="drawer-header">
               <p className="eyebrow" style={{ margin: 0 }}>Agent Profile</p>
               <button
-                className="text-button"
+                className="icon-button"
                 onClick={() => setSelected(null)}
                 aria-label="Close agent profile"
-                style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '50%', border: '1px solid var(--border-subtle)' }}
+                style={{ width: '36px', height: '36px' }}
               >
                 <X size={20} aria-hidden="true" />
               </button>

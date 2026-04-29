@@ -1,10 +1,11 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import PropertyCard from '../components/PropertyCard';
+import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
-import { Search, Map, Filter, MessageSquare, ChevronLeft, ChevronRight, X, CalendarDays, Star } from 'lucide-react';
+import { Search, Map, Filter, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const baseFilters = {
   search: '',
@@ -27,12 +28,6 @@ export default function PropertiesPage() {
   const [savedIds, setSavedIds] = useState([]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
-  const [bookingDate, setBookingDate] = useState(() => new Date(Date.now() + 86400000).toISOString().slice(0, 10));
-  const [bookingSlots, setBookingSlots] = useState([]);
-  const [slotsBusy, setSlotsBusy] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingBusy, setBookingBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
   const deferredSearch = useDeferredValue(filters.search);
 
@@ -42,16 +37,6 @@ export default function PropertiesPage() {
       window.history.replaceState({}, '');
     }
   }, [location.state]);
-
-  useEffect(() => {
-    if (!selected) {
-      return;
-    }
-
-    setBookingDate(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
-    setBookingNotes('');
-    setSelectedSlot('');
-  }, [selected]);
 
   useEffect(() => {
     apiRequest('/amenities')
@@ -94,40 +79,6 @@ export default function PropertiesPage() {
       .finally(() => setBusy(false));
   }, [deferredSearch, filters, page]);
 
-  // Handle Escape key to close the drawer
-  useEffect(() => {
-    if (!selected) return;
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setSelected(null);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selected]);
-
-  useEffect(() => {
-    if (!selected || selected.status.toLowerCase() !== 'available') {
-      setBookingSlots([]);
-      setSelectedSlot('');
-      return;
-    }
-
-    setSlotsBusy(true);
-    apiRequest(`/properties/${selected.property_id}/viewing-slots?date=${bookingDate}`)
-      .then((data) => {
-        setBookingSlots(data.data || []);
-        setSelectedSlot((current) => {
-          const next = (data.data || []).some((slot) => slot.start_at === current) ? current : '';
-          return next;
-        });
-      })
-      .catch((error) => {
-        setBookingSlots([]);
-        setSelectedSlot('');
-        setMessage(error.message);
-      })
-      .finally(() => setSlotsBusy(false));
-  }, [bookingDate, selected]);
-
   const canUseBuyerActions = useMemo(() => user?.role === 'user' && Boolean(user?.email_verified_at), [user]);
 
   const updateFilter = (name, value) => {
@@ -164,35 +115,6 @@ export default function PropertiesPage() {
     await apiRequest(`/saved-properties/${property.property_id}`, { method: 'POST' });
     setSavedIds((current) => [...current, property.property_id]);
     setMessage('Property saved successfully.');
-  };
-
-  const bookViewing = async (property) => {
-    if (!canUseBuyerActions) {
-      setMessage('Verify your email and log in as a buyer to book a viewing.');
-      return;
-    }
-
-    if (!selectedSlot) {
-      setMessage('Choose a viewing slot first.');
-      return;
-    }
-
-    setBookingBusy(true);
-    try {
-      await apiRequest(`/properties/${property.property_id}/viewings`, {
-        method: 'POST',
-        body: { scheduled_start: selectedSlot, notes: bookingNotes },
-      });
-      setBookingNotes('');
-      setSelectedSlot('');
-      const refreshed = await apiRequest(`/properties/${property.property_id}/viewing-slots?date=${bookingDate}`);
-      setBookingSlots(refreshed.data || []);
-      setMessage('Viewing booked with the assigned agent.');
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setBookingBusy(false);
-    }
   };
 
   return (
@@ -279,7 +201,7 @@ export default function PropertiesPage() {
         {busy ? (
           <div className="card-grid">
             {[1, 2, 3, 4].map((n) => (
-              <div key={n} style={{ height: '540px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }} className="animate-enter" />
+              <div key={n} style={{ height: '540px', background: 'var(--input-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }} className="animate-enter" />
             ))}
           </div>
         ) : (
@@ -287,7 +209,7 @@ export default function PropertiesPage() {
             {properties.length > 0 ? properties.map((property, idx) => (
               <div key={property.property_id} className={`animate-enter animate-delay-${(idx % 3) + 1}`}>
                 <PropertyCard
-                  onInquire={canUseBuyerActions ? bookViewing : null}
+                  onInquire={canUseBuyerActions ? setSelected : null}
                   onSave={user?.role === 'user' ? toggleSave : null}
                   onView={setSelected}
                   property={property}
@@ -316,121 +238,11 @@ export default function PropertiesPage() {
       </section>
 
       {/* Off-Canvas Property Details Drawer */}
-      {selected && (
-        <div 
-          className="drawer-overlay" 
-          role="dialog" 
-          aria-modal="true" 
-          aria-labelledby="drawer-title"
-          onClick={() => setSelected(null)}
-        >
-          <aside className="drawer-panel property-folio-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="drawer-header">
-              <p className="eyebrow" style={{ margin: 0 }}>Property Folio</p>
-              <button 
-                className="text-button" 
-                onClick={() => setSelected(null)}
-                aria-label="Close details drawer"
-                style={{ background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '50%', border: '1px solid var(--border-subtle)' }}
-              >
-                <X size={20} aria-hidden="true" />
-              </button>
-            </div>
-            
-            <div className="drawer-content">
-              <img 
-                 src={selected.featured_image} 
-                 alt={`Exterior view of ${selected.title}`}
-                 style={{ width: '100%', height: '320px', objectFit: 'cover', borderRadius: 'var(--radius-xl)', marginBottom: '2.5rem', boxShadow: 'var(--shadow-md)' }} 
-                 onError={(e) => { e.target.style.display = 'none'; }}
-              />
-
-              <h2 id="drawer-title" style={{ fontSize: '2.2rem', fontWeight: 300, marginBottom: '0.5rem', lineHeight: 1.2 }}>{selected.title}</h2>
-              <p className="detail-price">PHP {selected.price.toLocaleString()}</p>
-              
-              <div className="chip-row detail-chip-row">
-                {selected.amenities.map((amenity) => (
-                  <span className="chip" key={amenity.amenity_id}>{amenity.amenity_name}</span>
-                ))}
-              </div>
-
-              <p style={{ color: 'var(--text-muted)', lineHeight: '1.8', fontWeight: 300, fontSize: '1.05rem', margin: '2rem 0' }}>{selected.description}</p>
-              
-              <dl className="detail-grid">
-                <div><dt>Address</dt><dd>{selected.address_line || 'Provided upon booking confirmation'}</dd></div>
-                <div><dt>Location</dt><dd>{selected.city}, {selected.province}</dd></div>
-                <div><dt>Bedrooms</dt><dd>{selected.bedrooms}</dd></div>
-                <div><dt>Bathrooms</dt><dd>{selected.bathrooms}</dd></div>
-                <div>
-                  <dt>Represented By</dt>
-                  <dd>
-                    <Link className="text-link" to="/agents">{selected.agent?.full_name}</Link>
-                  </dd>
-                </div>
-                <div><dt>Status</dt><dd style={{ color: selected.status === 'Available' ? 'var(--status-success)' : 'var(--text-main)' }}>{selected.status}</dd></div>
-              </dl>
-               
-              {canUseBuyerActions && selected.status.toLowerCase() === 'available' ? (
-                <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--border-subtle)' }}>
-                  <div className="booking-panel-header">
-                    <div>
-                      <span style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Reserve A 30-Minute Viewing</span>
-                      <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 300 }}>
-                        Choose an open slot from the agent schedule and attach any access notes ahead of the visit.
-                      </p>
-                    </div>
-                    <div className="agent-rating-row" style={{ margin: 0 }}>
-                      <span className="agent-rating-pill"><Star size={14} fill="currentColor" /> {selected.agent?.agency_name || 'Independent'}</span>
-                    </div>
-                  </div>
-
-                  <label>
-                    <span className="flex-row" style={{ gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <CalendarDays size={16} aria-hidden="true" />
-                      Viewing Date
-                    </span>
-                    <input min={new Date().toISOString().slice(0, 10)} type="date" value={bookingDate} onChange={(event) => setBookingDate(event.target.value)} />
-                  </label>
-
-                  <div className="booking-slot-grid">
-                    {slotsBusy ? <p className="empty-copy" style={{ padding: '2rem' }}>Loading available slots...</p> : null}
-                    {!slotsBusy && bookingSlots.length === 0 ? <p className="empty-copy" style={{ padding: '2rem' }}>No open slots on this date. Try another day.</p> : null}
-                    {!slotsBusy && bookingSlots.map((slot) => (
-                      <button
-                        key={slot.start_at}
-                        className={selectedSlot === slot.start_at ? 'primary-button booking-slot-active' : 'ghost-button'}
-                        onClick={() => setSelectedSlot(slot.start_at)}
-                        type="button"
-                      >
-                        {slot.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <label>
-                    <span style={{ display: 'block', marginBottom: '1rem', fontWeight: 500 }}>Viewing Notes</span>
-                    <textarea
-                      onChange={(event) => setBookingNotes(event.target.value)}
-                      placeholder="Add gate instructions, unit questions, or viewing priorities."
-                      rows="4"
-                      value={bookingNotes}
-                      aria-label="Viewing notes"
-                    />
-                  </label>
-
-                  <button className="primary-button detail-submit" disabled={bookingBusy || !selectedSlot} onClick={() => bookViewing(selected)}>
-                    {bookingBusy ? 'Booking Viewing...' : 'Book Viewing Slot'}
-                  </button>
-                </div>
-              ) : !canUseBuyerActions ? (
-                <p className="empty-copy">Sign in as a client to reserve a viewing slot with this agent.</p>
-              ) : (
-                <p className="empty-copy">This property is currently not available for scheduling.</p>
-              )}
-            </div>
-          </aside>
-        </div>
-      )}
+      <PropertyDetailsDrawer 
+        property={selected} 
+        onClose={() => setSelected(null)} 
+        onMessage={setMessage}
+      />
 
       <ConfirmModal
         isOpen={!!confirmState}
