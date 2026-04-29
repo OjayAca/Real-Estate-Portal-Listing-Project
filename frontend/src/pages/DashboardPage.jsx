@@ -595,6 +595,7 @@ export default function DashboardPage() {
   const [agentInquiriesBusy, setAgentInquiriesBusy] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [respondingInquiry, setRespondingInquiry] = useState(null);
+  const [respondingBooking, setRespondingBooking] = useState(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [responseBusy, setResponseBusy] = useState(false);
 
@@ -838,6 +839,33 @@ export default function DashboardPage() {
     }
   };
 
+  const handleBuyerInquiryReply = async (inquiryId) => {
+    if (!responseMessage.trim()) return;
+    setResponseBusy(true);
+    try {
+      const response = await authFetch(`/inquiries/${inquiryId}/reply`, {
+        method: 'PATCH',
+        body: { buyer_reply: responseMessage },
+      });
+      
+      // Update local dashboard state
+      setDashboard(prev => ({
+        ...prev,
+        recent_inquiries: prev.recent_inquiries.map(entry => 
+          entry.inquiry_id === inquiryId ? response.data : entry
+        )
+      }));
+      
+      setRespondingInquiry(null);
+      setResponseMessage('');
+      setMessage(response.message);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setResponseBusy(false);
+    }
+  };
+
   const updateAdminRecord = async (path, body) => {
     const data = await authFetch(path, { method: 'PATCH', body });
     setMessage(data.message);
@@ -1013,18 +1041,28 @@ export default function DashboardPage() {
     }
   };
 
-  const updateBookingStatus = async (bookingId, status) => {
+  const updateBookingStatus = async (bookingId, status, responseMsg = null) => {
+    setResponseBusy(true);
     try {
+      const body = { status };
+      if (responseMsg !== null) {
+        body.agent_response = responseMsg;
+      }
+
       const response = await authFetch(`/agent/viewings/${bookingId}`, {
         method: 'PATCH',
-        body: { status },
+        body,
       });
       setAgentBookings((current) => current.map((entry) => (
         entry.booking_id === bookingId ? response.data : entry
       )));
       setAgentMessage(response.message);
+      setRespondingBooking(null);
+      setResponseMessage('');
     } catch (error) {
       setAgentMessage(error.message);
+    } finally {
+      setResponseBusy(false);
     }
   };
 
@@ -1169,6 +1207,86 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   )}
+
+                  {entry.buyer_reply && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'right' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600 }}>Your Reply:</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.buyer_reply}</p>
+                      <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {entry.buyer_replied_at ? new Date(entry.buyer_replied_at).toLocaleString() : ''}
+                      </span>
+                    </div>
+                  )}
+
+                  {entry.response_message && !entry.buyer_reply && (
+                    <div className="table-actions" style={{ marginTop: '1rem' }}>
+                      {respondingInquiry === entry.inquiry_id ? (
+                        <div style={{ width: '100%', textAlign: 'left' }}>
+                          <textarea
+                            autoFocus
+                            placeholder="Type your follow-up reply..."
+                            rows={3}
+                            value={responseMessage}
+                            onChange={(e) => setResponseMessage(e.target.value)}
+                            style={{ marginBottom: '1rem' }}
+                          />
+                          <div className="flex-row" style={{ gap: '1rem' }}>
+                            <button 
+                              className="primary-button" 
+                              disabled={responseBusy || !responseMessage.trim()}
+                              onClick={() => handleBuyerInquiryReply(entry.inquiry_id)}
+                            >
+                              {responseBusy ? 'Sending...' : 'Send Reply'}
+                            </button>
+                            <button className="ghost-button" onClick={() => {
+                              setRespondingInquiry(null);
+                              setResponseMessage('');
+                            }}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button className="ghost-button" onClick={() => {
+                          setRespondingInquiry(entry.inquiry_id);
+                          setResponseMessage('');
+                        }}>Reply to Agent</button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="section-panel animate-enter animate-delay-4">
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><CalendarDays size={14} aria-hidden="true" /> Appointments</p>
+            <h2>Booked Viewings</h2>
+            <div className="list-stack">
+              {(dashboard.recent_bookings || []).length === 0 && <p className="empty-copy" style={{ padding: '2rem' }}>No viewings are booked yet.</p>}
+              {(dashboard.recent_bookings || []).map((entry) => (
+                <div className="list-card" key={entry.booking_id}>
+                  <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <strong>{entry.property?.title}</strong>
+                    <span className={`property-status status-${entry.status.toLowerCase()}`}>{entry.status}</span>
+                  </div>
+                  <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--brand-base)', fontWeight: 500 }}>
+                      {new Date(entry.scheduled_start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{entry.property?.city}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-light)' }}>
+                    Notes: {entry.notes || 'None provided.'}
+                  </p>
+
+                  {entry.agent_response && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--input-bg)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--primary-base)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-base)' }}>Message from Agent:</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5 }}>{entry.agent_response}</p>
+                      <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {entry.agent_responded_at ? new Date(entry.agent_responded_at).toLocaleString() : ''}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1214,17 +1332,64 @@ export default function DashboardPage() {
                   <p style={{ marginTop: '0.75rem', fontWeight: 300, lineHeight: 1.6 }}>
                     {entry.notes || 'No viewing notes provided.'}
                   </p>
+
+                  {entry.agent_response && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600 }}>Your Message to Buyer:</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.agent_response}</p>
+                    </div>
+                  )}
+
                   <div className="table-actions" style={{ marginTop: '1rem' }}>
-                    <select
-                      aria-label={`Update booking status for ${entry.property?.title}`}
-                      disabled={!isApprovedAgent}
-                      value={entry.status}
-                      onChange={(event) => updateBookingStatus(entry.booking_id, event.target.value)}
-                    >
-                      {['Pending', 'Confirmed', 'Completed', 'Cancelled'].map((status) => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
+                    {respondingBooking === entry.booking_id ? (
+                      <div style={{ width: '100%' }}>
+                        <textarea
+                          autoFocus
+                          placeholder="Add a message for the buyer..."
+                          rows={2}
+                          value={responseMessage}
+                          onChange={(e) => setResponseMessage(e.target.value)}
+                          style={{ marginBottom: '1rem' }}
+                        />
+                        <div className="flex-row" style={{ gap: '1rem' }}>
+                          <button 
+                            className="primary-button" 
+                            disabled={responseBusy}
+                            onClick={() => updateBookingStatus(entry.booking_id, entry.status, responseMessage)}
+                          >
+                            {responseBusy ? 'Saving...' : 'Save Message'}
+                          </button>
+                          <button className="ghost-button" onClick={() => {
+                            setRespondingBooking(null);
+                            setResponseMessage('');
+                          }}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex-row" style={{ gap: '1rem', width: '100%', flexWrap: 'wrap' }}>
+                        <select
+                          aria-label={`Update booking status for ${entry.property?.title}`}
+                          disabled={!isApprovedAgent || responseBusy}
+                          value={entry.status}
+                          onChange={(event) => updateBookingStatus(entry.booking_id, event.target.value)}
+                          style={{ flex: 1, minWidth: '120px' }}
+                        >
+                          {['Pending', 'Confirmed', 'Completed', 'Cancelled'].map((status) => (
+                            <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
+                        <button 
+                          className="ghost-button" 
+                          onClick={() => {
+                            setRespondingBooking(entry.booking_id);
+                            setResponseMessage(entry.agent_response || '');
+                          }}
+                          disabled={!isApprovedAgent || responseBusy}
+                        >
+                          {entry.agent_response ? 'Edit Message' : 'Add Message'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1255,6 +1420,16 @@ export default function DashboardPage() {
                     <div style={{ marginBottom: '1rem', padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
                       <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600 }}>Your Response:</p>
                       <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.response_message}</p>
+                    </div>
+                  )}
+
+                  {entry.buyer_reply && (
+                    <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--input-bg)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--primary-base)' }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--primary-base)' }}>Buyer Follow-up:</p>
+                      <p style={{ margin: 0, fontSize: '0.9rem' }}>{entry.buyer_reply}</p>
+                      <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        {entry.buyer_replied_at ? new Date(entry.buyer_replied_at).toLocaleString() : ''}
+                      </span>
                     </div>
                   )}
 

@@ -23,6 +23,8 @@ class ViewingBooking extends Model
         'scheduled_start',
         'scheduled_end',
         'status',
+        'agent_response',
+        'agent_responded_at',
     ];
 
     protected function casts(): array
@@ -30,6 +32,7 @@ class ViewingBooking extends Model
         return [
             'scheduled_start' => 'datetime',
             'scheduled_end' => 'datetime',
+            'agent_responded_at' => 'datetime',
         ];
     }
 

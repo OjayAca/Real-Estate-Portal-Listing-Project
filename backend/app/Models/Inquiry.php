@@ -22,12 +22,15 @@ class Inquiry extends Model
         'status',
         'response_message',
         'responded_at',
+        'buyer_reply',
+        'buyer_replied_at',
     ];
 
     protected function casts(): array
     {
         return [
             'responded_at' => 'datetime',
+            'buyer_replied_at' => 'datetime',
         ];
     }
 

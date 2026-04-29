@@ -264,10 +264,17 @@ class AgentEcosystemService
 
         $validated = $request->validate([
             'status' => ['required', Rule::in(self::BOOKING_STATUSES)],
+            'agent_response' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $booking->loadMissing(['property.agent.agency', 'user']);
-        $booking->update(['status' => $validated['status']]);
+        
+        $booking->status = $validated['status'];
+        if (array_key_exists('agent_response', $validated)) {
+            $booking->agent_response = $validated['agent_response'];
+            $booking->agent_responded_at = now();
+        }
+        $booking->save();
 
         if ($booking->user) {
             $this->pushNotification(
@@ -527,6 +534,8 @@ class AgentEcosystemService
             'buyer_phone' => $booking->buyer_phone,
             'notes' => $booking->notes,
             'status' => $booking->status,
+            'agent_response' => $booking->agent_response,
+            'agent_responded_at' => optional($booking->agent_responded_at)->toIso8601String(),
             'scheduled_start' => optional($booking->scheduled_start)->toIso8601String(),
             'scheduled_end' => optional($booking->scheduled_end)->toIso8601String(),
             'property' => $booking->relationLoaded('property') && $booking->property ? [

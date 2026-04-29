@@ -418,16 +418,19 @@ class PortalService
 
         $saved = $user->savedProperties()->with(['agent.user', 'amenities'])->latest()->take(6)->get();
         $inquiries = $user->inquiries()->with(['property.agent.user'])->latest()->take(6)->get();
+        $bookings = $user->viewingBookings()->with(['property.agent.user'])->latest()->take(6)->get();
 
         return response()->json([
             'role' => $user->role->value,
             'stats' => [
                 'saved_properties' => $user->savedProperties()->count(),
                 'inquiries' => $user->inquiries()->count(),
+                'viewing_bookings' => $user->viewingBookings()->count(),
                 'unread_notifications' => $user->unreadNotifications()->count(),
             ],
             'saved_properties' => $saved->map(fn (Property $entry) => $this->formatProperty($entry)),
             'recent_inquiries' => $inquiries->map(fn (Inquiry $entry) => $this->formatInquiry($entry)),
+            'recent_bookings' => $bookings->map(fn (ViewingBooking $entry) => $this->formatBooking($entry)),
         ]);
     }
 
@@ -657,6 +660,43 @@ class PortalService
 
         return response()->json([
             'message' => 'Inquiry updated.',
+            'data' => $this->formatInquiry($inquiry->fresh()->load(['property.agent.user', 'user'])),
+        ]);
+    }
+
+    public function buyerInquiryUpdate(Request $request, Inquiry $inquiry): JsonResponse
+    {
+        $user = $request->user();
+        if ($inquiry->user_id !== $user->id) {
+            abort(403, 'This inquiry does not belong to you.');
+        }
+
+        $validated = $request->validate([
+            'buyer_reply' => ['required', 'string', 'min:5'],
+        ]);
+
+        if ($inquiry->buyer_reply) {
+            return response()->json(['message' => 'You have already sent a follow-up reply for this inquiry.'], 422);
+        }
+
+        $inquiry->update([
+            'buyer_reply' => $validated['buyer_reply'],
+            'buyer_replied_at' => now(),
+        ]);
+
+        $inquiry->loadMissing('property.agent.user');
+        if ($inquiry->property->agent?->user) {
+            $this->pushNotification(
+                $inquiry->property->agent->user,
+                'inquiry.reply',
+                'Buyer sent a follow-up',
+                $user->full_name.' replied to your response regarding '.$inquiry->property->title.'.',
+                ['property_id' => $inquiry->property_id, 'inquiry_id' => $inquiry->inquiry_id]
+            );
+        }
+
+        return response()->json([
+            'message' => 'Your reply has been sent.',
             'data' => $this->formatInquiry($inquiry->fresh()->load(['property.agent.user', 'user'])),
         ]);
     }
@@ -1221,6 +1261,8 @@ class PortalService
             'status' => $inquiry->status,
             'response_message' => $inquiry->response_message,
             'responded_at' => optional($inquiry->responded_at)->toIso8601String(),
+            'buyer_reply' => $inquiry->buyer_reply,
+            'buyer_replied_at' => optional($inquiry->buyer_replied_at)->toIso8601String(),
             'created_at' => optional($inquiry->created_at)->toIso8601String(),
             'user' => $inquiry->relationLoaded('user') && $inquiry->user ? [
                 'id' => $inquiry->user->id,

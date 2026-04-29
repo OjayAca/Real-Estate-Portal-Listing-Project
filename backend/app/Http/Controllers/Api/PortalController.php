@@ -138,6 +138,11 @@ class PortalController extends Controller
         return $this->portalService->agentInquiryUpdate($request, $inquiry);
     }
 
+    public function buyerInquiryUpdate(Request $request, Inquiry $inquiry): JsonResponse
+    {
+        return $this->portalService->buyerInquiryUpdate($request, $inquiry);
+    }
+
     public function adminOverview(Request $request): JsonResponse
     {
         return $this->portalService->adminOverview($request);
