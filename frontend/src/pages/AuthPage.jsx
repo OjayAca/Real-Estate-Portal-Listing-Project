@@ -74,72 +74,68 @@ export default function AuthPage({ mode }) {
           {mode === 'register' ? (
             <>
               <div className="field-grid two-up">
-                <label>
-                  <span>First Name</span>
-                  <input name="first_name" onChange={handleChange} required value={form.first_name} placeholder="e.g. Avery" aria-label="First name" />
-                </label>
-                <label>
-                  <span>Last Name</span>
-                  <input name="last_name" onChange={handleChange} required value={form.last_name} placeholder="e.g. Davis" aria-label="Last name" />
-                </label>
+                <div>
+                  <label htmlFor="first_name">First Name</label>
+                  <input id="first_name" name="first_name" onChange={handleChange} required value={form.first_name} placeholder="e.g. Avery" />
+                </div>
+                <div>
+                  <label htmlFor="last_name">Last Name</label>
+                  <input id="last_name" name="last_name" onChange={handleChange} required value={form.last_name} placeholder="e.g. Davis" />
+                </div>
               </div>
-              <label>
-                <span>Account Type</span>
-                <select name="role" onChange={handleChange} value={form.role} aria-label="Account type">
-                  <option value="user">Private Client / Buyer</option>
-                  <option value="agent">Real Estate Professional</option>
-                </select>
-              </label>
+              <label htmlFor="role">Account Type</label>
+              <select id="role" name="role" onChange={handleChange} value={form.role}>
+                <option value="user">Private Client / Buyer</option>
+                <option value="agent">Real Estate Professional</option>
+              </select>
             </>
           ) : null}
 
           <div className="field-grid two-up" style={{ marginTop: mode === 'register' ? '1rem' : 0 }}>
-            <label>
-              <span>Email Address</span>
-              <input name="email" onChange={handleChange} required type="email" value={form.email} placeholder="name@domain.com" aria-label="Email address" />
-            </label>
-            <label style={{ display: mode === 'register' ? 'block' : 'none' }}>
-              <span>Phone Number</span>
-              <input name="phone" onChange={handleChange} value={form.phone} placeholder="+1 234 567 890" aria-label="Phone number" />
-            </label>
+            <div>
+              <label htmlFor="email">Email Address</label>
+              <input id="email" name="email" onChange={handleChange} required type="email" value={form.email} placeholder="name@domain.com" />
+            </div>
+            <div style={{ display: mode === 'register' ? 'block' : 'none' }}>
+              <label htmlFor="phone">Phone Number</label>
+              <input id="phone" name="phone" onChange={handleChange} value={form.phone} placeholder="+1 234 567 890" />
+            </div>
           </div>
 
           {mode === 'register' && form.role === 'agent' ? (
             <div className="animate-enter">
               <div className="field-grid two-up">
-                <label>
-                  <span>License Number</span>
-                  <input name="license_number" onChange={handleChange} required value={form.license_number} aria-label="Real estate license number" />
-                </label>
-                <label>
-                  <span>Firm/Agency Name</span>
-                  <input name="agency_name" onChange={handleChange} value={form.agency_name} placeholder="Independent if none" aria-label="Agency name" />
-                </label>
+                <div>
+                  <label htmlFor="license_number">License Number</label>
+                  <input id="license_number" name="license_number" onChange={handleChange} required value={form.license_number} />
+                </div>
+                <div>
+                  <label htmlFor="agency_name">Firm/Agency Name</label>
+                  <input id="agency_name" name="agency_name" onChange={handleChange} value={form.agency_name} placeholder="Independent if none" />
+                </div>
               </div>
-              <label>
-                <span>Professional Biography</span>
-                <textarea name="bio" onChange={handleChange} rows="3" value={form.bio} placeholder="Highlight your expertise and sales history." aria-label="Professional biography" />
-              </label>
+              <label htmlFor="bio">Professional Biography</label>
+              <textarea id="bio" name="bio" onChange={handleChange} rows="3" value={form.bio} placeholder="Highlight your expertise and sales history." />
             </div>
           ) : null}
 
           <div className="field-grid two-up" style={{ marginTop: '1rem' }}>
-            <label>
-              <span>Secure Password</span>
-              <input name="password" onChange={handleChange} required type="password" value={form.password} aria-label="Password" />
-            </label>
+            <div>
+              <label htmlFor="password">Secure Password</label>
+              <input id="password" name="password" onChange={handleChange} required type="password" value={form.password} />
+            </div>
             {mode === 'register' ? (
-              <label>
-                <span>Confirm Password</span>
+              <div>
+                <label htmlFor="password_confirmation">Confirm Password</label>
                 <input
+                  id="password_confirmation"
                   name="password_confirmation"
                   onChange={handleChange}
                   required
                   type="password"
                   value={form.password_confirmation}
-                  aria-label="Confirm password"
                 />
-              </label>
+              </div>
             ) : null}
           </div>
 

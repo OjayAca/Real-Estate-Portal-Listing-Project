@@ -18,6 +18,10 @@ use Illuminate\Validation\Rule;
 
 class AgentEcosystemService
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     private const BOOKING_STATUSES = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
     public function agentsIndex(Request $request): JsonResponse
@@ -169,7 +173,7 @@ class AgentEcosystemService
         ]);
 
         if ($agent->user) {
-            $this->pushNotification(
+            $this->notifications->pushNotification(
                 $agent->user,
                 'booking.new',
                 'New property viewing booked',
@@ -277,7 +281,7 @@ class AgentEcosystemService
         $booking->save();
 
         if ($booking->user) {
-            $this->pushNotification(
+            $this->notifications->pushNotification(
                 $booking->user,
                 'booking.update',
                 'Viewing updated',
@@ -304,6 +308,11 @@ class AgentEcosystemService
         ]);
 
         $user = $request->user();
+
+        if ($user->agentProfile?->agent_id === $agent->agent_id) {
+            return response()->json(['message' => 'You cannot review yourself.'], 403);
+        }
+
         $booking = ViewingBooking::query()
             ->where('agent_id', $agent->agent_id)
             ->where('user_id', $user->id)
@@ -336,6 +345,16 @@ class AgentEcosystemService
 
     private function syncNamedAgencies(): void
     {
+        $hasStale = Agent::query()
+            ->whereNull('agency_id')
+            ->whereNotNull('agency_name')
+            ->where('agency_name', '!=', '')
+            ->exists();
+
+        if (! $hasStale) {
+            return;
+        }
+
         Agent::query()
             ->whereNull('agency_id')
             ->whereNotNull('agency_name')
@@ -363,7 +382,7 @@ class AgentEcosystemService
     }
 
     /**
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, mixed>>
      */
     private function buildAvailableSlots(Property $property, Carbon $date): array
     {
@@ -419,18 +438,6 @@ class AgentEcosystemService
         }
 
         return $candidate;
-    }
-
-    private function pushNotification(User $user, string $type, string $title, string $message, array $context = []): void
-    {
-        $user->notifications()->create([
-            'id' => (string) Str::uuid(),
-            'type' => $type,
-            'data' => array_merge([
-                'title' => $title,
-                'message' => $message,
-            ], $context),
-        ]);
     }
 
     private function formatAgency(Agency $agency, bool $withCounts = false): array
@@ -527,6 +534,9 @@ class AgentEcosystemService
 
     private function formatBooking(ViewingBooking $booking): array
     {
+        $property = $booking->relationLoaded('property') ? $booking->property : null;
+        $agent = $property?->relationLoaded('agent') ? $property->agent : null;
+
         return [
             'booking_id' => $booking->booking_id,
             'buyer_name' => $booking->buyer_name,
@@ -538,16 +548,16 @@ class AgentEcosystemService
             'agent_responded_at' => optional($booking->agent_responded_at)->toIso8601String(),
             'scheduled_start' => optional($booking->scheduled_start)->toIso8601String(),
             'scheduled_end' => optional($booking->scheduled_end)->toIso8601String(),
-            'property' => $booking->relationLoaded('property') && $booking->property ? [
-                'property_id' => $booking->property->property_id,
-                'title' => $booking->property->title,
-                'city' => $booking->property->city,
-                'province' => $booking->property->province,
+            'property' => $property ? [
+                'property_id' => $property->property_id,
+                'title' => $property->title,
+                'city' => $property->city,
+                'province' => $property->province,
             ] : null,
-            'agent' => $booking->relationLoaded('property') && $booking->property?->relationLoaded('agent') && $booking->property->agent ? [
-                'agent_id' => $booking->property->agent->agent_id,
-                'full_name' => $booking->property->agent->full_name,
-                'agency_name' => $booking->property->agent->agency_name,
+            'agent' => $agent ? [
+                'agent_id' => $agent->agent_id,
+                'full_name' => $agent->full_name,
+                'agency_name' => $agent->agency_name,
             ] : null,
             'user' => $booking->relationLoaded('user') && $booking->user ? [
                 'id' => $booking->user->id,

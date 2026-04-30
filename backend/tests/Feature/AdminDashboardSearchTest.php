@@ -21,12 +21,12 @@ class AdminDashboardSearchTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?user_search=Alice');
 
         $response->assertStatus(200);
-        $response->assertJsonCount(1, 'users');
-        $response->assertJsonPath('users.0.full_name', 'Alice Smith');
+        $response->assertJsonCount(1, 'users.data');
+        $response->assertJsonPath('users.data.0.full_name', 'Alice Smith');
 
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?user_search=bob@example.com');
-        $response->assertJsonCount(1, 'users');
-        $response->assertJsonPath('users.0.full_name', 'Bob Jones');
+        $response->assertJsonCount(1, 'users.data');
+        $response->assertJsonPath('users.data.0.full_name', 'Bob Jones');
     }
 
     public function test_admin_can_search_agents_by_name_or_agency(): void
@@ -60,12 +60,12 @@ class AdminDashboardSearchTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?agent_search=Luxury');
 
         $response->assertStatus(200);
-        $response->assertJsonCount(1, 'agents');
-        $response->assertJsonPath('agents.0.agency_name', 'Luxury Realty');
+        $response->assertJsonCount(1, 'agents.data');
+        $response->assertJsonPath('agents.data.0.agency_name', 'Luxury Realty');
 
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?agent_search=Two');
-        $response->assertJsonCount(1, 'agents');
-        $response->assertJsonPath('agents.0.full_name', 'Agent Two');
+        $response->assertJsonCount(1, 'agents.data');
+        $response->assertJsonPath('agents.data.0.full_name', 'Agent Two');
     }
 
     public function test_admin_can_suspend_user_without_passing_role(): void
@@ -137,11 +137,11 @@ class AdminDashboardSearchTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?property_search=Villa');
-        $response->assertJsonCount(1, 'properties');
-        $response->assertJsonPath('properties.0.title', 'Modern Villa');
+        $response->assertJsonCount(1, 'properties.data');
+        $response->assertJsonPath('properties.data.0.title', 'Modern Villa');
 
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?property_search=Cebu');
-        $response->assertJsonCount(1, 'properties');
-        $response->assertJsonPath('properties.0.title', 'Beach Condo');
+        $response->assertJsonCount(1, 'properties.data');
+        $response->assertJsonPath('properties.data.0.title', 'Beach Condo');
     }
 }

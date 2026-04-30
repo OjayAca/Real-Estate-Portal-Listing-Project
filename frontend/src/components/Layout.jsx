@@ -5,7 +5,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import ConfirmModal from './ConfirmModal';
-import { Home, Building2, LayoutDashboard, LogOut, CodeSquare, CheckCircle2, Users, Sun, Moon } from 'lucide-react';
+import { Home, Building2, LayoutDashboard, LogOut, CodeSquare, CheckCircle2, Users, Sun, Moon, Menu, X } from 'lucide-react';
 
 const navClass = ({ isActive }) =>
   isActive ? 'nav-link nav-link-active' : 'nav-link';
@@ -43,47 +43,63 @@ export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
     await logout();
     setLoggingOut(false);
     setShowLogoutConfirm(false);
+    setIsMenuOpen(false);
     navigate('/');
   };
+
+  const closeMenu = () => setIsMenuOpen(false);
 
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">Skip to main content</a>
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Real Estate Command</p>
-          <NavLink className="brand" to="/" aria-label="EstateFlow Home">
-            <CodeSquare size={24} aria-hidden="true" />
-            EstateFlow
-          </NavLink>
+      <header className={`topbar ${isMenuOpen ? 'topbar-open' : ''}`}>
+        <div className="topbar-brand-row">
+          <div>
+            <p className="eyebrow">Real Estate Command</p>
+            <NavLink className="brand" to="/" onClick={closeMenu} aria-label="EstateFlow Home">
+              <CodeSquare size={24} aria-hidden="true" />
+              EstateFlow
+            </NavLink>
+          </div>
+          <button 
+            className="icon-button mobile-menu-toggle" 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? 'Close Menu' : 'Open Menu'}
+            aria-expanded={isMenuOpen}
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-        <nav className="nav-links" aria-label="Main Navigation">
-          <NavLink className={navClass} to="/">
+
+        <nav className={`nav-links ${isMenuOpen ? 'nav-links-open' : ''}`} aria-label="Main Navigation">
+          <NavLink className={navClass} to="/" onClick={closeMenu}>
             <Home size={18} aria-hidden="true" />
             <span>Home</span>
           </NavLink>
-          <NavLink className={navClass} to="/properties">
+          <NavLink className={navClass} to="/properties" onClick={closeMenu}>
             <Building2 size={18} aria-hidden="true" />
             <span>Properties</span>
           </NavLink>
-          <NavLink className={navClass} to="/agents">
+          <NavLink className={navClass} to="/agents" onClick={closeMenu}>
             <Users size={18} aria-hidden="true" />
             <span>Agents</span>
           </NavLink>
           {user ? (
-            <NavLink className={navClass} to="/dashboard">
+            <NavLink className={navClass} to="/dashboard" onClick={closeMenu}>
               <LayoutDashboard size={18} aria-hidden="true" />
               <span>Dashboard</span>
             </NavLink>
           ) : null}
         </nav>
-        <div className="topbar-actions">
+
+        <div className={`topbar-actions ${isMenuOpen ? 'topbar-actions-open' : ''}`}>
           <button 
             className="icon-button" 
             onClick={toggleTheme} 
@@ -107,10 +123,10 @@ export default function Layout() {
             </>
           ) : (
             <>
-              <NavLink className="ghost-button" to="/login">
+              <NavLink className="ghost-button" to="/login" onClick={closeMenu}>
                 Log in
               </NavLink>
-              <NavLink className="primary-button" to="/register">
+              <NavLink className="primary-button" to="/register" onClick={closeMenu}>
                 Create account
               </NavLink>
             </>

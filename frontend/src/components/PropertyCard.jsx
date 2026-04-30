@@ -6,11 +6,6 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
   return (
     <article 
       className="property-card" 
-      onClick={() => onView(property)} 
-      role="button" 
-      tabIndex={0} 
-      onKeyDown={(e) => { if(e.key === 'Enter' || e.key === ' ') onView(property) }}
-      aria-label={`View details for ${property.title}`}
     >
       <div className="property-visual">
         <div 
@@ -61,7 +56,7 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
           )}
         </div>
         
-        <div className="property-actions" onClick={(e) => e.stopPropagation()}>
+        <div className="property-actions">
           <button 
             className="ghost-button" 
             onClick={() => onView(property)} 

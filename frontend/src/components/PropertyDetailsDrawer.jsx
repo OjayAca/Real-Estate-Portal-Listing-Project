@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { CalendarDays, Star, X } from 'lucide-react';
+import { CalendarDays, Star, X, ImageIcon } from 'lucide-react';
 
 export default function PropertyDetailsDrawer({ property, onClose, onMessage }) {
   const { user } = useAuth();
@@ -151,12 +151,21 @@ export default function PropertyDetailsDrawer({ property, onClose, onMessage }) 
         </div>
         
         <div className="drawer-content">
-          <img 
-             src={property.featured_image} 
-             alt={`Exterior view of ${property.title}`}
-             style={{ width: '100%', height: '320px', objectFit: 'cover', borderRadius: 'var(--radius-xl)', marginBottom: '2.5rem', boxShadow: 'var(--shadow-md)' }} 
-             onError={(e) => { e.target.style.display = 'none'; }}
-          />
+          {property.featured_image ? (
+            <img 
+               src={property.featured_image} 
+               alt={`Exterior view of ${property.title}`}
+               style={{ width: '100%', height: '320px', objectFit: 'cover', borderRadius: 'var(--radius-xl)', marginBottom: '2.5rem', boxShadow: 'var(--shadow-md)' }} 
+               onError={(e) => { 
+                 e.target.style.display = 'none';
+                 e.target.nextSibling.style.display = 'flex';
+               }}
+            />
+          ) : null}
+          <div className="empty-copy" style={{ display: property.featured_image ? 'none' : 'flex', height: '320px', marginBottom: '2.5rem', padding: 0 }}>
+             <ImageIcon size={48} aria-hidden="true" />
+             <span>Image not available</span>
+          </div>
 
           <h2 id="drawer-title" style={{ fontSize: '2.2rem', fontWeight: 300, marginBottom: '0.5rem', lineHeight: 1.2 }}>{property.title}</h2>
           <p className="detail-price">PHP {property.price.toLocaleString()}</p>

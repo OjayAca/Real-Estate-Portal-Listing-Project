@@ -107,6 +107,15 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return Attribute::get(fn () => trim("{$this->first_name} {$this->last_name}"));
     }
 
+    public function hasVerifiedEmail(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return parent::hasVerifiedEmail();
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === UserRole::ADMIN;

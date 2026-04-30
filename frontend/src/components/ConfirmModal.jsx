@@ -8,6 +8,8 @@ const toneConfig = {
 
 export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', tone = 'danger' }) {
   const confirmRef = useRef(null);
+  const cancelRef = useRef(null);
+  const closeRef = useRef(null);
   const config = toneConfig[tone] || toneConfig.warning;
   const ToneIcon = config.Icon;
 
@@ -18,12 +20,34 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
     }
   }, [isOpen]);
 
-  // Close on Escape
+  // Basic Focus Trap & Close on Escape
   useEffect(() => {
     if (!isOpen) return;
+
     const handleKey = (e) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+
+      if (e.key === 'Tab') {
+        const focusableElements = [closeRef.current, cancelRef.current, confirmRef.current].filter(Boolean);
+        const first = focusableElements[0];
+        const last = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
+
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, onCancel]);
@@ -45,6 +69,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
         style={{ maxWidth: '420px', width: '90%', position: 'relative', boxShadow: 'var(--shadow-lg)', padding: '2.5rem 2rem' }}
       >
         <button
+          ref={closeRef}
           className="icon-button"
           onClick={onCancel}
           style={{ position: 'absolute', top: '1rem', right: '1rem', width: '32px', height: '32px' }}
@@ -62,7 +87,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
           <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', marginBottom: '2rem', fontWeight: 300, fontSize: '0.95rem' }}>{message}</p>
 
           <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-            <button className="ghost-button" style={{ flex: 1, justifyContent: 'center' }} onClick={onCancel}>
+            <button ref={cancelRef} className="ghost-button" style={{ flex: 1, justifyContent: 'center' }} onClick={onCancel}>
               Cancel
             </button>
             <button

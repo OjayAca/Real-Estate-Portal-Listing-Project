@@ -50,20 +50,28 @@ export function NotificationProvider({ children }) {
   });
 
   useEffect(() => {
+    const initializeNotifications = async () => {
+      if (!canUseNotifications(user)) {
+        setNotifications([]);
+        setUnreadCount(0);
+        unreadCountRef.current = 0;
+        return;
+      }
+      await syncNotifications(true);
+    };
+
+    initializeNotifications();
+
     if (!canUseNotifications(user)) {
-      if (notifications.length > 0) setNotifications([]);
-      if (unreadCount !== 0) setUnreadCount(0);
-      unreadCountRef.current = 0;
-      return;
+      return undefined;
     }
 
-    syncNotifications(true);
     const timer = window.setInterval(() => syncNotifications(false), 20000);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [user, notifications.length, unreadCount]);
+  }, [user]);
 
   useEffect(() => {
     if (!popup) {

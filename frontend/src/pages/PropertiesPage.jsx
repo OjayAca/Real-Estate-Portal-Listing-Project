@@ -24,16 +24,15 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1 });
   const [page, setPage] = useState(1);
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(() => location.state?.selectedProperty || null);
   const [savedIds, setSavedIds] = useState([]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
-  const deferredSearch = useDeferredValue(filters.search);
+  const deferredFilters = useDeferredValue(filters);
 
   useEffect(() => {
     if (location.state?.selectedProperty) {
-      setSelected(location.state.selectedProperty);
       window.history.replaceState({}, '');
     }
   }, [location.state]);
@@ -45,39 +44,50 @@ export default function PropertiesPage() {
   }, []);
 
   useEffect(() => {
+    let ignore = false;
     if (user?.role !== 'user' || !user?.email_verified_at) {
-      setSavedIds([]);
+      setSavedIds((current) => (current.length > 0 ? [] : current));
       return;
     }
 
     apiRequest('/saved-properties')
-      .then((data) => setSavedIds((data.data || []).map((entry) => entry.property_id)))
-      .catch(() => setSavedIds([]));
+      .then((data) => {
+        if (!ignore) setSavedIds((data.data || []).map((entry) => entry.property_id));
+      })
+      .catch(() => {
+        if (!ignore) setSavedIds([]);
+      });
+
+    return () => { ignore = true; };
   }, [user]);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams();
-    searchParams.set('per_page', '6');
-    searchParams.set('page', String(page));
+    const fetchProperties = async () => {
+      const searchParams = new URLSearchParams();
+      searchParams.set('per_page', '6');
+      searchParams.set('page', String(page));
 
-    Object.entries({ ...filters, search: deferredSearch }).forEach(([key, value]) => {
-      if (value) {
-        searchParams.set(key, value);
-      }
-    });
+      Object.entries(deferredFilters).forEach(([key, value]) => {
+        if (value) {
+          searchParams.set(key, value);
+        }
+      });
 
-    setBusy(true);
-    apiRequest(`/properties?${searchParams.toString()}`)
-      .then((data) => {
+      setBusy(true);
+      try {
+        const data = await apiRequest(`/properties?${searchParams.toString()}`);
         setProperties(data.data || []);
         setMeta(data.meta || { current_page: 1, last_page: 1 });
-      })
-      .catch(() => {
+      } catch {
         setProperties([]);
         setMeta({ current_page: 1, last_page: 1 });
-      })
-      .finally(() => setBusy(false));
-  }, [deferredSearch, filters, page]);
+      } finally {
+        setBusy(false);
+      }
+    };
+
+    fetchProperties();
+  }, [deferredFilters, page]);
 
   const canUseBuyerActions = useMemo(() => user?.role === 'user' && Boolean(user?.email_verified_at), [user]);
 
@@ -85,6 +95,13 @@ export default function PropertiesPage() {
     startTransition(() => {
       setPage(1);
       setFilters((current) => ({ ...current, [name]: value }));
+    });
+  };
+
+  const clearFilters = () => {
+    startTransition(() => {
+      setPage(1);
+      setFilters(baseFilters);
     });
   };
 
@@ -185,6 +202,15 @@ export default function PropertiesPage() {
             ))}
           </select>
         </label>
+
+        <button 
+          className="ghost-button" 
+          onClick={clearFilters} 
+          style={{ width: '100%', marginTop: '1rem', border: '1px solid var(--border-subtle)' }}
+          type="button"
+        >
+          Clear All Filters
+        </button>
       </aside>
 
       <section className="browser-results" style={{ position: 'relative' }}>
