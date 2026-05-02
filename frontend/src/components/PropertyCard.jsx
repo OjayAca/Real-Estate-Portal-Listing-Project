@@ -1,11 +1,19 @@
-import { MapPin, BedDouble, Bath, Square, ArrowRight, Bookmark, BookmarkCheck } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Square, Heart, Mail } from 'lucide-react';
 
 export default function PropertyCard({ property, onInquire, onSave, onView, saved }) {
   const isAvailable = property.status.toLowerCase() === 'available';
 
+  const handleCardClick = (e) => {
+    // If the click is on a button (like Save or Email Agent), don't trigger the whole card view
+    if (e.target.closest('button')) return;
+    onView(property);
+  };
+
   return (
     <article 
       className="property-card" 
+      onClick={handleCardClick}
+      style={{ cursor: 'pointer' }}
     >
       <div className="property-visual">
         <div 
@@ -13,8 +21,28 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
           style={{ backgroundImage: `url(${property.featured_image || ''})` }}
           aria-hidden="true"
         />
-        <span className="property-type">{property.property_type}</span>
-        <span className={`property-status status-${property.status.toLowerCase()}`}>
+        <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+          <span className="property-type">{property.property_type}</span>
+          {onSave && (
+            <button 
+              className="icon-button" 
+              onClick={(e) => { e.stopPropagation(); onSave(property); }} 
+              title={saved ? 'Remove saved property' : 'Save property'}
+              aria-label={saved ? `Remove ${property.title} from saved properties` : `Save ${property.title}`}
+              style={{ 
+                width: '36px', 
+                height: '36px', 
+                background: 'rgba(0,0,0,0.5)', 
+                border: 'none', 
+                color: saved ? '#ef4444' : '#fff',
+                backdropFilter: 'blur(8px)'
+              }}
+            >
+              <Heart size={20} fill={saved ? 'currentColor' : 'none'} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        <span className={`property-status status-${property.status.toLowerCase()}`} style={{ position: 'absolute', bottom: '1.5rem', left: '1.5rem' }}>
           {property.status}
         </span>
       </div>
@@ -56,36 +84,19 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
           )}
         </div>
         
-        <div className="property-actions">
-          <button 
-            className="ghost-button" 
-            onClick={() => onView(property)} 
-            aria-label={`View full details for ${property.title}`}
-            tabIndex={0}
-          >
-            Details
-          </button>
-          {onSave && (
-            <button 
-              className="ghost-button" 
-              onClick={() => onSave(property)} 
-              title={saved ? 'Remove saved property' : 'Save property'}
-              aria-label={saved ? `Remove ${property.title} from saved properties` : `Save ${property.title}`}
-            >
-              {saved ? <BookmarkCheck size={16} fill="currentColor" aria-hidden="true" /> : <Bookmark size={16} aria-hidden="true" />}
-              {saved ? 'Saved' : 'Save'}
-            </button>
-          )}
-          {onInquire && isAvailable && (
+        {onInquire && isAvailable && (
+          <div className="property-actions" style={{ marginTop: 'auto' }}>
             <button 
               className="primary-button" 
-              onClick={() => onInquire(property)}
-              aria-label={`Book a viewing for ${property.title}`}
+              onClick={(e) => { e.stopPropagation(); onInquire(property); }}
+              aria-label={`Email agent for ${property.title}`}
+              style={{ width: '100%' }}
             >
-              Book Viewing
+              <Mail size={18} aria-hidden="true" />
+              Email Agent
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </article>
   );

@@ -2,16 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { CalendarDays, Star, X, ImageIcon } from 'lucide-react';
+import { Star, X, ImageIcon } from 'lucide-react';
 
 export default function PropertyDetailsDrawer({ property, onClose, onMessage }) {
   const { user } = useAuth();
-  const [bookingDate, setBookingDate] = useState(() => new Date(Date.now() + 86400000).toISOString().slice(0, 10));
-  const [bookingSlots, setBookingSlots] = useState([]);
-  const [slotsBusy, setSlotsBusy] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState('');
-  const [bookingNotes, setBookingNotes] = useState('');
-  const [bookingBusy, setBookingBusy] = useState(false);
   const [inquiryMessage, setInquiryMessage] = useState('');
   const [inquiryBusy, setInquiryBusy] = useState(false);
 
@@ -20,45 +14,8 @@ export default function PropertyDetailsDrawer({ property, onClose, onMessage }) 
       return;
     }
 
-    setBookingDate(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
-    setBookingNotes('');
-    setSelectedSlot('');
     setInquiryMessage('');
   }, [property]);
-
-  useEffect(() => {
-    if (!property || property.status.toLowerCase() !== 'available') {
-      setBookingSlots([]);
-      setSelectedSlot('');
-      return;
-    }
-
-    let ignore = false;
-    setSlotsBusy(true);
-    apiRequest(`/properties/${property.property_id}/viewing-slots?date=${bookingDate}`)
-      .then((data) => {
-        if (ignore) return;
-        setBookingSlots(data.data || []);
-        setSelectedSlot((current) => {
-          const next = (data.data || []).some((slot) => slot.start_at === current) ? current : '';
-          return next;
-        });
-      })
-      .catch((error) => {
-        if (ignore) return;
-        setBookingSlots([]);
-        setSelectedSlot('');
-        if (onMessage) onMessage(error.message);
-      })
-      .finally(() => {
-        if (ignore) return;
-        setSlotsBusy(false);
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [bookingDate, property, onMessage]);
 
   // Handle Escape key to close the drawer
   useEffect(() => {
@@ -71,35 +28,6 @@ export default function PropertyDetailsDrawer({ property, onClose, onMessage }) 
   }, [property, onClose]);
 
   const canUseBuyerActions = useMemo(() => user?.role === 'user' && Boolean(user?.email_verified_at), [user]);
-
-  const bookViewing = async () => {
-    if (!canUseBuyerActions) {
-      if (onMessage) onMessage('Verify your email and log in as a buyer to book a viewing.');
-      return;
-    }
-
-    if (!selectedSlot) {
-      if (onMessage) onMessage('Choose a viewing slot first.');
-      return;
-    }
-
-    setBookingBusy(true);
-    try {
-      await apiRequest(`/properties/${property.property_id}/viewings`, {
-        method: 'POST',
-        body: { scheduled_start: selectedSlot, notes: bookingNotes },
-      });
-      setBookingNotes('');
-      setSelectedSlot('');
-      const refreshed = await apiRequest(`/properties/${property.property_id}/viewing-slots?date=${bookingDate}`);
-      setBookingSlots(refreshed.data || []);
-      if (onMessage) onMessage('Viewing booked with the assigned agent.');
-    } catch (error) {
-      if (onMessage) onMessage(error.message);
-    } finally {
-      setBookingBusy(false);
-    }
-  };
 
   const sendInquiry = async () => {
     if (!canUseBuyerActions) {
@@ -196,9 +124,9 @@ export default function PropertyDetailsDrawer({ property, onClose, onMessage }) 
             <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--border-subtle)' }}>
               <div className="booking-panel-header">
                 <div>
-                  <span style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Reserve A 30-Minute Viewing</span>
-                  <p style={{ margin: 0, color: 'var(--text-muted)', fontWeight: 300 }}>
-                    Choose an open slot from the agent schedule and attach any access notes ahead of the visit.
+                  <span style={{ display: 'block', marginBottom: '1rem', fontWeight: 500, fontSize: '1.2rem' }}>Contact Representing Agent</span>
+                  <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-muted)', fontWeight: 300 }}>
+                    Have questions about this listing? Send a direct message to the representing agent for more details or to express interest.
                   </p>
                 </div>
                 <div className="agent-rating-row" style={{ margin: 0 }}>
@@ -207,69 +135,33 @@ export default function PropertyDetailsDrawer({ property, onClose, onMessage }) 
               </div>
 
               <label>
-                <span className="flex-row" style={{ gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <CalendarDays size={16} aria-hidden="true" />
-                  Viewing Date
-                </span>
-                <input min={new Date().toISOString().slice(0, 10)} type="date" value={bookingDate} onChange={(event) => setBookingDate(event.target.value)} />
-              </label>
-
-              <div className="booking-slot-grid">
-                {slotsBusy ? <p className="empty-copy" style={{ padding: '2rem' }}>Loading available slots...</p> : null}
-                {!slotsBusy && bookingSlots.length === 0 ? <p className="empty-copy" style={{ padding: '2rem' }}>No open slots on this date. Try another day.</p> : null}
-                {!slotsBusy && bookingSlots.map((slot) => (
-                  <button
-                    key={slot.start_at}
-                    className={selectedSlot === slot.start_at ? 'primary-button booking-slot-active' : 'ghost-button'}
-                    onClick={() => setSelectedSlot(slot.start_at)}
-                    type="button"
-                  >
-                    {slot.label}
-                  </button>
-                ))}
-              </div>
-
-              <label>
-                <span style={{ display: 'block', marginBottom: '1rem', fontWeight: 500 }}>Viewing Notes</span>
-                <textarea
-                  onChange={(event) => setBookingNotes(event.target.value)}
-                  placeholder="Add gate instructions, unit questions, or viewing priorities."
-                  rows="4"
-                  value={bookingNotes}
-                  aria-label="Viewing notes"
-                />
-              </label>
-
-              <button className="primary-button detail-submit" disabled={bookingBusy || !selectedSlot} onClick={bookViewing}>
-                {bookingBusy ? 'Booking Viewing...' : 'Book Viewing Slot'}
-              </button>
-
-              <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--border-subtle)' }}>
-                <span style={{ display: 'block', marginBottom: '1rem', fontWeight: 500 }}>Direct Inquiry</span>
-                <p style={{ margin: '0 0 1.5rem 0', color: 'var(--text-muted)', fontWeight: 300 }}>
-                  Have questions about this listing? Send a direct message to the representing agent.
-                </p>
+                <span style={{ display: 'block', marginBottom: '1rem', fontWeight: 500 }}>Your Message</span>
                 <textarea
                   onChange={(event) => setInquiryMessage(event.target.value)}
                   placeholder="Ask about documentation, pricing flexibility, or site conditions."
-                  rows="4"
+                  rows="6"
                   value={inquiryMessage}
                   aria-label="Inquiry message"
                 />
-                <button
-                  className="ghost-button"
-                  style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
-                  disabled={inquiryBusy || !inquiryMessage.trim()}
-                  onClick={sendInquiry}
-                >
-                  {inquiryBusy ? 'Sending...' : 'Send Inquiry'}
-                </button>
-              </div>
+              </label>
+              
+              <button
+                className="primary-button detail-submit"
+                style={{ width: '100%', marginTop: '1.5rem', justifyContent: 'center' }}
+                disabled={inquiryBusy || !inquiryMessage.trim()}
+                onClick={sendInquiry}
+              >
+                {inquiryBusy ? 'Sending Message...' : 'Send Message to Agent'}
+              </button>
             </div>
           ) : !canUseBuyerActions ? (
-            <p className="empty-copy">Sign in as a client to reserve a viewing slot with this agent.</p>
+            <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <p className="empty-copy">Sign in as a client to contact the representing agent for this property.</p>
+            </div>
           ) : (
-            <p className="empty-copy">This property is currently not available for scheduling.</p>
+            <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--border-subtle)' }}>
+              <p className="empty-copy">This property is currently not accepting new inquiries.</p>
+            </div>
           )}
         </div>
       </aside>

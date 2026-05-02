@@ -25,7 +25,8 @@
 }
 
 /* Dark Theme (Default/Root) */
-[data-theme="dark"], :root:not([data-theme="light"]) {
+[data-theme="dark"],
+:root:not([data-theme="light"]) {
   --bg-base: #06090e;
   --bg-surface: #10141d;
   --bg-elevated: rgba(16, 20, 29, 0.75);
@@ -51,7 +52,7 @@
   --shadow-lg: 0 15px 45px rgba(0, 0, 0, 0.8);
   --shadow-xl: 0 30px 60px rgba(0, 0, 0, 0.9);
   --glow-gold: 0 0 15px rgba(212, 175, 55, 0.15);
-  
+
   --input-bg: rgba(255, 255, 255, 0.03);
   --input-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
   --overlay-bg: rgba(6, 9, 14, 0.85);
@@ -77,57 +78,57 @@
   --tone-warning-border: rgba(212, 175, 55, 0.2);
 }
 
-/* Light Theme (Luxury Champagne) */
+/* Light Theme (Realtor-inspired) */
 [data-theme="light"] {
-  --bg-base: #FDFBFA;
-  --bg-surface: #FFFFFF;
-  --bg-elevated: rgba(255, 255, 255, 0.85);
+  --bg-base: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
 
-  --text-main: #1C1917;
-  --text-muted: #57534E;
-  --text-light: #A8A29E;
+  --text-main: #333333;
+  --text-muted: #666666;
+  --text-light: #999999;
 
-  --border-subtle: rgba(184, 158, 118, 0.2);
-  --border-focus: #C5A880;
+  --border-subtle: #eeeeee;
+  --border-focus: #d92228;
 
-  --primary-base: #B4966B;
-  --primary-hover: #8C7351;
-  --primary-light: rgba(180, 150, 107, 0.1);
-  --primary-text: #8C7351;
+  --primary-base: #d92228;
+  --primary-hover: #b11b21;
+  --primary-light: rgba(217, 34, 40, 0.05);
+  --primary-text: #d92228;
 
-  --brand-base: #8B6B3D;
-  --brand-hover: #785F3D;
-  --brand-light: rgba(139, 107, 61, 0.08);
+  --brand-base: #d92228;
+  --brand-hover: #b11b21;
+  --brand-light: rgba(217, 34, 40, 0.08);
 
-  --shadow-sm: 0 4px 10px rgba(184, 158, 118, 0.08);
-  --shadow-md: 0 8px 30px rgba(184, 158, 118, 0.12);
-  --shadow-lg: 0 15px 45px rgba(184, 158, 118, 0.18);
-  --shadow-xl: 0 30px 60px rgba(184, 158, 118, 0.25);
-  --glow-gold: 0 0 15px rgba(184, 158, 118, 0.1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  --glow-gold: none;
 
-  --input-bg: rgba(184, 158, 118, 0.04);
-  --input-shadow: inset 0 1px 3px rgba(184, 158, 118, 0.1);
-  --overlay-bg: rgba(253, 251, 250, 0.85);
-  --panel-gradient: radial-gradient(ellipse at top left, rgba(255, 255, 255, 0.9) 0%, var(--bg-surface) 100%);
-  --hero-glow: radial-gradient(circle, rgba(184, 158, 118, 0.12) 0%, transparent 60%);
-  --body-glow: rgba(184, 158, 118, 0.08);
+  --input-bg: #ffffff;
+  --input-shadow: none;
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --panel-gradient: #ffffff;
+  --hero-glow: none;
+  --body-glow: transparent;
 
-  --btn-primary-bg: linear-gradient(135deg, var(--brand-base), #785F3D);
-  --btn-primary-shadow: 0 4px 15px rgba(154, 123, 79, 0.2);
-  --btn-primary-hover-shadow: 0 8px 25px rgba(154, 123, 79, 0.35);
+  --btn-primary-bg: var(--brand-base);
+  --btn-primary-shadow: 0 2px 4px rgba(217, 34, 40, 0.2);
+  --btn-primary-hover-shadow: 0 4px 8px rgba(217, 34, 40, 0.3);
 
-  --btn-ghost-bg: rgba(154, 123, 79, 0.04);
-  --btn-ghost-border: rgba(154, 123, 79, 0.15);
-  --btn-ghost-hover-bg: rgba(154, 123, 79, 0.08);
-  --btn-ghost-hover-border: rgba(154, 123, 79, 0.3);
+  --btn-ghost-bg: transparent;
+  --btn-ghost-border: #333333;
+  --btn-ghost-hover-bg: #eeeeee;
+  --btn-ghost-hover-border: #333333;
 
   /* Tone specific variables */
-  --tone-danger-color: #dc2626;
-  --tone-danger-bg: rgba(220, 38, 38, 0.05);
-  --tone-danger-border: rgba(220, 38, 38, 0.15);
-  --tone-warning-color: var(--brand-base);
-  --tone-warning-bg: rgba(154, 123, 79, 0.05);
-  --tone-warning-border: rgba(154, 123, 79, 0.15);
+  --tone-danger-color: #d92228;
+  --tone-danger-bg: rgba(217, 34, 40, 0.05);
+  --tone-danger-border: rgba(217, 34, 40, 0.15);
+  --tone-warning-color: #f59e0b;
+  --tone-warning-bg: rgba(245, 158, 11, 0.05);
+  --tone-warning-border: rgba(245, 158, 11, 0.15);
 }
 
 :root {
@@ -246,34 +247,166 @@ textarea {
 }
 
 .app-shell {
-  width: min(1340px, calc(100% - 2rem));
+  width: 100%;
   margin: 0 auto;
-  padding: 1.5rem 0 3rem;
+  padding: 0;
   flex: 1;
 }
 
-/* Glassmorphic Topbar */
+.page-shell {
+  width: min(1340px, calc(100% - 2rem));
+  margin: 2.5rem auto 0;
+}
+
+/* Solid Topbar (Realtor-style) */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 1rem 2rem;
-  border-radius: var(--radius-pill);
+  padding: 0.75rem 2rem;
   position: sticky;
-  top: 1rem;
+  top: 0;
   z-index: 50;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md), var(--glow-gold);
-  transition: padding var(--transition-normal), box-shadow var(--transition-normal);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: all var(--transition-normal);
 }
 
 .topbar:hover {
-  box-shadow: var(--shadow-lg), var(--glow-gold);
+  box-shadow: var(--shadow-sm);
 }
+
+/* Realtor Hero Section */
+.realtor-hero {
+  position: relative;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 2rem 10rem;
+  color: #ffffff;
+  text-align: center;
+  overflow: hidden;
+}
+
+.realtor-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  z-index: -1;
+}
+
+.realtor-hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.realtor-hero-content {
+  width: min(800px, 100%);
+  z-index: 1;
+}
+
+.realtor-hero-content h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 700;
+  margin-bottom: 2rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.hero-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.hero-tab {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  position: relative;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.hero-tab:hover {
+  opacity: 1;
+}
+
+.hero-tab-active {
+  opacity: 1;
+}
+
+.hero-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #ffffff;
+  border-radius: 2px;
+}
+
+.hero-search-bar {
+  display: flex;
+  background: #ffffff;
+  border-radius: var(--radius-pill);
+  padding: 0.5rem;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.1rem;
+  color: #333333;
+  margin: 0;
+  box-shadow: none;
+}
+
+.hero-search-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+.hero-search-btn {
+  background: var(--brand-base);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hero-search-btn:hover {
+  background: var(--brand-hover);
+}
+
+.hero-browse-row {
+  margin-top: 3rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
 
 .brand {
   font-size: 1.5rem;
@@ -300,7 +433,7 @@ textarea {
   letter-spacing: 0.25em;
   font-size: 0.65rem;
   font-weight: 500;
-  color: var(--primary-base);
+  color: var(--text-muted);
 }
 
 /* Flex rows */
@@ -1855,12 +1988,154 @@ textarea {
 }
 
 @keyframes pulse-card {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.55;
   }
 
   50% {
     opacity: 1;
+  }
+}
+
+/* User Dropdown */
+.user-dropdown-container {
+  position: relative;
+}
+
+.user-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-main);
+}
+
+.user-dropdown-trigger:hover {
+  border-color: var(--brand-base);
+  background: var(--primary-light);
+}
+
+.user-avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--brand-base);
+  display: grid;
+  place-items: center;
+}
+
+.user-dropdown-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.user-dropdown-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.user-dropdown-role {
+  font-size: 0.7rem;
+  color: var(--primary-base);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dropdown-chevron {
+  transition: transform 0.3s ease;
+  color: var(--text-muted);
+}
+
+.dropdown-chevron.rotated {
+  transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: 240px;
+  background: var(--bg-elevated);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: 0.75rem;
+  z-index: 100;
+  transform-origin: top right;
+}
+
+.dropdown-header {
+  padding: 0.75rem;
+}
+
+.dropdown-header strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.dropdown-header span {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0.5rem 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: var(--primary-light);
+  color: var(--brand-base);
+}
+
+.logout-item:hover {
+  background: var(--tone-danger-bg);
+  color: var(--tone-danger-color);
+}
+
+/* Animations */
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

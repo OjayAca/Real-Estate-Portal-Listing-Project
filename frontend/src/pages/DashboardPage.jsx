@@ -573,7 +573,7 @@ export default function DashboardPage() {
   const statsEntries = Object.entries(dashboard?.stats || {});
 
   return (
-    <div className="page-grid dashboard-grid animate-enter">
+    <div className="page-shell page-grid dashboard-grid animate-enter">
       <section className="section-panel dashboard-hero animate-delay-1">
         <p className="eyebrow">Personalized Dashboard</p>
         <h2 style={{ fontSize: '2.5rem', fontWeight: 300, color: 'var(--brand-base)', marginBottom: '0.5rem' }}>

@@ -102,7 +102,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="page-grid animate-enter">
+    <div className="page-shell page-grid animate-enter">
       <section className="section-panel">
         <div className="section-header-row" style={{ justifyContent: 'space-between', marginBottom: '2rem' }}>
           <div>

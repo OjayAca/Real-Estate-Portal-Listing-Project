@@ -5,7 +5,8 @@ import { useNotifications } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import ConfirmModal from './ConfirmModal';
-import { Home, Building2, LayoutDashboard, LogOut, CodeSquare, CheckCircle2, Users, Sun, Moon, Menu, X } from 'lucide-react';
+import UserDropdown from './UserDropdown';
+import { LogOut, CodeSquare, CheckCircle2, Sun, Moon, Menu, X } from 'lucide-react';
 
 const navClass = ({ isActive }) =>
   isActive ? 'nav-link nav-link-active' : 'nav-link';
@@ -61,13 +62,10 @@ export default function Layout() {
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <header className={`topbar ${isMenuOpen ? 'topbar-open' : ''}`}>
         <div className="topbar-brand-row">
-          <div>
-            <p className="eyebrow">Real Estate Command</p>
-            <NavLink className="brand" to="/" onClick={closeMenu} aria-label="EstateFlow Home">
-              <CodeSquare size={24} aria-hidden="true" />
-              EstateFlow
-            </NavLink>
-          </div>
+          <NavLink className="brand" to="/" onClick={closeMenu} aria-label="EstateFlow Home">
+            <CodeSquare size={28} aria-hidden="true" />
+            <span>EstateFlow</span>
+          </NavLink>
           <button 
             className="icon-button mobile-menu-toggle" 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -79,22 +77,21 @@ export default function Layout() {
         </div>
 
         <nav className={`nav-links ${isMenuOpen ? 'nav-links-open' : ''}`} aria-label="Main Navigation">
-          <NavLink className={navClass} to="/" onClick={closeMenu}>
-            <Home size={18} aria-hidden="true" />
-            <span>Home</span>
+          <NavLink className={navClass} to="/properties" onClick={closeMenu}>
+            Buy
           </NavLink>
           <NavLink className={navClass} to="/properties" onClick={closeMenu}>
-            <Building2 size={18} aria-hidden="true" />
-            <span>Properties</span>
+            Rent
+          </NavLink>
+          <NavLink className={navClass} to="/properties" onClick={closeMenu}>
+            Sell
           </NavLink>
           <NavLink className={navClass} to="/agents" onClick={closeMenu}>
-            <Users size={18} aria-hidden="true" />
-            <span>Agents</span>
+            Agents
           </NavLink>
           {user ? (
             <NavLink className={navClass} to="/dashboard" onClick={closeMenu}>
-              <LayoutDashboard size={18} aria-hidden="true" />
-              <span>Dashboard</span>
+              Dashboard
             </NavLink>
           ) : null}
         </nav>
@@ -105,29 +102,25 @@ export default function Layout() {
             onClick={toggleTheme} 
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            style={{ border: 'none', background: 'none' }}
           >
             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
           </button>
 
           {user ? <NotificationBell /> : null}
           {user ? (
-            <>
-              <div className="user-chip">
-                <span>{user.full_name}</span>
-                <small>{getUserStatusLabel(user)}</small>
-              </div>
-              <button className="ghost-button" disabled={loggingOut} onClick={() => setShowLogoutConfirm(true)} title="Sign Out" aria-label="Sign out of your account">
-                <LogOut size={18} aria-hidden="true" />
-                <span>{loggingOut ? 'Signing out...' : 'Sign out'}</span>
-              </button>
-            </>
+            <UserDropdown 
+              user={user} 
+              onLogout={() => setShowLogoutConfirm(true)} 
+              userStatusLabel={getUserStatusLabel(user)} 
+            />
           ) : (
             <>
-              <NavLink className="ghost-button" to="/login" onClick={closeMenu}>
+              <NavLink className="text-link" to="/login" onClick={closeMenu} style={{ textTransform: 'none', fontWeight: 600, fontSize: '1rem', color: '#333' }}>
                 Log in
               </NavLink>
-              <NavLink className="primary-button" to="/register" onClick={closeMenu}>
-                Create account
+              <NavLink className="primary-button" to="/register" onClick={closeMenu} style={{ borderRadius: '24px', padding: '0.6rem 1.5rem' }}>
+                Sign up
               </NavLink>
             </>
           )}
@@ -144,7 +137,7 @@ export default function Layout() {
         </div>
       ) : null}
 
-      <main id="main-content" className="page-shell">
+      <main id="main-content">
         <Outlet />
       </main>
 

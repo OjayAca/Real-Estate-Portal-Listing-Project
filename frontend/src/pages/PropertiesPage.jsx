@@ -135,7 +135,7 @@ export default function PropertiesPage() {
   };
 
   return (
-    <div className="page-grid property-browser-grid animate-enter">
+    <div className="page-shell page-grid property-browser-grid animate-enter">
       <aside className="filter-panel section-panel">
         <div className="flex-row" style={{ marginBottom: '2rem', gap: '0.75rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1.5rem' }}>
           <Filter size={20} className="notification-popup-icon" />

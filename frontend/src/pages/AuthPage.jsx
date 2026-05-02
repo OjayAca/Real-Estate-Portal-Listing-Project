@@ -53,7 +53,7 @@ export default function AuthPage({ mode }) {
   };
 
   return (
-    <div className="auth-layout animate-enter">
+    <div className="page-shell auth-layout animate-enter">
       <section className="section-panel auth-panel">
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
            <div style={{ backgroundColor: 'rgba(197, 168, 128, 0.08)', padding: '1.25rem', borderRadius: '50%', marginBottom: '1rem', color: 'var(--brand-base)', border: '1px solid rgba(197, 168, 128, 0.2)', boxShadow: 'var(--glow-gold)' }}>

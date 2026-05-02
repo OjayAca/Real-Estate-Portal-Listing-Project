@@ -11,7 +11,7 @@ export function ThemeProvider({ children }) {
     } catch {
       // Ignore storage errors
     }
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    return 'light';
   });
 
   useEffect(() => {

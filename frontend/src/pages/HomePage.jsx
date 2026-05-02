@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import PropertyCard from '../components/PropertyCard';
-import { ShieldCheck, Building, Zap, ArrowRight, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import heroImg from '../assets/homepage-hero.png';
 
 const CARDS_PER_PAGE = 3;
+const HERO_TABS = ['Buy', 'Rent', 'Sell', 'Pre-approval', 'Just sold', 'Home value'];
 
 export default function HomePage() {
   const [featured, setFeatured] = useState([]);
   const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState('Buy');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,57 +28,46 @@ export default function HomePage() {
   };
 
   return (
-    <div className="page-grid home-grid animate-enter">
-      <section className="hero-panel animate-delay-1">
-        <div className="hero-copy">
-          <p className="eyebrow">Discover Excellence</p>
-          <h1>Refined Living, Digitally Realized.</h1>
-          <p>
-            An exclusive, role-based real estate platform built for seamless transactions, complete oversight, and extraordinary property discovery.
-          </p>
-          <div className="hero-actions">
-            <Link className="primary-button" to="/properties" aria-label="Explore properties">
-              Explore listings
-              <ArrowRight size={18} aria-hidden="true" />
-            </Link>
-            <Link className="ghost-button" to="/register" aria-label="Join the portal as an agent or buyer">
-              <UserPlus size={18} aria-hidden="true" />
-              Join the portal
-            </Link>
+    <div className="animate-enter">
+      <section className="realtor-hero">
+        <div 
+          className="realtor-hero-bg" 
+          style={{ backgroundImage: `url(${heroImg})` }} 
+        />
+        <div className="realtor-hero-content">
+          <h1>Connecting buyers, sellers, and experts<br />for effortless real estate success</h1>
+          
+          <div className="hero-tabs">
+            {HERO_TABS.map((tab) => (
+              <button
+                key={tab}
+                className={`hero-tab ${activeTab === tab ? 'hero-tab-active' : ''}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
-        </div>
-        <div className="hero-stats">
-          <div className="metric-card animate-enter animate-delay-2">
-            <div className="metric-icon accent" aria-hidden="true">
-              <ShieldCheck size={28} />
-            </div>
-            <div className="metric-info">
-              <strong>Rigorous</strong>
-              <span>Admin oversight</span>
-            </div>
+
+          <div className="hero-search-bar">
+            <input 
+              type="text" 
+              className="hero-search-input" 
+              placeholder="Address, School, City, Zip or Neighborhood" 
+            />
+            <button className="hero-search-btn">
+              <Search size={20} />
+              <span>Search</span>
+            </button>
           </div>
-          <div className="metric-card animate-enter animate-delay-3">
-            <div className="metric-icon accent" aria-hidden="true">
-              <Building size={28} />
-            </div>
-            <div className="metric-info">
-              <strong>Premium</strong>
-              <span>Verified properties</span>
-            </div>
-          </div>
-          <div className="metric-card animate-enter" style={{ animationDelay: '0.4s' }}>
-            <div className="metric-icon accent" aria-hidden="true">
-              <Zap size={28} />
-            </div>
-            <div className="metric-info">
-              <strong>Instant</strong>
-              <span>Live notifications</span>
-            </div>
+
+          <div className="hero-browse-row">
+            Browse homes in EstateFlow City, EF
           </div>
         </div>
       </section>
 
-      <section className="section-panel animate-enter" style={{ marginTop: '2rem', animationDelay: '0.5s' }}>
+      <section className="page-shell section-panel animate-enter" style={{ animationDelay: '0.5s' }}>
         <div className="section-header-row">
           <div>
             <p className="eyebrow">Curated Selection</p>
@@ -102,10 +94,10 @@ export default function HomePage() {
                 </button>
               </div>
             )}
-            <Link className="text-button flex-row" style={{ gap: '0.4rem' }} to="/properties" aria-label="View all featured property collections">
+            <button className="text-button flex-row" style={{ gap: '0.4rem' }} onClick={() => navigate('/properties')} aria-label="View all featured property collections">
               View the collection
               <ArrowRight size={16} aria-hidden="true" />
-            </Link>
+            </button>
           </div>
         </div>
         <div className="card-grid" style={{ marginTop: '2.5rem' }}>
