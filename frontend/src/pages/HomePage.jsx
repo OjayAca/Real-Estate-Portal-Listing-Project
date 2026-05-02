@@ -12,10 +12,11 @@ export default function HomePage() {
   const [featured, setFeatured] = useState([]);
   const [page, setPage] = useState(0);
   const [activeTab, setActiveTab] = useState('Buy');
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiRequest('/properties?per_page=12')
+    apiRequest('/properties?per_page=12&listing_purpose=sale')
       .then((data) => setFeatured(data.data || []))
       .catch(() => setFeatured([]));
   }, []);
@@ -24,25 +25,48 @@ export default function HomePage() {
   const visible = featured.slice(page * CARDS_PER_PAGE, page * CARDS_PER_PAGE + CARDS_PER_PAGE);
 
   const handleView = (property) => {
-    navigate('/properties', { state: { selectedProperty: property } });
+    navigate(property.listing_purpose === 'rent' ? '/rent' : '/buy', { state: { selectedProperty: property } });
+  };
+
+  const handleTabClick = (tab) => {
+    if (tab === 'Sell') {
+      navigate('/sell');
+      return;
+    }
+
+    setActiveTab(tab);
+  };
+
+  const handleSearch = () => {
+    if (activeTab === 'Sell') {
+      navigate('/sell');
+      return;
+    }
+
+    const targetPath = activeTab === 'Rent' ? '/rent' : '/buy';
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) {
+      params.set('search', searchTerm.trim());
+    }
+    navigate(`${targetPath}${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   return (
     <div className="animate-enter">
       <section className="realtor-hero">
-        <div 
-          className="realtor-hero-bg" 
-          style={{ backgroundImage: `url(${heroImg})` }} 
+        <div
+          className="realtor-hero-bg"
+          style={{ backgroundImage: `url(${heroImg})` }}
         />
         <div className="realtor-hero-content">
           <h1>Connecting buyers, sellers, and experts<br />for effortless real estate success</h1>
-          
+
           <div className="hero-tabs">
             {HERO_TABS.map((tab) => (
               <button
                 key={tab}
                 className={`hero-tab ${activeTab === tab ? 'hero-tab-active' : ''}`}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabClick(tab)}
               >
                 {tab}
               </button>
@@ -50,12 +74,19 @@ export default function HomePage() {
           </div>
 
           <div className="hero-search-bar">
-            <input 
-              type="text" 
-              className="hero-search-input" 
-              placeholder="Address, School, City, Zip or Neighborhood" 
+            <input
+              type="text"
+              className="hero-search-input"
+              placeholder="Address, School, City, Zip or Neighborhood"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
             />
-            <button className="hero-search-btn">
+            <button className="hero-search-btn" onClick={handleSearch} type="button">
               <Search size={20} />
               <span>Search</span>
             </button>
@@ -94,7 +125,7 @@ export default function HomePage() {
                 </button>
               </div>
             )}
-            <button className="text-button flex-row" style={{ gap: '0.4rem' }} onClick={() => navigate('/properties')} aria-label="View all featured property collections">
+            <button className="text-button flex-row" style={{ gap: '0.4rem' }} onClick={() => navigate('/buy')} aria-label="View all featured property collections">
               View the collection
               <ArrowRight size={16} aria-hidden="true" />
             </button>
@@ -102,9 +133,9 @@ export default function HomePage() {
         </div>
         <div className="card-grid" style={{ marginTop: '2.5rem' }}>
           {visible.map((property) => (
-            <PropertyCard 
-              key={property.property_id} 
-              property={property} 
+            <PropertyCard
+              key={property.property_id}
+              property={property}
               onView={handleView}
               onInquire={handleView}
             />

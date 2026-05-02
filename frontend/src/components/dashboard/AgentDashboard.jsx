@@ -16,6 +16,11 @@ function formatPrice(price) {
   return `PHP ${numericValue.toLocaleString()}`;
 }
 
+function formatListingPrice(property) {
+  const price = formatPrice(property.price);
+  return property.listing_purpose === 'rent' ? `${price}/mo` : price;
+}
+
 function formatListedAt(value) {
   if (!value) {
     return 'Recently updated';
@@ -355,7 +360,7 @@ export default function AgentDashboard({
                     className="agent-listing-media"
                     style={property.featured_image ? { backgroundImage: `linear-gradient(rgba(6, 9, 14, 0.2), rgba(6, 9, 14, 0.75)), url(${property.featured_image})` } : undefined}
                   >
-                    <span className="property-type">{property.property_type}</span>
+                    <span className="property-type">{property.listing_purpose === 'rent' ? 'For Rent' : 'For Sale'} - {property.property_type}</span>
                     <span className={`property-status status-${property.status.toLowerCase()}`}>{property.status}</span>
                   </div>
 
@@ -368,7 +373,7 @@ export default function AgentDashboard({
                           {property.city}, {property.province}
                         </p>
                       </div>
-                      <strong className="property-price">{formatPrice(property.price)}</strong>
+                      <strong className="property-price">{formatListingPrice(property)}</strong>
                     </div>
 
                     <p className="agent-listing-copy">{property.description}</p>

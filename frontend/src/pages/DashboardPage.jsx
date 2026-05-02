@@ -8,20 +8,20 @@ import DashboardLoading from '../components/dashboard/DashboardLoading';
 import BuyerDashboard from '../components/dashboard/BuyerDashboard';
 import AgentDashboard from '../components/dashboard/AgentDashboard';
 import AdminDashboard from '../components/dashboard/AdminDashboard';
-import { 
-  ShieldCheck, 
-  Mail, 
-  Users, 
-  UserCheck, 
-  Building, 
-  Mail as MailIcon, 
-  CalendarDays, 
-  Bell, 
-  Clock, 
-  FileText, 
-  CheckCircle, 
-  Save, 
-  AlertCircle 
+import {
+  ShieldCheck,
+  Mail,
+  Users,
+  UserCheck,
+  Building,
+  Mail as MailIcon,
+  CalendarDays,
+  Bell,
+  Clock,
+  FileText,
+  CheckCircle,
+  Save,
+  AlertCircle
 } from 'lucide-react';
 
 const WEEKDAY_OPTIONS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   const [message, setMessage] = useState('');
   const [confirmState, setConfirmState] = useState(null);
   const [amenities, setAmenities] = useState([]);
-  
+
   // Agent States
   const [agentProperties, setAgentProperties] = useState([]);
   const [agentPropertiesLoading, setAgentPropertiesLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function DashboardPage() {
   const [agentBookingsBusy, setAgentBookingsBusy] = useState(false);
   const [agentInquiries, setAgentInquiries] = useState([]);
   const [agentInquiriesBusy, setAgentInquiriesBusy] = useState(false);
-  
+
   // UI States
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [respondingInquiry, setRespondingInquiry] = useState(null);
@@ -110,7 +110,7 @@ export default function DashboardPage() {
       params.append('users_page', String(pages.users));
       params.append('agents_page', String(pages.agents));
       params.append('properties_page', String(pages.properties));
-      
+
       const overview = await authFetch(`/admin/overview?${params.toString()}`);
       setAdminOverview(overview);
     } catch (error) {
@@ -184,8 +184,8 @@ export default function DashboardPage() {
   }, [user?.role]);
 
   const agentProfile = dashboard?.profile || user?.agent_profile || null;
-  const isApprovedAgent = user?.role === 'agent' && 
-    agentProfile?.approval_status === 'approved' && 
+  const isApprovedAgent = user?.role === 'agent' &&
+    agentProfile?.approval_status === 'approved' &&
     Boolean(user?.email_verified_at);
 
   useEffect(() => {
@@ -292,14 +292,14 @@ export default function DashboardPage() {
         method: 'PATCH',
         body: { buyer_reply: responseMessage },
       });
-      
+
       setDashboard(prev => ({
         ...prev,
-        recent_inquiries: prev.recent_inquiries.map(entry => 
+        recent_inquiries: prev.recent_inquiries.map(entry =>
           entry.inquiry_id === inquiryId ? response.data : entry
         )
       }));
-      
+
       setRespondingInquiry(null);
       setResponseMessage('');
       setMessage(response.message);
@@ -387,6 +387,7 @@ export default function DashboardPage() {
       appendValue('title', values.title.trim());
       appendValue('description', values.description.trim());
       appendValue('property_type', values.property_type);
+      appendValue('listing_purpose', values.listing_purpose);
       appendValue('price', values.price === '' ? null : Number(values.price));
       appendValue('bedrooms', values.bedrooms === '' ? null : Number(values.bedrooms));
       appendValue('bathrooms', values.bathrooms === '' ? null : Number(values.bathrooms));
@@ -583,7 +584,7 @@ export default function DashboardPage() {
           <ShieldCheck size={18} color="var(--primary-base)" aria-hidden="true" />
           Clearance Level: <strong style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>{user.role}</strong>
         </p>
-        
+
         {user.email_verified_at === null && user.role !== 'admin' ? (
           <div className="inline-message animate-enter" style={{ marginTop: '2rem', marginBottom: '1rem', border: '1px solid var(--tone-warning-border)', background: 'var(--tone-warning-bg)' }}>
             <Mail size={24} style={{ color: 'var(--tone-warning-color)' }} aria-hidden="true" />
@@ -593,9 +594,9 @@ export default function DashboardPage() {
                 {verificationMessage || 'To protect your account and access all features, please verify your email. If you did not receive the link, we can send it again.'}
               </p>
             </div>
-            <button 
-              className="primary-button" 
-              style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem' }} 
+            <button
+              className="primary-button"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem' }}
               disabled={verificationBusy}
               onClick={handleResendVerification}
             >
@@ -603,13 +604,13 @@ export default function DashboardPage() {
             </button>
           </div>
         ) : null}
-        
+
         {message ? (
           <p className="inline-message animate-enter" style={{ marginTop: '1.5rem', marginBottom: 0 }} role="status">
             {message}
           </p>
         ) : null}
-        
+
         {statsEntries.length > 0 && (
           <div className="metrics-grid">
             {statsEntries.map(([label, value], index) => {
@@ -631,7 +632,7 @@ export default function DashboardPage() {
       </section>
 
       {user.role === 'user' && (
-        <BuyerDashboard 
+        <BuyerDashboard
           dashboard={dashboard}
           setSelectedProperty={setSelectedProperty}
           respondingInquiry={respondingInquiry}
@@ -644,7 +645,7 @@ export default function DashboardPage() {
       )}
 
       {user.role === 'agent' && (
-        <AgentDashboard 
+        <AgentDashboard
           agentProfile={agentProfile}
           isApprovedAgent={isApprovedAgent}
           agentBookings={agentBookings}
@@ -685,7 +686,7 @@ export default function DashboardPage() {
       )}
 
       {user.role === 'admin' && (
-        <AdminDashboard 
+        <AdminDashboard
           adminOverview={adminOverview}
           userSearch={userSearch}
           setUserSearch={setUserSearch}

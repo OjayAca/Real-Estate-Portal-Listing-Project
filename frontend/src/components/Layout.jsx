@@ -66,8 +66,8 @@ export default function Layout() {
             <CodeSquare size={28} aria-hidden="true" />
             <span>EstateFlow</span>
           </NavLink>
-          <button 
-            className="icon-button mobile-menu-toggle" 
+          <button
+            className="icon-button mobile-menu-toggle"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label={isMenuOpen ? 'Close Menu' : 'Open Menu'}
             aria-expanded={isMenuOpen}
@@ -77,13 +77,13 @@ export default function Layout() {
         </div>
 
         <nav className={`nav-links ${isMenuOpen ? 'nav-links-open' : ''}`} aria-label="Main Navigation">
-          <NavLink className={navClass} to="/properties" onClick={closeMenu}>
+          <NavLink className={navClass} to="/buy" onClick={closeMenu}>
             Buy
           </NavLink>
-          <NavLink className={navClass} to="/properties" onClick={closeMenu}>
+          <NavLink className={navClass} to="/rent" onClick={closeMenu}>
             Rent
           </NavLink>
-          <NavLink className={navClass} to="/properties" onClick={closeMenu}>
+          <NavLink className={navClass} to="/sell" onClick={closeMenu}>
             Sell
           </NavLink>
           <NavLink className={navClass} to="/agents" onClick={closeMenu}>
@@ -97,9 +97,9 @@ export default function Layout() {
         </nav>
 
         <div className={`topbar-actions ${isMenuOpen ? 'topbar-actions-open' : ''}`}>
-          <button 
-            className="icon-button" 
-            onClick={toggleTheme} 
+          <button
+            className="icon-button"
+            onClick={toggleTheme}
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             style={{ border: 'none', background: 'none' }}
@@ -109,10 +109,10 @@ export default function Layout() {
 
           {user ? <NotificationBell /> : null}
           {user ? (
-            <UserDropdown 
-              user={user} 
-              onLogout={() => setShowLogoutConfirm(true)} 
-              userStatusLabel={getUserStatusLabel(user)} 
+            <UserDropdown
+              user={user}
+              onLogout={() => setShowLogoutConfirm(true)}
+              userStatusLabel={getUserStatusLabel(user)}
             />
           ) : (
             <>

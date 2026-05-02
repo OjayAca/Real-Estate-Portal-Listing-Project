@@ -13,6 +13,7 @@ use App\Services\InquiryService;
 use App\Services\NotificationService;
 use App\Services\PortalService;
 use App\Services\PropertyService;
+use App\Services\SellerLeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -25,6 +26,7 @@ class PortalController extends Controller
         private readonly InquiryService $inquiryService,
         private readonly AdminService $adminService,
         private readonly NotificationService $notificationService,
+        private readonly SellerLeadService $sellerLeadService,
     ) {}
 
     public function amenitiesIndex(): JsonResponse
@@ -70,6 +72,11 @@ class PortalController extends Controller
     public function propertiesIndex(Request $request): JsonResponse
     {
         return $this->propertyService->propertiesIndex($request);
+    }
+
+    public function sellerLeadStore(Request $request): JsonResponse
+    {
+        return $this->sellerLeadService->store($request);
     }
 
     public function propertyShow(Request $request, Property $property): JsonResponse

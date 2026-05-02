@@ -20,6 +20,7 @@ class Property extends Model
         'slug',
         'description',
         'property_type',
+        'listing_purpose',
         'price',
         'bedrooms',
         'bathrooms',

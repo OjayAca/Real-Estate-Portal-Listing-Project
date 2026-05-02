@@ -1,4 +1,9 @@
-import { MapPin, BedDouble, Bath, Square, Heart, Mail } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Square, Heart, Mail, Car } from 'lucide-react';
+
+function formatPrice(property) {
+  const amount = Number(property.price || 0).toLocaleString();
+  return property.listing_purpose === 'rent' ? `PHP ${amount}/mo` : `PHP ${amount}`;
+}
 
 export default function PropertyCard({ property, onInquire, onSave, onView, saved }) {
   const isAvailable = property.status.toLowerCase() === 'available';
@@ -57,7 +62,7 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
           </div>
         </div>
         
-        <strong className="property-price">PHP {property.price.toLocaleString()}</strong>
+        <strong className="property-price">{formatPrice(property)}</strong>
         <p className="property-copy">{property.description}</p>
         
         <div className="property-meta" aria-label="Property specifications">
@@ -72,6 +77,10 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
           <span className="meta-item" title="Floor Area">
             <Square size={16} aria-hidden="true" />
             <span className="sr-only">Area: </span>{property.area_sqm || 'N/A'} sqm
+          </span>
+          <span className="meta-item" title="Parking">
+            <Car size={16} aria-hidden="true" />
+            <span className="sr-only">Parking spaces: </span>{property.parking_spaces ?? 0} Parking
           </span>
         </div>
         

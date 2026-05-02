@@ -28,6 +28,7 @@ class PropertyFactory extends Factory
             'slug' => Str::slug($title),
             'description' => fake()->paragraphs(3, true),
             'property_type' => fake()->randomElement(['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial']),
+            'listing_purpose' => 'sale',
             'price' => fake()->numberBetween(1000000, 50000000),
             'bedrooms' => fake()->numberBetween(1, 5),
             'bathrooms' => fake()->numberBetween(1, 4),

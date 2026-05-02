@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
+const LISTING_PURPOSES = [
+  { label: 'For Sale', value: 'sale' },
+  { label: 'For Rent', value: 'rent' },
+];
 const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Sold', 'Rented'];
 const FEATURED_IMAGE_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 const FEATURED_IMAGE_MIN_WIDTH = 1200;
@@ -12,6 +16,7 @@ const emptyPropertyForm = {
   title: '',
   description: '',
   property_type: PROPERTY_TYPES[0],
+  listing_purpose: 'sale',
   price: '',
   bedrooms: '',
   bathrooms: '',
@@ -35,6 +40,7 @@ function mapPropertyToFormValues(property) {
     title: property.title || '',
     description: property.description || '',
     property_type: property.property_type || PROPERTY_TYPES[0],
+    listing_purpose: property.listing_purpose || 'sale',
     price: property.price ?? '',
     bedrooms: property.bedrooms ?? '',
     bathrooms: property.bathrooms ?? '',
@@ -233,6 +239,16 @@ export default function AgentPropertyForm({
               ))}
             </select>
             {getFieldError(fieldErrors, 'property_type') ? <span className="field-error">{getFieldError(fieldErrors, 'property_type')}</span> : null}
+          </label>
+
+          <label>
+            Listing Purpose
+            <select value={values.listing_purpose} onChange={(event) => updateValue('listing_purpose', event.target.value)}>
+              {LISTING_PURPOSES.map((purpose) => (
+                <option key={purpose.value} value={purpose.value}>{purpose.label}</option>
+              ))}
+            </select>
+            {getFieldError(fieldErrors, 'listing_purpose') ? <span className="field-error">{getFieldError(fieldErrors, 'listing_purpose')}</span> : null}
           </label>
         </div>
 

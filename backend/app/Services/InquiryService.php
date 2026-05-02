@@ -26,18 +26,24 @@ class InquiryService
         }
 
         $validated = $request->validate([
+            'buyer_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'buyer_email' => ['sometimes', 'nullable', 'email', 'max:180'],
+            'buyer_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
             'message' => ['required', 'string', 'min:10'],
         ]);
 
         $user = $request->user();
         $property->loadMissing('agent.user');
+        $buyerName = trim((string) ($validated['buyer_name'] ?? '')) ?: $user->full_name;
+        $buyerEmail = trim((string) ($validated['buyer_email'] ?? '')) ?: $user->email;
+        $buyerPhone = trim((string) ($validated['buyer_phone'] ?? '')) ?: $user->phone;
 
         $inquiry = Inquiry::query()->create([
             'property_id' => $property->property_id,
             'user_id' => $user->id,
-            'buyer_name' => $user->full_name,
-            'buyer_email' => $user->email,
-            'buyer_phone' => $user->phone,
+            'buyer_name' => $buyerName,
+            'buyer_email' => $buyerEmail,
+            'buyer_phone' => $buyerPhone,
             'message' => $validated['message'],
             'status' => 'New',
         ]);
@@ -47,7 +53,7 @@ class InquiryService
                 $property->agent->user,
                 'inquiry.new',
                 'New buyer inquiry',
-                $user->full_name.' sent an inquiry about '.$property->title.'.',
+                $buyerName.' sent an inquiry about '.$property->title.'.',
                 ['property_id' => $property->property_id, 'inquiry_id' => $inquiry->inquiry_id]
             );
         }

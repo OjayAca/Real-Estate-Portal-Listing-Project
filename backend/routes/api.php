@@ -18,6 +18,7 @@ Route::get('/agents/{agent}', [AgentEcosystemController::class, 'agentShow']);
 Route::get('/properties', [PortalController::class, 'propertiesIndex']);
 Route::get('/properties/{property}', [PortalController::class, 'propertyShow']);
 Route::get('/properties/{property}/viewing-slots', [AgentEcosystemController::class, 'propertyViewingSlots']);
+Route::post('/seller-leads', [PortalController::class, 'sellerLeadStore'])->middleware('throttle:strict');
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/auth/logout', [PortalController::class, 'logout']);

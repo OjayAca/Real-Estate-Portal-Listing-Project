@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import HomePage from './pages/HomePage';
 import PropertiesPage from './pages/PropertiesPage';
+import SellPage from './pages/SellPage';
 import { useAuth } from './context/AuthContext';
 
 function DashboardRoute() {
@@ -22,6 +23,11 @@ function DashboardRoute() {
   return <DashboardPage />;
 }
 
+function PropertiesRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/buy${location.search}`} replace />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -29,7 +35,10 @@ export default function App() {
         <Route element={<Layout />}>
           <Route element={<HomePage />} path="/" />
           <Route element={<AgentsPage />} path="/agents" />
-          <Route element={<PropertiesPage />} path="/properties" />
+          <Route element={<PropertiesPage mode="buy" />} path="/buy" />
+          <Route element={<PropertiesPage mode="rent" />} path="/rent" />
+          <Route element={<SellPage />} path="/sell" />
+          <Route element={<PropertiesRedirect />} path="/properties" />
           <Route element={<AuthPage mode="login" />} path="/login" />
           <Route element={<AuthPage mode="register" />} path="/register" />
           <Route element={<DashboardRoute />} path="/dashboard" />

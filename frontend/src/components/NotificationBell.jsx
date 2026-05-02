@@ -11,7 +11,7 @@ export default function NotificationBell() {
   useEffect(() => {
     function handleClickOutside(event) {
       if (
-        panelRef.current && 
+        panelRef.current &&
         !panelRef.current.contains(event.target) &&
         !buttonRef.current.contains(event.target)
       ) {
@@ -24,9 +24,9 @@ export default function NotificationBell() {
 
   return (
     <div className="notification-wrap">
-      <button 
+      <button
         ref={buttonRef}
-        className="icon-button" 
+        className="icon-button"
         onClick={() => setOpen((current) => !current)}
         title="Notifications"
       >

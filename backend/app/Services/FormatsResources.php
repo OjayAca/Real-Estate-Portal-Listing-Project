@@ -72,6 +72,7 @@ trait FormatsResources
             'slug' => $property->slug,
             'description' => $property->description,
             'property_type' => $property->property_type,
+            'listing_purpose' => $property->listing_purpose,
             'price' => (float) $property->price,
             'bedrooms' => $property->bedrooms,
             'bathrooms' => $property->bathrooms,

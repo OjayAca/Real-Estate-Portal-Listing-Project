@@ -18,6 +18,7 @@ use Illuminate\Validation\Rules\File;
 class PropertyService
 {
     private const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
+    private const LISTING_PURPOSES = ['sale', 'rent'];
     private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'];
     private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Sold', 'Rented'];
     private const FEATURED_IMAGE_MAX_SIZE_KB = 25600;
@@ -62,6 +63,10 @@ class PropertyService
             $query->where('property_type', $type);
         }
 
+        if ($purpose = $request->query('listing_purpose')) {
+            $query->where('listing_purpose', $purpose);
+        }
+
         if ($city = $request->query('city')) {
             $query->where('city', 'like', "%{$city}%");
         }
@@ -84,6 +89,10 @@ class PropertyService
 
         if ($request->filled('bathrooms')) {
             $query->where('bathrooms', '>=', (int) $request->query('bathrooms'));
+        }
+
+        if ($request->filled('parking_spaces')) {
+            $query->where('parking_spaces', '>=', (int) $request->query('parking_spaces'));
         }
 
         if ($request->filled('amenity_id')) {
@@ -128,6 +137,7 @@ class PropertyService
         [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, false, null, self::AGENT_ALLOWED_STATUSES);
         $payload['agent_id'] = $agent->agent_id;
         $payload['slug'] = $this->generateSlug($payload['title']);
+        $payload['listing_purpose'] ??= 'sale';
         $payload['listed_at'] = ($payload['status'] ?? 'Available') === 'Available' ? now() : null;
 
         $property = Property::query()->create($payload);
@@ -224,6 +234,7 @@ class PropertyService
             'title' => array_merge($required, ['string', 'max:150']),
             'description' => array_merge($required, ['string']),
             'property_type' => array_merge($required, [Rule::in(self::PROPERTY_TYPES)]),
+            'listing_purpose' => ['sometimes', Rule::in(self::LISTING_PURPOSES)],
             'price' => array_merge($required, ['numeric', 'min:1']),
             'bedrooms' => ['nullable', 'integer', 'min:0', 'max:20'],
             'bathrooms' => ['nullable', 'integer', 'min:0', 'max:20'],

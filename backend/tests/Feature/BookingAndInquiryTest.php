@@ -23,6 +23,9 @@ class BookingAndInquiryTest extends TestCase
         $property = Property::factory()->create(['agent_id' => $agent->agent_id, 'status' => 'Available']);
 
         $response = $this->actingAs($user)->postJson("/api/properties/{$property->property_id}/inquiries", [
+            'buyer_name' => 'Test Buyer',
+            'buyer_email' => 'buyer@example.com',
+            'buyer_phone' => '+1 555 100 2000',
             'message' => 'This is a test inquiry message with more than 10 characters.',
         ]);
 
@@ -30,6 +33,9 @@ class BookingAndInquiryTest extends TestCase
         $this->assertDatabaseHas('inquiries', [
             'property_id' => $property->property_id,
             'user_id' => $user->id,
+            'buyer_name' => 'Test Buyer',
+            'buyer_email' => 'buyer@example.com',
+            'buyer_phone' => '+1 555 100 2000',
             'status' => 'New',
         ]);
         
