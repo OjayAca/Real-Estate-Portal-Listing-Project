@@ -25,78 +25,13 @@ class AdminService
 
     public function adminOverview(Request $request): JsonResponse
     {
-        $userSearch = $request->query('user_search');
-        $agentSearch = $request->query('agent_search');
-        $propertySearch = $request->query('property_search');
-
-        $usersQuery = User::query()->with('agentProfile')->latest();
-        if ($userSearch) {
-            $usersQuery->where(function ($query) use ($userSearch): void {
-                $query->where('first_name', 'like', "%{$userSearch}%")
-                    ->orWhere('last_name', 'like', "%{$userSearch}%")
-                    ->orWhere('email', 'like', "%{$userSearch}%");
-            });
-        }
-        $users = $usersQuery->paginate(15, ['*'], 'users_page')->withQueryString();
-
-        $agentsQuery = Agent::query()->with('user')->latest();
-        if ($agentSearch) {
-            $agentsQuery->where(function ($query) use ($agentSearch): void {
-                $query->where('first_name', 'like', "%{$agentSearch}%")
-                    ->orWhere('last_name', 'like', "%{$agentSearch}%")
-                    ->orWhere('agency_name', 'like', "%{$agentSearch}%")
-                    ->orWhere('email', 'like', "%{$agentSearch}%");
-            });
-        }
-        $agents = $agentsQuery->paginate(15, ['*'], 'agents_page')->withQueryString();
-
-        $propertiesQuery = Property::query()->with(['agent.user', 'amenities'])->latest();
-        if ($propertySearch) {
-            $propertiesQuery->where(function ($query) use ($propertySearch): void {
-                $query->where('title', 'like', "%{$propertySearch}%")
-                    ->orWhere('city', 'like', "%{$propertySearch}%")
-                    ->orWhere('province', 'like', "%{$propertySearch}%")
-                    ->orWhere('address_line', 'like', "%{$propertySearch}%");
-            });
-        }
-        $properties = $propertiesQuery->paginate(15, ['*'], 'properties_page')->withQueryString();
-
-        $inquiries = Inquiry::query()->with(['property.agent.user', 'user'])->latest()->take(10)->get();
-
-        $userGrowth = User::query()
-            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('count(*) as count'))
-            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(fn($item) => ['month' => $item->month, 'users' => $item->count]);
-
-        $propertyDistribution = Property::query()
-            ->select('status', DB::raw('count(*) as value'))
-            ->groupBy('status')
-            ->get();
-
-        $inquiryVolume = Inquiry::query()
-            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('count(*) as count'))
-            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(fn($item) => ['month' => $item->month, 'inquiries' => $item->count]);
+        $users = $this->getPaginatedUsers($request->query('user_search'));
+        $agents = $this->getPaginatedAgents($request->query('agent_search'));
+        $properties = $this->getPaginatedProperties($request->query('property_search'));
 
         return response()->json([
-            'stats' => [
-                'users' => User::query()->count(),
-                'agents' => Agent::query()->count(),
-                'available_properties' => Property::query()->where('status', 'Available')->count(),
-                'pending_agents' => Agent::query()->where('approval_status', 'pending')->count(),
-                'open_inquiries' => Inquiry::query()->whereIn('status', ['New', 'Read'])->count(),
-            ],
-            'analytics' => [
-                'user_growth' => $userGrowth,
-                'property_distribution' => $propertyDistribution,
-                'inquiry_volume' => $inquiryVolume,
-            ],
+            'stats' => $this->getGeneralStats(),
+            'analytics' => $this->getAnalyticsData(),
             'users' => [
                 'data' => collect($users->items())->map(fn (User $user) => $this->portal->formatUser($user)),
                 'meta' => $this->formatPaginationMeta($users),
@@ -109,9 +44,106 @@ class AdminService
                 'data' => collect($properties->items())->map(fn (Property $property) => $this->portal->formatProperty($property)),
                 'meta' => $this->formatPaginationMeta($properties),
             ],
-            'inquiries' => $inquiries->map(fn (Inquiry $inquiry) => $this->portal->formatInquiry($inquiry)),
+            'inquiries' => $this->getRecentInquiries(),
         ]);
     }
+
+    private function getPaginatedUsers(?string $search)
+    {
+        $query = User::query()->with('agentProfile')->latest();
+        if ($search) {
+            $query->where(function ($q) use ($search): void {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        return $query->paginate(15, ['*'], 'users_page')->withQueryString();
+    }
+
+    private function getPaginatedAgents(?string $search)
+    {
+        $query = Agent::query()->with('user')->latest();
+        if ($search) {
+            $query->where(function ($q) use ($search): void {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('agency_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+        return $query->paginate(15, ['*'], 'agents_page')->withQueryString();
+    }
+
+    private function getPaginatedProperties(?string $search)
+    {
+        $query = Property::query()->with(['agent.user', 'amenities'])->latest();
+        if ($search) {
+            $query->where(function ($q) use ($search): void {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%")
+                    ->orWhere('province', 'like', "%{$search}%")
+                    ->orWhere('address_line', 'like', "%{$search}%");
+            });
+        }
+        return $query->paginate(15, ['*'], 'properties_page')->withQueryString();
+    }
+
+    private function getRecentInquiries()
+    {
+        return Inquiry::query()
+            ->with(['property.agent.user', 'user'])
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn (Inquiry $inquiry) => $this->portal->formatInquiry($inquiry));
+    }
+
+    private function getAnalyticsData(): array
+    {
+        $isSqlite = DB::getDriverName() === 'sqlite';
+        $monthFormat = $isSqlite ? 'strftime("%Y-%m", created_at)' : 'DATE_FORMAT(created_at, "%Y-%m")';
+
+        $userGrowth = User::query()
+            ->select(DB::raw("$monthFormat as month"), DB::raw('count(*) as count'))
+            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn($item) => ['month' => $item->month, 'users' => $item->count]);
+
+        $propertyDistribution = Property::query()
+            ->select('status', DB::raw('count(*) as value'))
+            ->groupBy('status')
+            ->get();
+
+        $inquiryVolume = Inquiry::query()
+            ->select(DB::raw("$monthFormat as month"), DB::raw('count(*) as count'))
+            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn($item) => ['month' => $item->month, 'inquiries' => $item->count]);
+
+        return [
+            'user_growth' => $userGrowth,
+            'property_distribution' => $propertyDistribution,
+            'inquiry_volume' => $inquiryVolume,
+        ];
+    }
+
+
+    private function getGeneralStats(): array
+    {
+        return [
+            'users' => User::query()->count(),
+            'agents' => Agent::query()->count(),
+            'available_properties' => Property::query()->where('status', 'Available')->count(),
+            'pending_agents' => Agent::query()->where('approval_status', 'pending')->count(),
+            'open_inquiries' => Inquiry::query()->whereIn('status', ['New', 'Read'])->count(),
+        ];
+    }
+
 
     public function adminUserUpdate(Request $request, User $user): JsonResponse
     {
