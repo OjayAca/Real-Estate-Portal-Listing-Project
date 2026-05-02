@@ -5,6 +5,8 @@ import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import HomePage from './pages/HomePage';
 import PropertiesPage from './pages/PropertiesPage';
+import SavedPropertiesPage from './pages/SavedPropertiesPage';
+import AccountSettingsPage from './pages/AccountSettingsPage';
 import SellPage from './pages/SellPage';
 import { useAuth } from './context/AuthContext';
 
@@ -20,7 +22,45 @@ function DashboardRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  if (user.role === 'user') {
+    return <Navigate to="/saved-properties" replace />;
+  }
+
   return <DashboardPage />;
+}
+
+function BuyerRoute({ children }) {
+  const { loading, user } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <p className="empty-copy">Authenticating your session...</p>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (user.role !== 'user') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
+}
+
+function ProtectedRoute({ children }) {
+  const { loading, user } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <p className="empty-copy">Authenticating your session...</p>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return children;
 }
 
 function PropertiesRedirect() {
@@ -42,6 +82,22 @@ export default function App() {
           <Route element={<AuthPage mode="login" />} path="/login" />
           <Route element={<AuthPage mode="register" />} path="/register" />
           <Route element={<DashboardRoute />} path="/dashboard" />
+          <Route
+            element={(
+              <BuyerRoute>
+                <SavedPropertiesPage />
+              </BuyerRoute>
+            )}
+            path="/saved-properties"
+          />
+          <Route
+            element={(
+              <ProtectedRoute>
+                <AccountSettingsPage />
+              </ProtectedRoute>
+            )}
+            path="/account/settings"
+          />
         </Route>
       </Routes>
     </BrowserRouter>

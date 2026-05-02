@@ -22,9 +22,10 @@ Route::post('/seller-leads', [PortalController::class, 'sellerLeadStore'])->midd
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/auth/logout', [PortalController::class, 'logout']);
+    Route::patch('/auth/profile', [PortalController::class, 'updateProfile'])->middleware('throttle:strict');
     Route::post('/auth/email/verification-notification', [PortalController::class, 'sendVerificationNotification'])
         ->middleware('throttle:verification-notification');
-    Route::get('/dashboard', [PortalController::class, 'dashboard'])->middleware('verified');
+    Route::get('/dashboard', [PortalController::class, 'dashboard'])->middleware(['verified', 'role:agent,admin']);
     Route::get('/notifications', [PortalController::class, 'notificationsIndex']);
     Route::patch('/notifications/{notification}/read', [PortalController::class, 'notificationRead']);
     Route::post('/notifications/read-all', [PortalController::class, 'notificationsReadAll']);
@@ -50,7 +51,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 });
 
-Route::middleware(['auth:sanctum', 'verified', 'role:user', 'throttle:api'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'role:user', 'throttle:api'])->group(function (): void {
     Route::get('/saved-properties', [PortalController::class, 'savedPropertiesIndex']);
     Route::post('/saved-properties/{property}', [PortalController::class, 'saveProperty'])->middleware('throttle:strict');
     Route::delete('/saved-properties/{property}', [PortalController::class, 'unsaveProperty'])->middleware('throttle:strict');
@@ -59,6 +60,6 @@ Route::middleware(['auth:sanctum', 'verified', 'role:user', 'throttle:api'])->gr
     Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing'])->middleware('throttle:strict');
 });
 
-Route::middleware(['auth:sanctum', 'verified', 'role:user,agent', 'throttle:api'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'role:user,agent', 'throttle:api'])->group(function (): void {
     Route::post('/agents/{agent}/reviews', [AgentEcosystemController::class, 'agentReviewStore'])->middleware('throttle:strict');
 });

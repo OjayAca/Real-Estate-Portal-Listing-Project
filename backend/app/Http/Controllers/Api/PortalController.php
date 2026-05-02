@@ -49,6 +49,11 @@ class PortalController extends Controller
         return $this->authService->me($request);
     }
 
+    public function updateProfile(Request $request): JsonResponse
+    {
+        return $this->authService->updateProfile($request);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         return $this->authService->logout($request);

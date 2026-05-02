@@ -1,27 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiRequest } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { Star, X, ImageIcon } from 'lucide-react';
+import { X, ImageIcon } from 'lucide-react';
 
 function formatPrice(property) {
   const amount = Number(property.price || 0).toLocaleString();
   return property.listing_purpose === 'rent' ? `PHP ${amount}/mo` : `PHP ${amount}`;
 }
 
-export default function PropertyDetailsDrawer({ property, onClose, onMessage }) {
-  const { user } = useAuth();
-  const [inquiryMessage, setInquiryMessage] = useState('');
-  const [inquiryBusy, setInquiryBusy] = useState(false);
-
-  useEffect(() => {
-    if (!property) {
-      return;
-    }
-
-    setInquiryMessage('');
-  }, [property]);
-
+export default function PropertyDetailsDrawer({ property, onClose }) {
   // Handle Escape key to close the drawer
   useEffect(() => {
     if (!property) return;
@@ -31,34 +17,6 @@ export default function PropertyDetailsDrawer({ property, onClose, onMessage }) 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [property, onClose]);
-
-  const canUseBuyerActions = useMemo(() => user?.role === 'user' && Boolean(user?.email_verified_at), [user]);
-
-  const sendInquiry = async () => {
-    if (!canUseBuyerActions) {
-      if (onMessage) onMessage('Verify your email and log in as a buyer to send an inquiry.');
-      return;
-    }
-
-    if (!inquiryMessage.trim() || inquiryMessage.length < 10) {
-      if (onMessage) onMessage('Inquiry message must be at least 10 characters.');
-      return;
-    }
-
-    setInquiryBusy(true);
-    try {
-      await apiRequest(`/properties/${property.property_id}/inquiries`, {
-        method: 'POST',
-        body: { message: inquiryMessage },
-      });
-      setInquiryMessage('');
-      if (onMessage) onMessage('Your inquiry has been sent to the agent.');
-    } catch (error) {
-      if (onMessage) onMessage(error.message);
-    } finally {
-      setInquiryBusy(false);
-    }
-  };
 
   if (!property) return null;
 

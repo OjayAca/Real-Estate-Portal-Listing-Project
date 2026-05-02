@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import ConfirmModal from './ConfirmModal';
 import UserDropdown from './UserDropdown';
-import { LogOut, CodeSquare, CheckCircle2, Sun, Moon, Menu, X } from 'lucide-react';
+import { CodeSquare, CheckCircle2, Heart, Menu, X } from 'lucide-react';
 
 const navClass = ({ isActive }) =>
   isActive ? 'nav-link nav-link-active' : 'nav-link';
@@ -34,14 +33,13 @@ function getUserStatusLabel(user) {
     return 'admin';
   }
 
-  return user.email_verified_at ? user.role : 'email verification pending';
+  return 'buyer';
 }
 
 export default function Layout() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { popup } = useNotifications();
-  const { theme, toggleTheme } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -89,7 +87,7 @@ export default function Layout() {
           <NavLink className={navClass} to="/agents" onClick={closeMenu}>
             Agents
           </NavLink>
-          {user ? (
+          {user && user.role !== 'user' ? (
             <NavLink className={navClass} to="/dashboard" onClick={closeMenu}>
               Dashboard
             </NavLink>
@@ -97,15 +95,17 @@ export default function Layout() {
         </nav>
 
         <div className={`topbar-actions ${isMenuOpen ? 'topbar-actions-open' : ''}`}>
-          <button
+          {!user || user.role === 'user' ? (
+          <NavLink
             className="icon-button"
-            onClick={toggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-            style={{ border: 'none', background: 'none' }}
+            to="/saved-properties"
+            onClick={closeMenu}
+            title="Saved properties"
+            aria-label="Saved properties"
           >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+            <Heart size={20} aria-hidden="true" />
+          </NavLink>
+          ) : null}
 
           {user ? <NotificationBell /> : null}
           {user ? (

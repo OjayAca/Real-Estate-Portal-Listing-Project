@@ -144,6 +144,36 @@ class AuthService
         ]);
     }
 
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:80'],
+            'last_name' => ['required', 'string', 'max:80'],
+            'phone' => ['nullable', 'string', 'max:20'],
+        ]);
+        $validated['phone'] = filled($validated['phone'] ?? null) ? $validated['phone'] : null;
+
+        $user = DB::transaction(function () use ($request, $validated): User {
+            $user = $request->user()->load('agentProfile.agency');
+            $user->update($validated);
+
+            if ($user->agentProfile) {
+                $user->agentProfile->update([
+                    'first_name' => $validated['first_name'],
+                    'last_name' => $validated['last_name'],
+                    'phone' => $validated['phone'] ?? null,
+                ]);
+            }
+
+            return $user->fresh()->load('agentProfile.agency');
+        });
+
+        return response()->json([
+            'message' => 'Profile updated.',
+            'user' => $this->portal->formatUser($user),
+        ]);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         $currentAccessToken = $request->user()->currentAccessToken();

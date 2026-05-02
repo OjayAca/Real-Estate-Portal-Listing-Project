@@ -95,7 +95,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
 
   useEffect(() => {
     let ignore = false;
-    if (user?.role !== 'user' || !user?.email_verified_at) {
+    if (user?.role !== 'user') {
       setSavedIds((current) => (current.length > 0 ? [] : current));
       return undefined;
     }
@@ -150,7 +150,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
     return () => { ignore = true; };
   }, [config.listingPurpose, filters, page]);
 
-  const canUseBuyerActions = useMemo(() => user?.role === 'user' && Boolean(user?.email_verified_at), [user]);
+  const canUseBuyerActions = useMemo(() => user?.role === 'user', [user]);
   const appliedFilterCount = useMemo(() => Object.values(filters).filter(Boolean).length, [filters]);
 
   const updateDraftFilter = (name, value) => {
@@ -181,7 +181,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
 
   const toggleSave = async (property) => {
     if (!canUseBuyerActions) {
-      setMessage('Verify your email and log in as a buyer to save properties.');
+      setMessage('Log in as a buyer to save properties.');
       return;
     }
 
@@ -209,7 +209,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
 
   const openAgentInquiry = (property) => {
     if (!canUseBuyerActions) {
-      setMessage('Verify your email and log in as a buyer to email an agent.');
+      setMessage('Log in as a buyer to email an agent.');
       return;
     }
 

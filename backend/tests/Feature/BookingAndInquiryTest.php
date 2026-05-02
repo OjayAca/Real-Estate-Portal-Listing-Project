@@ -17,7 +17,7 @@ class BookingAndInquiryTest extends TestCase
 
     public function test_user_can_create_inquiry(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->unverified()->create();
         $agentUser = User::factory()->create(['role' => 'agent']);
         $agent = Agent::factory()->create(['user_id' => $agentUser->id, 'approval_status' => 'approved']);
         $property = Property::factory()->create(['agent_id' => $agent->agent_id, 'status' => 'Available']);
@@ -47,7 +47,7 @@ class BookingAndInquiryTest extends TestCase
 
     public function test_user_can_book_viewing(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now()]);
+        $user = User::factory()->unverified()->create();
         $agentUser = User::factory()->create(['role' => 'agent']);
         $agent = Agent::factory()->create(['user_id' => $agentUser->id, 'approval_status' => 'approved']);
         $property = Property::factory()->create(['agent_id' => $agent->agent_id, 'status' => 'Available']);

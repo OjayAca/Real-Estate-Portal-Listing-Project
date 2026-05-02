@@ -2,6 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { User, Settings, LogOut, ChevronDown, UserCircle } from 'lucide-react';
 
+function getDashboardLabel(role) {
+  if (role === 'admin') {
+    return 'Admin Dashboard';
+  }
+
+  if (role === 'agent') {
+    return 'Agent Dashboard';
+  }
+
+  return 'Dashboard';
+}
+
 export default function UserDropdown({ user, onLogout, userStatusLabel }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -41,11 +53,13 @@ export default function UserDropdown({ user, onLogout, userStatusLabel }) {
             <span>{user.email}</span>
           </div>
           <div className="dropdown-divider" />
-          <NavLink to="/dashboard" className="dropdown-item" onClick={() => setIsOpen(false)}>
-            <User size={16} />
-            <span>Profile Dashboard</span>
-          </NavLink>
-          <NavLink to="/dashboard" className="dropdown-item" onClick={() => setIsOpen(false)}>
+          {user.role !== 'user' ? (
+            <NavLink to="/dashboard" className="dropdown-item" onClick={() => setIsOpen(false)}>
+              <User size={16} />
+              <span>{getDashboardLabel(user.role)}</span>
+            </NavLink>
+          ) : null}
+          <NavLink to="/account/settings" className="dropdown-item" onClick={() => setIsOpen(false)}>
             <Settings size={16} />
             <span>Account Settings</span>
           </NavLink>

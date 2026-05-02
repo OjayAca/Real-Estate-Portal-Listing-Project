@@ -6,11 +6,7 @@ import { useAuth } from './AuthContext';
 const NotificationContext = createContext(null);
 
 function canUseNotifications(user) {
-  if (!user) {
-    return false;
-  }
-
-  return user.role !== 'user' || Boolean(user.email_verified_at);
+  return Boolean(user);
 }
 
 export function NotificationProvider({ children }) {

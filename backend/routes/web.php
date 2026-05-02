@@ -11,7 +11,9 @@ Route::get('/', function () {
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
 
-    return redirect()->away(rtrim(config('app.frontend_url'), '/').'/dashboard?verified=1');
+    $target = $request->user()->isBuyer() ? '/saved-properties' : '/dashboard';
+
+    return redirect()->away(rtrim(config('app.frontend_url'), '/').$target.'?verified=1');
 })->middleware(['auth:sanctum', 'signed', 'throttle:6,1'])->name('verification.verify');
 
 Route::get('/reset-password/{token}', function (Request $request, string $token) {

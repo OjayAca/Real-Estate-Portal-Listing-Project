@@ -75,8 +75,8 @@ export default function AgentsPage() {
       return;
     }
 
-    if (user?.role !== 'user' || !user?.email_verified_at) {
-      setMessage('Verify your email and log in as a buyer account to leave a review.');
+    if (user?.role !== 'user') {
+      setMessage('Log in as a buyer account to leave a review.');
       return;
     }
 

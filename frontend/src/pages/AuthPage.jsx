@@ -24,7 +24,19 @@ export default function AuthPage({ mode }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const fromLocation = location.state?.from;
+
+  const resolvePostAuthPath = (authUser) => {
+    const requestedPath = fromLocation
+      ? `${fromLocation.pathname || ''}${fromLocation.search || ''}`
+      : '';
+
+    if (requestedPath && requestedPath !== '/dashboard') {
+      return requestedPath;
+    }
+
+    return authUser?.role === 'user' ? '/saved-properties' : '/dashboard';
+  };
 
   const title = useMemo(() => (mode === 'login' ? 'Welcome Back' : 'Join EstateFlow'), [mode]);
 
@@ -39,12 +51,13 @@ export default function AuthPage({ mode }) {
     setError('');
 
     try {
+      let response;
       if (mode === 'login') {
-        await login({ email: form.email, password: form.password });
+        response = await login({ email: form.email, password: form.password });
       } else {
-        await register(form);
+        response = await register(form);
       }
-      navigate(from, { replace: true });
+      navigate(resolvePostAuthPath(response.user), { replace: true });
     } catch (submissionError) {
       setError(submissionError.message);
     } finally {

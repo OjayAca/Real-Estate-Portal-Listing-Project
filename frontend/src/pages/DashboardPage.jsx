@@ -1,11 +1,9 @@
 import { useEffect, useState, useCallback, useDeferredValue } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
-import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import ConfirmModal from '../components/ConfirmModal';
 import MetricCard from '../components/MetricCard';
 import DashboardLoading from '../components/dashboard/DashboardLoading';
-import BuyerDashboard from '../components/dashboard/BuyerDashboard';
 import AgentDashboard from '../components/dashboard/AgentDashboard';
 import AdminDashboard from '../components/dashboard/AdminDashboard';
 import {
@@ -69,7 +67,6 @@ export default function DashboardPage() {
   const [agentInquiriesBusy, setAgentInquiriesBusy] = useState(false);
 
   // UI States
-  const [selectedProperty, setSelectedProperty] = useState(null);
   const [respondingInquiry, setRespondingInquiry] = useState(null);
   const [respondingBooking, setRespondingBooking] = useState(null);
   const [responseMessage, setResponseMessage] = useState('');
@@ -279,32 +276,6 @@ export default function DashboardPage() {
       setAgentMessage(response.message);
     } catch (error) {
       setAgentMessage(error.message);
-    } finally {
-      setResponseBusy(false);
-    }
-  };
-
-  const handleBuyerInquiryReply = async (inquiryId) => {
-    if (!responseMessage.trim()) return;
-    setResponseBusy(true);
-    try {
-      const response = await authFetch(`/inquiries/${inquiryId}/reply`, {
-        method: 'PATCH',
-        body: { buyer_reply: responseMessage },
-      });
-
-      setDashboard(prev => ({
-        ...prev,
-        recent_inquiries: prev.recent_inquiries.map(entry =>
-          entry.inquiry_id === inquiryId ? response.data : entry
-        )
-      }));
-
-      setRespondingInquiry(null);
-      setResponseMessage('');
-      setMessage(response.message);
-    } catch (error) {
-      setMessage(error.message);
     } finally {
       setResponseBusy(false);
     }
@@ -585,7 +556,7 @@ export default function DashboardPage() {
           Clearance Level: <strong style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>{user.role}</strong>
         </p>
 
-        {user.email_verified_at === null && user.role !== 'admin' ? (
+        {user.email_verified_at === null && user.role === 'agent' ? (
           <div className="inline-message animate-enter" style={{ marginTop: '2rem', marginBottom: '1rem', border: '1px solid var(--tone-warning-border)', background: 'var(--tone-warning-bg)' }}>
             <Mail size={24} style={{ color: 'var(--tone-warning-color)' }} aria-hidden="true" />
             <div style={{ flex: 1 }}>
@@ -630,19 +601,6 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
-
-      {user.role === 'user' && (
-        <BuyerDashboard
-          dashboard={dashboard}
-          setSelectedProperty={setSelectedProperty}
-          respondingInquiry={respondingInquiry}
-          setRespondingInquiry={setRespondingInquiry}
-          responseMessage={responseMessage}
-          setResponseMessage={setResponseMessage}
-          responseBusy={responseBusy}
-          handleBuyerInquiryReply={handleBuyerInquiryReply}
-        />
-      )}
 
       {user.role === 'agent' && (
         <AgentDashboard
@@ -698,12 +656,6 @@ export default function DashboardPage() {
           onPageChange={handleAdminPageChange}
         />
       )}
-
-      <PropertyDetailsDrawer
-        property={selectedProperty}
-        onClose={() => setSelectedProperty(null)}
-        onMessage={setMessage}
-      />
 
       <ConfirmModal
         isOpen={!!confirmState}

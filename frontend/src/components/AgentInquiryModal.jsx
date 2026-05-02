@@ -34,7 +34,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
   const closeRef = useRef(null);
 
   const propertyLabel = useMemo(() => getPropertyLabel(property), [property]);
-  const canSubmit = user?.role === 'user' && Boolean(user?.email_verified_at);
+  const canSubmit = user?.role === 'user';
 
   useEffect(() => {
     if (!property) return;
@@ -95,7 +95,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
     setError('');
 
     if (!canSubmit) {
-      setError('Verify your email and log in as a buyer to email an agent.');
+      setError('Log in as a buyer to email an agent.');
       return;
     }
 
