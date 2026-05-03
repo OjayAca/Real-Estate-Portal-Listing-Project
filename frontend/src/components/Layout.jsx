@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useNotifications } from '../context/NotificationContext';
-import NotificationBell from './NotificationBell';
 import ConfirmModal from './ConfirmModal';
 import UserDropdown from './UserDropdown';
-import { CodeSquare, CheckCircle2, Heart, Menu, X } from 'lucide-react';
+import { CodeSquare, Heart, Menu, X } from 'lucide-react';
 
 const navClass = ({ isActive }) =>
   isActive ? 'nav-link nav-link-active' : 'nav-link';
@@ -39,7 +37,6 @@ function getUserStatusLabel(user) {
 export default function Layout() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const { popup } = useNotifications();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -107,7 +104,6 @@ export default function Layout() {
           </NavLink>
           ) : null}
 
-          {user ? <NotificationBell /> : null}
           {user ? (
             <UserDropdown
               user={user}
@@ -126,16 +122,6 @@ export default function Layout() {
           )}
         </div>
       </header>
-
-      {popup ? (
-        <div className="notification-popup" role="status" aria-live="polite">
-          <CheckCircle2 className="notification-popup-icon" size={24} aria-hidden="true" />
-          <div className="notification-popup-content">
-            <strong>{popup.title}</strong>
-            <p>{popup.message}</p>
-          </div>
-        </div>
-      ) : null}
 
       <main id="main-content">
         <Outlet />

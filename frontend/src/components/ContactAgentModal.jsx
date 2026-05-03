@@ -53,7 +53,7 @@ export default function ContactAgentModal({ agent, onClose, onMessage }) {
         method: 'POST',
         body: form,
       });
-      if (onMessage) onMessage(`Your message has been sent to ${agent.full_name}.`);
+      if (onMessage) onMessage(`Your message has been sent to ${agent.full_name} via email.`);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to send message.');
@@ -131,7 +131,7 @@ export default function ContactAgentModal({ agent, onClose, onMessage }) {
               className="contact-send-btn"
               disabled={busy}
             >
-              {busy ? 'Sending...' : 'Send'}
+              {busy ? 'Sending...' : 'Send Email'}
             </button>
           </div>
         </form>

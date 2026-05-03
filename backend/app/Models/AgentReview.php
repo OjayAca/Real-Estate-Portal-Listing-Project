@@ -15,7 +15,6 @@ class AgentReview extends Model
     protected $fillable = [
         'agent_id',
         'user_id',
-        'booking_id',
         'rating',
         'review_text',
     ];
@@ -34,13 +33,5 @@ class AgentReview extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * @return BelongsTo<ViewingBooking, $this>
-     */
-    public function booking(): BelongsTo
-    {
-        return $this->belongsTo(ViewingBooking::class, 'booking_id', 'booking_id');
     }
 }

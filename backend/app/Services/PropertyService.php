@@ -37,7 +37,6 @@ class PropertyService
     {
         $query = Property::query()
             ->with(['agent.user', 'amenities'])
-            ->withCount('inquiries')
             ->orderByDesc('listed_at')
             ->orderByDesc('created_at');
 

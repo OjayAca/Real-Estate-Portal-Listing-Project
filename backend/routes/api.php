@@ -17,28 +17,18 @@ Route::get('/agents', [AgentEcosystemController::class, 'agentsIndex']);
 Route::get('/agents/{agent}', [AgentEcosystemController::class, 'agentShow']);
 Route::get('/properties', [PortalController::class, 'propertiesIndex']);
 Route::get('/properties/{property}', [PortalController::class, 'propertyShow']);
-Route::get('/properties/{property}/viewing-slots', [AgentEcosystemController::class, 'propertyViewingSlots']);
 Route::post('/seller-leads', [PortalController::class, 'sellerLeadStore'])->middleware('throttle:strict');
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/auth/logout', [PortalController::class, 'logout']);
     Route::patch('/auth/profile', [PortalController::class, 'updateProfile'])->middleware('throttle:strict');
     Route::get('/dashboard', [PortalController::class, 'dashboard'])->middleware(['role:agent,admin']);
-    Route::get('/notifications', [PortalController::class, 'notificationsIndex']);
-    Route::patch('/notifications/{notification}/read', [PortalController::class, 'notificationRead']);
-    Route::post('/notifications/read-all', [PortalController::class, 'notificationsReadAll']);
 
     Route::middleware(['auth:sanctum', 'role:agent', 'throttle:api'])->prefix('agent')->group(function (): void {
         Route::get('/properties', [PortalController::class, 'agentPropertiesIndex']);
         Route::post('/properties', [PortalController::class, 'agentPropertyStore'])->middleware('throttle:strict');
         Route::put('/properties/{property}', [PortalController::class, 'agentPropertyUpdate'])->middleware('throttle:strict');
         Route::delete('/properties/{property}', [PortalController::class, 'agentPropertyDestroy'])->middleware('throttle:strict');
-        Route::get('/inquiries', [PortalController::class, 'agentInquiriesIndex']);
-        Route::patch('/inquiries/{inquiry}', [PortalController::class, 'agentInquiryUpdate'])->middleware('throttle:strict');
-        Route::get('/availability', [AgentEcosystemController::class, 'agentAvailabilityIndex']);
-        Route::put('/availability', [AgentEcosystemController::class, 'agentAvailabilityUpdate'])->middleware('throttle:strict');
-        Route::get('/viewings', [AgentEcosystemController::class, 'agentViewingsIndex']);
-        Route::patch('/viewings/{booking}', [AgentEcosystemController::class, 'agentViewingUpdate'])->middleware('throttle:strict');
     });
 
     Route::middleware(['auth:sanctum', 'role:admin', 'throttle:api'])->prefix('admin')->group(function (): void {
@@ -55,7 +45,6 @@ Route::middleware(['auth:sanctum', 'role:user', 'throttle:api'])->group(function
     Route::delete('/saved-properties/{property}', [PortalController::class, 'unsaveProperty'])->middleware('throttle:strict');
     Route::post('/properties/{property}/inquiries', [PortalController::class, 'createInquiry'])->middleware('throttle:strict');
     Route::post('/agents/{agent}/inquiries', [AgentEcosystemController::class, 'createAgentInquiry'])->middleware('throttle:strict');
-    Route::patch('/inquiries/{inquiry}/reply', [PortalController::class, 'buyerInquiryUpdate'])->middleware('throttle:strict');
     Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing'])->middleware('throttle:strict');
 });
 

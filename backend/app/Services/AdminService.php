@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\UserRole;
 use App\Models\Agent;
-use App\Models\Inquiry;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -44,7 +43,6 @@ class AdminService
                 'data' => collect($properties->items())->map(fn (Property $property) => $this->portal->formatProperty($property)),
                 'meta' => $this->formatPaginationMeta($properties),
             ],
-            'inquiries' => $this->getRecentInquiries(),
         ]);
     }
 
@@ -89,16 +87,6 @@ class AdminService
         return $query->paginate(15, ['*'], 'properties_page')->withQueryString();
     }
 
-    private function getRecentInquiries()
-    {
-        return Inquiry::query()
-            ->with(['property.agent.user', 'user'])
-            ->latest()
-            ->take(10)
-            ->get()
-            ->map(fn (Inquiry $inquiry) => $this->portal->formatInquiry($inquiry));
-    }
-
     private function getAnalyticsData(): array
     {
         $isSqlite = DB::getDriverName() === 'sqlite';
@@ -117,18 +105,9 @@ class AdminService
             ->groupBy('status')
             ->get();
 
-        $inquiryVolume = Inquiry::query()
-            ->select(DB::raw("$monthFormat as month"), DB::raw('count(*) as count'))
-            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->map(fn($item) => ['month' => $item->month, 'inquiries' => $item->count]);
-
         return [
             'user_growth' => $userGrowth,
             'property_distribution' => $propertyDistribution,
-            'inquiry_volume' => $inquiryVolume,
         ];
     }
 
@@ -140,7 +119,6 @@ class AdminService
             'agents' => Agent::query()->count(),
             'available_properties' => Property::query()->where('status', 'Available')->count(),
             'pending_agents' => Agent::query()->where('approval_status', 'pending')->count(),
-            'open_inquiries' => Inquiry::query()->whereIn('status', ['New', 'Read'])->count(),
         ];
     }
 
@@ -190,20 +168,6 @@ class AdminService
 
         $agent->update(['approval_status' => $validated['approval_status']]);
 
-        if ($agent->isApproved()) {
-            $this->portal->ensureDefaultAvailability($agent);
-        }
-
-        if ($agent->user) {
-            $this->notifications->pushNotification(
-                $agent->user,
-                'agent.status',
-                'Agent profile updated',
-                'Your agent approval status is now '.Str::headline($agent->approval_status).'.',
-                ['agent_id' => $agent->agent_id]
-            );
-        }
-
         return response()->json([
             'message' => 'Agent status updated.',
             'data' => $this->portal->formatAgent($agent->fresh()->load('user')),
@@ -218,16 +182,6 @@ class AdminService
 
         $property->loadMissing('agent.user', 'amenities');
         $property->update(['status' => $validated['status']]);
-
-        if ($property->agent?->user) {
-            $this->notifications->pushNotification(
-                $property->agent->user,
-                'property.status',
-                'Listing status changed',
-                $property->title.' is now marked as '.$property->status.'.',
-                ['property_id' => $property->property_id]
-            );
-        }
 
         return response()->json([
             'message' => 'Property status updated.',

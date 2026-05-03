@@ -57,20 +57,4 @@ class Property extends Model
     {
         return $this->belongsToMany(Amenity::class, 'property_amenities', 'property_id', 'amenity_id');
     }
-
-    /**
-     * @return HasMany<Inquiry, $this>
-     */
-    public function inquiries(): HasMany
-    {
-        return $this->hasMany(Inquiry::class, 'property_id', 'property_id');
-    }
-
-    /**
-     * @return HasMany<ViewingBooking, $this>
-     */
-    public function viewingBookings(): HasMany
-    {
-        return $this->hasMany(ViewingBooking::class, 'property_id', 'property_id');
-    }
 }

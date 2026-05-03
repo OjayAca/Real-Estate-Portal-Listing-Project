@@ -11,11 +11,6 @@ import {
   Users,
   UserCheck,
   Building,
-  Mail as MailIcon,
-  CalendarDays,
-  Bell,
-  Clock,
-  FileText,
   CheckCircle,
   Save,
   AlertCircle
@@ -29,13 +24,9 @@ function createFallbackDashboard(agentProfile) {
     stats: {
       properties: 0,
       active_listings: 0,
-      new_inquiries: 0,
-      closed_inquiries: 0,
-      unread_notifications: 0,
     },
     profile: agentProfile,
     properties: [],
-    recent_inquiries: [],
   };
 }
 
@@ -57,19 +48,6 @@ export default function DashboardPage() {
   const [agentFormMessage, setAgentFormMessage] = useState('');
   const [agentFormErrors, setAgentFormErrors] = useState({});
   const [agentMessage, setAgentMessage] = useState('');
-  const [agentAvailability, setAgentAvailability] = useState([]);
-  const [agentAvailabilityBusy, setAgentAvailabilityBusy] = useState(false);
-  const [agentScheduleSaving, setAgentScheduleSaving] = useState(false);
-  const [agentBookings, setAgentBookings] = useState([]);
-  const [agentBookingsBusy, setAgentBookingsBusy] = useState(false);
-  const [agentInquiries, setAgentInquiries] = useState([]);
-  const [agentInquiriesBusy, setAgentInquiriesBusy] = useState(false);
-
-  // UI States
-  const [respondingInquiry, setRespondingInquiry] = useState(null);
-  const [respondingBooking, setRespondingBooking] = useState(null);
-  const [responseMessage, setResponseMessage] = useState('');
-  const [responseBusy, setResponseBusy] = useState(false);
 
   // Admin Search States
   const [userSearch, setUserSearch] = useState('');
@@ -191,77 +169,6 @@ export default function DashboardPage() {
       ignore = true;
     };
   }, [authFetch, isApprovedAgent]);
-
-  useEffect(() => {
-    if (!isApprovedAgent) {
-      setAgentAvailability([]);
-      setAgentBookings([]);
-      return;
-    }
-
-    let ignore = false;
-    setAgentAvailabilityBusy(true);
-    setAgentBookingsBusy(true);
-    setAgentInquiriesBusy(true);
-
-    authFetch('/agent/availability')
-      .then((data) => {
-        if (!ignore) setAgentAvailability(data.data || []);
-      })
-      .catch((error) => {
-        if (!ignore) setAgentMessage(error.message);
-      })
-      .finally(() => {
-        if (!ignore) setAgentAvailabilityBusy(false);
-      });
-
-    authFetch('/agent/viewings')
-      .then((data) => {
-        if (!ignore) setAgentBookings(data.data || []);
-      })
-      .catch((error) => {
-        if (!ignore) setAgentMessage(error.message);
-      })
-      .finally(() => {
-        if (!ignore) setAgentBookingsBusy(false);
-      });
-
-    authFetch('/agent/inquiries')
-      .then((data) => {
-        if (!ignore) setAgentInquiries(data.data || []);
-      })
-      .catch((error) => {
-        if (!ignore) setAgentMessage(error.message);
-      })
-      .finally(() => {
-        if (!ignore) setAgentInquiriesBusy(false);
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [authFetch, isApprovedAgent]);
-
-  const handleInquiryResponse = async (inquiryId) => {
-    if (!responseMessage.trim()) return;
-    setResponseBusy(true);
-    try {
-      const response = await authFetch(`/agent/inquiries/${inquiryId}`, {
-        method: 'PATCH',
-        body: { status: 'Responded', response_message: responseMessage },
-      });
-      setAgentInquiries((current) => current.map((entry) => (
-        entry.inquiry_id === inquiryId ? response.data : entry
-      )));
-      setRespondingInquiry(null);
-      setResponseMessage('');
-      setAgentMessage(response.message);
-    } catch (error) {
-      setAgentMessage(error.message);
-    } finally {
-      setResponseBusy(false);
-    }
-  };
 
   const updateAdminRecord = async (path, body) => {
     const data = await authFetch(path, { method: 'PATCH', body });
@@ -416,81 +323,6 @@ export default function DashboardPage() {
     });
   };
 
-  const addAvailabilityRow = () => {
-    setAgentAvailability((current) => [
-      ...current,
-      {
-        id: `new-${Date.now()}`,
-        day_of_week: 1,
-        day_label: 'Monday',
-        start_time: '09:00',
-        end_time: '17:00',
-        is_active: true,
-      },
-    ]);
-  };
-
-  const updateAvailabilityRow = (targetId, field, value) => {
-    setAgentAvailability((current) => current.map((entry) => {
-      if (entry.id !== targetId) return entry;
-      return {
-        ...entry,
-        [field]: value,
-        ...(field === 'day_of_week' ? { day_label: WEEKDAY_OPTIONS[Number(value)] } : {}),
-      };
-    }));
-  };
-
-  const removeAvailabilityRow = (targetId) => {
-    setAgentAvailability((current) => current.filter((entry) => entry.id !== targetId));
-  };
-
-  const saveAvailability = async () => {
-    setAgentScheduleSaving(true);
-    try {
-      const response = await authFetch('/agent/availability', {
-        method: 'PUT',
-        body: {
-          availability: agentAvailability.map((entry) => ({
-            day_of_week: Number(entry.day_of_week),
-            start_time: entry.start_time,
-            end_time: entry.end_time,
-            is_active: entry.is_active,
-          })),
-        },
-      });
-      setAgentAvailability(response.data || []);
-      setAgentMessage(response.message);
-    } catch (error) {
-      setAgentMessage(error.message);
-    } finally {
-      setAgentScheduleSaving(false);
-    }
-  };
-
-  const updateBookingStatus = async (bookingId, status, responseMsg = null) => {
-    setResponseBusy(true);
-    try {
-      const body = { status };
-      if (responseMsg !== null) body.agent_response = responseMsg;
-
-      const response = await authFetch(`/agent/viewings/${bookingId}`, {
-        method: 'PATCH',
-        body,
-      });
-      setAgentBookings((current) => current.map((entry) => (
-        entry.booking_id === bookingId ? response.data : entry
-      )));
-      setAgentMessage(response.message);
-      setRespondingBooking(null);
-      setResponseMessage('');
-    } catch (error) {
-      setAgentMessage(error.message);
-    } finally {
-      setResponseBusy(false);
-    }
-  };
-
   if (authLoading || loading) {
     return <DashboardLoading message={authLoading ? 'Authenticating your session...' : 'Assembling secure dashboard data...'} />;
   }
@@ -503,19 +335,13 @@ export default function DashboardPage() {
     users: Users,
     agents: UserCheck,
     properties: Building,
-    inquiries: MailIcon,
-    bookings: CalendarDays,
-    unread_notifications: Bell,
     total_users: Users,
     total_agents: UserCheck,
     total_properties: Building,
     pending_agents: Clock,
     draft_properties: FileText,
     available_properties: CheckCircle,
-    active_inquiries: MailIcon,
     active_listings: CheckCircle,
-    new_inquiries: MailIcon,
-    closed_inquiries: ShieldCheck,
     saved_properties: Save,
     approved: CheckCircle,
   };
@@ -568,26 +394,6 @@ export default function DashboardPage() {
         <AgentDashboard
           agentProfile={agentProfile}
           isApprovedAgent={isApprovedAgent}
-          agentBookings={agentBookings}
-          agentBookingsBusy={agentBookingsBusy}
-          respondingBooking={respondingBooking}
-          setRespondingBooking={setRespondingBooking}
-          responseMessage={responseMessage}
-          setResponseMessage={setResponseMessage}
-          responseBusy={responseBusy}
-          updateBookingStatus={updateBookingStatus}
-          agentInquiries={agentInquiries}
-          agentInquiriesBusy={agentInquiriesBusy}
-          respondingInquiry={respondingInquiry}
-          setRespondingInquiry={setRespondingInquiry}
-          handleInquiryResponse={handleInquiryResponse}
-          agentAvailability={agentAvailability}
-          agentAvailabilityBusy={agentAvailabilityBusy}
-          addAvailabilityRow={addAvailabilityRow}
-          updateAvailabilityRow={updateAvailabilityRow}
-          removeAvailabilityRow={removeAvailabilityRow}
-          saveAvailability={saveAvailability}
-          agentScheduleSaving={agentScheduleSaving}
           agentMessage={agentMessage}
           openCreateForm={openCreateForm}
           agentFormMode={agentFormMode}

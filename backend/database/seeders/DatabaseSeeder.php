@@ -5,12 +5,10 @@ namespace Database\Seeders;
 use App\Enums\UserRole;
 use App\Models\Agent;
 use App\Models\Amenity;
-use App\Models\Inquiry;
 use App\Models\Property;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -239,58 +237,5 @@ class DatabaseSeeder extends Seeder
 
         $buyers[0]->savedProperties()->sync([$properties[0]->property_id, $properties[2]->property_id]);
         $buyers[1]->savedProperties()->sync([$properties[1]->property_id]);
-
-        $inquiryA = Inquiry::query()->create([
-            'property_id' => $properties[0]->property_id,
-            'user_id' => $buyers[0]->id,
-            'buyer_name' => $buyers[0]->full_name,
-            'buyer_email' => $buyers[0]->email,
-            'buyer_phone' => $buyers[0]->phone,
-            'message' => 'I want to schedule a site visit this weekend and ask about association dues.',
-            'status' => 'New',
-        ]);
-
-        $inquiryB = Inquiry::query()->create([
-            'property_id' => $properties[2]->property_id,
-            'user_id' => $buyers[1]->id,
-            'buyer_name' => $buyers[1]->full_name,
-            'buyer_email' => $buyers[1]->email,
-            'buyer_phone' => $buyers[1]->phone,
-            'message' => 'Please share the sample amortization and the exact turnover timeline.',
-            'status' => 'Responded',
-            'response_message' => 'I sent the amortization schedule to your email and we can discuss turnover options tomorrow.',
-            'responded_at' => now()->subHours(5),
-        ]);
-
-        $agentUsers[0]->user->notifications()->create([
-            'id' => (string) Str::uuid(),
-            'type' => 'inquiry.new',
-            'data' => [
-                'title' => 'New buyer inquiry',
-                'message' => $buyers[0]->full_name.' asked about '.$properties[0]->title.'.',
-                'inquiry_id' => $inquiryA->inquiry_id,
-                'property_id' => $properties[0]->property_id,
-            ],
-        ]);
-
-        $buyers[1]->notifications()->create([
-            'id' => (string) Str::uuid(),
-            'type' => 'inquiry.update',
-            'data' => [
-                'title' => 'Inquiry responded',
-                'message' => 'Your inquiry for '.$properties[2]->title.' has a new reply from the agent.',
-                'inquiry_id' => $inquiryB->inquiry_id,
-                'property_id' => $properties[2]->property_id,
-            ],
-        ]);
-
-        $admin->notifications()->create([
-            'id' => (string) Str::uuid(),
-            'type' => 'system.seed',
-            'data' => [
-                'title' => 'Demo data ready',
-                'message' => 'The real estate portal demo dataset has been loaded successfully.',
-            ],
-        ]);
     }
 }

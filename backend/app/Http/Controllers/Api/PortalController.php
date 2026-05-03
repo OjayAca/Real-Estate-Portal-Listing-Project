@@ -4,13 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
-use App\Models\Inquiry;
 use App\Models\Property;
 use App\Models\User;
 use App\Services\AdminService;
 use App\Services\AuthService;
 use App\Services\InquiryService;
-use App\Services\NotificationService;
 use App\Services\PortalService;
 use App\Services\PropertyService;
 use App\Services\SellerLeadService;
@@ -25,7 +23,6 @@ class PortalController extends Controller
         private readonly PropertyService $propertyService,
         private readonly InquiryService $inquiryService,
         private readonly AdminService $adminService,
-        private readonly NotificationService $notificationService,
         private readonly SellerLeadService $sellerLeadService,
     ) {}
 
@@ -89,21 +86,6 @@ class PortalController extends Controller
         return $this->portalService->dashboard($request);
     }
 
-    public function notificationsIndex(Request $request): JsonResponse
-    {
-        return $this->notificationService->notificationsIndex($request);
-    }
-
-    public function notificationRead(Request $request, string $notification): JsonResponse
-    {
-        return $this->notificationService->notificationRead($request, $notification);
-    }
-
-    public function notificationsReadAll(Request $request): JsonResponse
-    {
-        return $this->notificationService->notificationsReadAll($request);
-    }
-
     public function savedPropertiesIndex(Request $request): JsonResponse
     {
         return $this->propertyService->savedPropertiesIndex($request);
@@ -142,21 +124,6 @@ class PortalController extends Controller
     public function agentPropertyDestroy(Request $request, Property $property): JsonResponse
     {
         return $this->propertyService->agentPropertyDestroy($request, $property);
-    }
-
-    public function agentInquiriesIndex(Request $request): JsonResponse
-    {
-        return $this->inquiryService->agentInquiriesIndex($request);
-    }
-
-    public function agentInquiryUpdate(Request $request, Inquiry $inquiry): JsonResponse
-    {
-        return $this->inquiryService->agentInquiryUpdate($request, $inquiry);
-    }
-
-    public function buyerInquiryUpdate(Request $request, Inquiry $inquiry): JsonResponse
-    {
-        return $this->inquiryService->buyerInquiryUpdate($request, $inquiry);
     }
 
     public function adminOverview(Request $request): JsonResponse

@@ -52,22 +52,6 @@ class Agent extends Model
     }
 
     /**
-     * @return HasMany<AgentAvailability, $this>
-     */
-    public function availabilities(): HasMany
-    {
-        return $this->hasMany(AgentAvailability::class, 'agent_id', 'agent_id');
-    }
-
-    /**
-     * @return HasMany<ViewingBooking, $this>
-     */
-    public function viewingBookings(): HasMany
-    {
-        return $this->hasMany(ViewingBooking::class, 'agent_id', 'agent_id');
-    }
-
-    /**
      * @return HasMany<AgentReview, $this>
      */
     public function reviews(): HasMany

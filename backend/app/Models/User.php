@@ -65,22 +65,6 @@ class User extends Authenticatable
     }
 
     /**
-     * @return HasMany<Inquiry, $this>
-     */
-    public function inquiries(): HasMany
-    {
-        return $this->hasMany(Inquiry::class);
-    }
-
-    /**
-     * @return HasMany<ViewingBooking, $this>
-     */
-    public function viewingBookings(): HasMany
-    {
-        return $this->hasMany(ViewingBooking::class);
-    }
-
-    /**
      * @return HasMany<AgentReview, $this>
      */
     public function agentReviews(): HasMany
