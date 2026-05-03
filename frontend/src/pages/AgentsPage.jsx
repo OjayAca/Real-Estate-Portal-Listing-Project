@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Building2, CalendarDays, ChevronRight, Search, Star, UserRound, X } from 'lucide-react';
+import ContactAgentModal from '../components/ContactAgentModal';
 
 function formatRating(value) {
   return value ? Number(value).toFixed(1) : 'New';
@@ -23,11 +24,10 @@ function formatReviewDate(value) {
 export default function AgentsPage() {
   const { user } = useAuth();
   const [agents, setAgents] = useState([]);
-  const [agencies, setAgencies] = useState([]);
   const [search, setSearch] = useState('');
-  const [agencyId, setAgencyId] = useState('');
   const [selected, setSelected] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
+  const [contactAgent, setContactAgent] = useState(null);
   const [busy, setBusy] = useState(false);
   const [detailBusy, setDetailBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -39,19 +39,15 @@ export default function AgentsPage() {
     if (search.trim()) {
       params.set('search', search.trim());
     }
-    if (agencyId) {
-      params.set('agency_id', agencyId);
-    }
 
     setBusy(true);
     apiRequest(`/agents${params.toString() ? `?${params.toString()}` : ''}`)
       .then((data) => {
         setAgents(data.data || []);
-        setAgencies(data.agencies || []);
       })
       .catch((error) => setMessage(error.message))
       .finally(() => setBusy(false));
-  }, [search, agencyId]);
+  }, [search]);
 
   useEffect(() => {
     if (!selected) {
@@ -112,7 +108,7 @@ export default function AgentsPage() {
           <span className="result-count">{agents.length} agents</span>
         </div>
 
-        <div className="two-up agent-directory-filters">
+        <div className="agent-directory-filters" style={{ maxWidth: '600px', marginBottom: '2rem' }}>
           <label>
             <span className="flex-row" style={{ gap: '0.5rem', marginBottom: '0.5rem' }}>
               <Search size={14} aria-hidden="true" />
@@ -121,18 +117,8 @@ export default function AgentsPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by name, agency, or bio"
+              placeholder="Search by name, location, or agency"
             />
-          </label>
-
-          <label>
-            Agency
-            <select value={agencyId} onChange={(event) => setAgencyId(event.target.value)}>
-              <option value="">All agencies</option>
-              {agencies.map((agency) => (
-                <option key={agency.agency_id} value={agency.agency_id}>{agency.name}</option>
-              ))}
-            </select>
           </label>
         </div>
 
@@ -152,7 +138,7 @@ export default function AgentsPage() {
         ) : (
           <div className="agent-directory-grid">
             {agents.map((agent) => (
-              <article className="agent-directory-card" key={agent.agent_id}>
+              <article className="agent-directory-card" key={agent.agent_id} onClick={() => setSelected(agent)}>
                 <div className="agent-directory-card-top">
                   <div className="agent-avatar">
                     <UserRound size={24} aria-hidden="true" />
@@ -178,8 +164,15 @@ export default function AgentsPage() {
                   ))}
                 </div>
 
-                <button className="ghost-button" onClick={() => setSelected(agent)} type="button">
-                  View Profile
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setContactAgent(agent);
+                  }}
+                >
+                  Contact {agent.full_name}
                   <ChevronRight size={16} aria-hidden="true" />
                 </button>
               </article>
@@ -189,6 +182,14 @@ export default function AgentsPage() {
 
         {!busy && agents.length === 0 ? <p className="empty-copy">No approved agents matched the current search.</p> : null}
       </section>
+
+      {contactAgent ? (
+        <ContactAgentModal
+          agent={contactAgent}
+          onClose={() => setContactAgent(null)}
+          onMessage={setMessage}
+        />
+      ) : null}
 
       {selected ? (
         <div className="drawer-overlay" role="dialog" aria-modal="true" onClick={() => setSelected(null)}>

@@ -61,4 +61,9 @@ class AgentEcosystemController extends Controller
     {
         return $this->agentEcosystemService->agentReviewStore($request, $agent);
     }
+
+    public function createAgentInquiry(Request $request, Agent $agent): JsonResponse
+    {
+        return $this->agentEcosystemService->createAgentInquiry($request, $agent);
+    }
 }

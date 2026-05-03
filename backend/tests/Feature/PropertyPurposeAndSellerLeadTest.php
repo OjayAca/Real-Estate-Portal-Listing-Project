@@ -91,10 +91,10 @@ class PropertyPurposeAndSellerLeadTest extends TestCase
                 'email',
                 'phone',
                 'property_type',
-                'address_line',
-                'city',
-                'province',
-                'timeline',
+                'property_address',
+                'bedrooms',
+                'bathrooms',
+                'condition_of_home',
             ]);
 
         $response = $this->postJson('/api/seller-leads', [
@@ -102,11 +102,13 @@ class PropertyPurposeAndSellerLeadTest extends TestCase
             'email' => 'lara@example.com',
             'phone' => '09171234567',
             'property_type' => 'House',
-            'address_line' => '18 Mango Street',
-            'city' => 'Makati',
-            'province' => 'Metro Manila',
+            'property_address' => '18 Mango Street, Makati, Metro Manila',
+            'bedrooms' => 3,
+            'bathrooms' => 2,
+            'home_size' => 150.5,
+            'lot_size' => 240,
+            'condition_of_home' => 'Good - well maintained, minor cosmetic needs',
             'expected_price' => 7200000,
-            'timeline' => '1-3 months',
             'notes' => 'Needs help pricing before listing publicly.',
         ]);
 
@@ -117,7 +119,9 @@ class PropertyPurposeAndSellerLeadTest extends TestCase
             'full_name' => 'Lara Santos',
             'email' => 'lara@example.com',
             'property_type' => 'House',
-            'timeline' => '1-3 months',
+            'property_address' => '18 Mango Street, Makati, Metro Manila',
+            'bedrooms' => 3,
+            'bathrooms' => 2,
         ]);
     }
 

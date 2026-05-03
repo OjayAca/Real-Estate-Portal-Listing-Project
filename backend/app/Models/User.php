@@ -4,8 +4,6 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use Database\Factories\UserFactory;
-use Illuminate\Auth\MustVerifyEmail as MustVerifyEmailTrait;
-use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,10 +13,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements MustVerifyEmailContract
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, MustVerifyEmailTrait, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -105,15 +103,6 @@ class User extends Authenticatable implements MustVerifyEmailContract
     protected function fullName(): Attribute
     {
         return Attribute::get(fn () => trim("{$this->first_name} {$this->last_name}"));
-    }
-
-    public function hasVerifiedEmail(): bool
-    {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        return parent::hasVerifiedEmail();
     }
 
     public function isAdmin(): bool

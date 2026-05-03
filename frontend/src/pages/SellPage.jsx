@@ -1,20 +1,28 @@
 import { useState } from 'react';
 import { apiRequest } from '../api/client';
-import { ArrowRight, CheckCircle2, ClipboardCheck, Home, MapPin, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ClipboardCheck, Home, MapPin, Minus, Plus, ShieldCheck, Sparkles } from 'lucide-react';
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
-const TIMELINES = ['Immediately', '1-3 months', '3-6 months', 'Just exploring'];
+const HOME_CONDITIONS = [
+  'Excellent - like new, move-in ready',
+  'Good - well maintained, minor cosmetic needs',
+  'Fair - functional, but needs updates',
+  'Poor - needs major repairs/renovation',
+  'New Construction',
+];
 
 const emptyLeadForm = {
   full_name: '',
   email: '',
   phone: '',
   property_type: 'House',
-  address_line: '',
-  city: '',
-  province: '',
+  property_address: '',
+  bedrooms: 1,
+  bathrooms: 1,
+  home_size: '',
+  lot_size: '',
+  condition_of_home: 'Good - well maintained, minor cosmetic needs',
   expected_price: '',
-  timeline: '1-3 months',
   notes: '',
 };
 
@@ -33,6 +41,13 @@ export default function SellPage() {
     setValues((current) => ({ ...current, [field]: nextValue }));
   };
 
+  const adjustCount = (field, delta) => {
+    setValues((current) => ({
+      ...current,
+      [field]: Math.max(0, (current[field] || 0) + delta),
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setBusy(true);
@@ -44,6 +59,8 @@ export default function SellPage() {
         method: 'POST',
         body: {
           ...values,
+          home_size: values.home_size === '' ? null : Number(values.home_size),
+          lot_size: values.lot_size === '' ? null : Number(values.lot_size),
           expected_price: values.expected_price === '' ? null : Number(values.expected_price),
         },
       });
@@ -113,33 +130,70 @@ export default function SellPage() {
           </div>
 
           <label>
-            Address Line
-            <input required value={values.address_line} onChange={(event) => updateValue('address_line', event.target.value)} />
-            {getFieldError(fieldErrors, 'address_line') ? <span className="field-error">{getFieldError(fieldErrors, 'address_line')}</span> : null}
+            Property Address
+            <input required value={values.property_address} onChange={(event) => updateValue('property_address', event.target.value)} />
+            {getFieldError(fieldErrors, 'property_address') ? <span className="field-error">{getFieldError(fieldErrors, 'property_address')}</span> : null}
           </label>
 
           <div className="two-up seller-form-grid">
+            <div className="label">
+              Bedrooms
+              <div className="seller-form-counter">
+                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bedrooms', -1)} disabled={values.bedrooms <= 0}>
+                  <Minus size={16} />
+                </button>
+                <span>{values.bedrooms}</span>
+                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bedrooms', 1)}>
+                  <Plus size={16} />
+                </button>
+              </div>
+              {getFieldError(fieldErrors, 'bedrooms') ? <span className="field-error">{getFieldError(fieldErrors, 'bedrooms')}</span> : null}
+            </div>
+
+            <div className="label">
+              Bathrooms
+              <div className="seller-form-counter">
+                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bathrooms', -1)} disabled={values.bathrooms <= 0}>
+                  <Minus size={16} />
+                </button>
+                <span>{values.bathrooms}</span>
+                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bathrooms', 1)}>
+                  <Plus size={16} />
+                </button>
+              </div>
+              {getFieldError(fieldErrors, 'bathrooms') ? <span className="field-error">{getFieldError(fieldErrors, 'bathrooms')}</span> : null}
+            </div>
+
             <label>
-              City
-              <input required value={values.city} onChange={(event) => updateValue('city', event.target.value)} />
-              {getFieldError(fieldErrors, 'city') ? <span className="field-error">{getFieldError(fieldErrors, 'city')}</span> : null}
+              Home Size
+              <div className="seller-form-input-unit">
+                <input type="number" min="1" value={values.home_size} onChange={(event) => updateValue('home_size', event.target.value)} placeholder="0" />
+                <span className="unit">sqm</span>
+              </div>
+              {getFieldError(fieldErrors, 'home_size') ? <span className="field-error">{getFieldError(fieldErrors, 'home_size')}</span> : null}
             </label>
+
             <label>
-              Province
-              <input required value={values.province} onChange={(event) => updateValue('province', event.target.value)} />
-              {getFieldError(fieldErrors, 'province') ? <span className="field-error">{getFieldError(fieldErrors, 'province')}</span> : null}
+              Lot Size
+              <div className="seller-form-input-unit">
+                <input type="number" min="1" value={values.lot_size} onChange={(event) => updateValue('lot_size', event.target.value)} placeholder="0" />
+                <span className="unit">sqm</span>
+              </div>
+              {getFieldError(fieldErrors, 'lot_size') ? <span className="field-error">{getFieldError(fieldErrors, 'lot_size')}</span> : null}
             </label>
+
+            <label>
+              Condition of Home
+              <select value={values.condition_of_home} onChange={(event) => updateValue('condition_of_home', event.target.value)}>
+                {HOME_CONDITIONS.map((cond) => <option key={cond} value={cond}>{cond}</option>)}
+              </select>
+              {getFieldError(fieldErrors, 'condition_of_home') ? <span className="field-error">{getFieldError(fieldErrors, 'condition_of_home')}</span> : null}
+            </label>
+
             <label>
               Expected Price
               <input min="1" type="number" value={values.expected_price} onChange={(event) => updateValue('expected_price', event.target.value)} placeholder="Optional" />
               {getFieldError(fieldErrors, 'expected_price') ? <span className="field-error">{getFieldError(fieldErrors, 'expected_price')}</span> : null}
-            </label>
-            <label>
-              Timeline
-              <select value={values.timeline} onChange={(event) => updateValue('timeline', event.target.value)}>
-                {TIMELINES.map((timeline) => <option key={timeline} value={timeline}>{timeline}</option>)}
-              </select>
-              {getFieldError(fieldErrors, 'timeline') ? <span className="field-error">{getFieldError(fieldErrors, 'timeline')}</span> : null}
             </label>
           </div>
 

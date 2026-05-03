@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { X, ImageIcon } from 'lucide-react';
+import { Mail, X, ImageIcon } from 'lucide-react';
 
 function formatPrice(property) {
   const amount = Number(property.price || 0).toLocaleString();
   return property.listing_purpose === 'rent' ? `PHP ${amount}/mo` : `PHP ${amount}`;
 }
 
-export default function PropertyDetailsDrawer({ property, onClose }) {
+export default function PropertyDetailsDrawer({ property, onClose, onInquire }) {
   // Handle Escape key to close the drawer
   useEffect(() => {
     if (!property) return;
@@ -19,6 +19,8 @@ export default function PropertyDetailsDrawer({ property, onClose }) {
   }, [property, onClose]);
 
   if (!property) return null;
+
+  const isAvailable = property.status?.toLowerCase() === 'available';
 
   return (
     <div
@@ -61,6 +63,8 @@ export default function PropertyDetailsDrawer({ property, onClose }) {
           <h2 id="drawer-title" style={{ fontSize: '2.2rem', fontWeight: 300, marginBottom: '0.5rem', lineHeight: 1.2 }}>{property.title}</h2>
           <p className="detail-price">{formatPrice(property)}</p>
 
+
+
           <div className="chip-row detail-chip-row">
             {(property.amenities || []).map((amenity) => (
               <span className="chip" key={amenity.amenity_id}>{amenity.amenity_name}</span>
@@ -84,6 +88,17 @@ export default function PropertyDetailsDrawer({ property, onClose }) {
             </div>
             <div><dt>Status</dt><dd style={{ color: property.status === 'Available' ? 'var(--status-success)' : 'var(--text-main)' }}>{property.status}</dd></div>
           </dl>
+          {onInquire && isAvailable ? (
+            <button
+              className="primary-button detail-submit"
+              onClick={() => onInquire(property)}
+              type="button"
+              aria-label={`Email agent for ${property.title}`}
+            >
+              <Mail size={18} aria-hidden="true" />
+              Email Agent
+            </button>
+          ) : null}
         </div>
       </aside>
     </div>

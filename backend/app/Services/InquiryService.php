@@ -74,12 +74,70 @@ class InquiryService
         ], 201);
     }
 
+    public function createAgentInquiry(Request $request, Agent $agent): JsonResponse
+    {
+        if (!$agent->isApproved()) {
+            return response()->json(['message' => 'This agent is not currently accepting inquiries.'], 422);
+        }
+
+        $validated = $request->validate([
+            'full_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'email' => ['sometimes', 'nullable', 'email', 'max:180'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'message' => ['required', 'string', 'min:10'],
+        ]);
+
+        $user = $request->user();
+        $agent->loadMissing('user');
+        $buyerName = trim((string) ($validated['full_name'] ?? '')) ?: $user->full_name;
+        $buyerEmail = trim((string) ($validated['email'] ?? '')) ?: $user->email;
+        $buyerPhone = trim((string) ($validated['phone'] ?? '')) ?: $user->phone;
+
+        $inquiry = Inquiry::query()->create([
+            'agent_id' => $agent->agent_id,
+            'user_id' => $user->id,
+            'buyer_name' => $buyerName,
+            'buyer_email' => $buyerEmail,
+            'buyer_phone' => $buyerPhone,
+            'message' => $validated['message'],
+            'status' => 'New',
+        ]);
+
+        if ($agent->user) {
+            $this->notifications->pushNotification(
+                $agent->user,
+                'inquiry.new',
+                'New direct inquiry',
+                $buyerName.' sent you a direct message.',
+                ['agent_id' => $agent->agent_id, 'inquiry_id' => $inquiry->inquiry_id]
+            );
+        }
+
+        foreach (User::query()->where('role', UserRole::ADMIN->value)->get() as $admin) {
+            $this->notifications->pushNotification(
+                $admin,
+                'inquiry.new',
+                'Agent inquiry received',
+                'A new direct inquiry was submitted for '.$agent->full_name.'.',
+                ['agent_id' => $agent->agent_id, 'inquiry_id' => $inquiry->inquiry_id]
+            );
+        }
+
+        return response()->json([
+            'message' => 'Message sent to agent successfully.',
+            'data' => $this->portal->formatInquiry($inquiry->load(['agent.user', 'user'])),
+        ], 201);
+    }
+
     public function agentInquiriesIndex(Request $request): JsonResponse
     {
         $agent = $this->portal->requireApprovedAgent($request->user());
         $inquiries = Inquiry::query()
-            ->with(['property.agent.user', 'user'])
-            ->whereHas('property', fn ($builder) => $builder->where('agent_id', $agent->agent_id))
+            ->with(['property.agent.user', 'agent.user', 'user'])
+            ->where(function ($query) use ($agent) {
+                $query->whereHas('property', fn ($builder) => $builder->where('agent_id', $agent->agent_id))
+                    ->orWhere('agent_id', $agent->agent_id);
+            })
             ->latest()
             ->get();
 
@@ -91,8 +149,13 @@ class InquiryService
     public function agentInquiryUpdate(Request $request, Inquiry $inquiry): JsonResponse
     {
         $agent = $this->portal->requireApprovedAgent($request->user());
-        $inquiry->loadMissing('property.agent.user', 'user');
-        $this->portal->guardOwnProperty($agent, $inquiry->property);
+        $inquiry->loadMissing('property.agent.user', 'agent.user', 'user');
+
+        if ($inquiry->property) {
+            $this->portal->guardOwnProperty($agent, $inquiry->property);
+        } elseif ($inquiry->agent_id !== $agent->agent_id) {
+            abort(403, 'This inquiry does not belong to you.');
+        }
 
         $validated = $request->validate([
             'status' => ['required', Rule::in(self::INQUIRY_STATUSES)],
@@ -111,18 +174,19 @@ class InquiryService
         $inquiry->save();
 
         if ($inquiry->user) {
+            $title = $inquiry->property ? $inquiry->property->title : 'your direct inquiry';
             $this->notifications->pushNotification(
                 $inquiry->user,
                 'inquiry.update',
                 'Inquiry updated',
-                'Your inquiry for '.$inquiry->property->title.' was updated to '.$inquiry->status.'.',
-                ['property_id' => $inquiry->property_id, 'inquiry_id' => $inquiry->inquiry_id]
+                'Your inquiry for '.$title.' was updated to '.$inquiry->status.'.',
+                ['property_id' => $inquiry->property_id, 'agent_id' => $inquiry->agent_id, 'inquiry_id' => $inquiry->inquiry_id]
             );
         }
 
         return response()->json([
             'message' => 'Inquiry updated.',
-            'data' => $this->portal->formatInquiry($inquiry->fresh()->load(['property.agent.user', 'user'])),
+            'data' => $this->portal->formatInquiry($inquiry->fresh()->load(['property.agent.user', 'agent.user', 'user'])),
         ]);
     }
 
@@ -146,20 +210,23 @@ class InquiryService
             'buyer_replied_at' => now(),
         ]);
 
-        $inquiry->loadMissing('property.agent.user');
-        if ($inquiry->property->agent?->user) {
+        $inquiry->loadMissing('property.agent.user', 'agent.user');
+        $targetUser = $inquiry->property?->agent?->user ?? $inquiry->agent?->user;
+        $title = $inquiry->property ? $inquiry->property->title : 'direct message';
+
+        if ($targetUser) {
             $this->notifications->pushNotification(
-                $inquiry->property->agent->user,
+                $targetUser,
                 'inquiry.reply',
                 'Buyer sent a follow-up',
-                $user->full_name.' replied to your response regarding '.$inquiry->property->title.'.',
-                ['property_id' => $inquiry->property_id, 'inquiry_id' => $inquiry->inquiry_id]
+                $user->full_name.' replied to your response regarding '.$title.'.',
+                ['property_id' => $inquiry->property_id, 'agent_id' => $inquiry->agent_id, 'inquiry_id' => $inquiry->inquiry_id]
             );
         }
 
         return response()->json([
             'message' => 'Your reply has been sent.',
-            'data' => $this->portal->formatInquiry($inquiry->fresh()->load(['property.agent.user', 'user'])),
+            'data' => $this->portal->formatInquiry($inquiry->fresh()->load(['property.agent.user', 'agent.user', 'user'])),
         ]);
     }
 }

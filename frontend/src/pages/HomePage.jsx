@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import PropertyCard from '../components/PropertyCard';
+import { useAuth } from '../context/AuthContext';
 import { Search, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import heroImg from '../assets/homepage-hero.png';
 
 const CARDS_PER_PAGE = 3;
-const HERO_TABS = ['Buy', 'Rent', 'Sell', 'Pre-approval', 'Just sold', 'Home value'];
+const HERO_TABS = ['Buy', 'Rent', 'Sell'];
 
 export default function HomePage() {
   const [featured, setFeatured] = useState([]);
   const [page, setPage] = useState(0);
   const [activeTab, setActiveTab] = useState('Buy');
   const [searchTerm, setSearchTerm] = useState('');
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +28,22 @@ export default function HomePage() {
 
   const handleView = (property) => {
     navigate(property.listing_purpose === 'rent' ? '/rent' : '/buy', { state: { selectedProperty: property } });
+  };
+
+  const handleInquire = (property) => {
+    if (!user) {
+      navigate('/login', {
+        state: {
+          from: {
+            pathname: property.listing_purpose === 'rent' ? '/rent' : '/buy',
+            search: '',
+          },
+        },
+      });
+      return;
+    }
+
+    handleView(property);
   };
 
   const handleTabClick = (tab) => {
@@ -93,7 +111,7 @@ export default function HomePage() {
           </div>
 
           <div className="hero-browse-row">
-            Browse homes in EstateFlow City, EF
+            Browse homes in EstateFlow
           </div>
         </div>
       </section>
@@ -137,7 +155,7 @@ export default function HomePage() {
               key={property.property_id}
               property={property}
               onView={handleView}
-              onInquire={handleView}
+              onInquire={handleInquire}
             />
           ))}
         </div>

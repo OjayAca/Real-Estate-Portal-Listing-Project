@@ -16,11 +16,13 @@ class SellerLead extends Model
         'email',
         'phone',
         'property_type',
-        'address_line',
-        'city',
-        'province',
+        'property_address',
+        'bedrooms',
+        'bathrooms',
+        'home_size',
+        'lot_size',
+        'condition_of_home',
         'expected_price',
-        'timeline',
         'notes',
     ];
 
@@ -28,6 +30,10 @@ class SellerLead extends Model
     {
         return [
             'expected_price' => 'decimal:2',
+            'home_size' => 'decimal:2',
+            'lot_size' => 'decimal:2',
+            'bedrooms' => 'integer',
+            'bathrooms' => 'integer',
         ];
     }
 }

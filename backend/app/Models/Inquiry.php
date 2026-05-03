@@ -14,6 +14,7 @@ class Inquiry extends Model
 
     protected $fillable = [
         'property_id',
+        'agent_id',
         'user_id',
         'buyer_name',
         'buyer_email',
@@ -40,6 +41,14 @@ class Inquiry extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class, 'property_id', 'property_id');
+    }
+
+    /**
+     * @return BelongsTo<Agent, $this>
+     */
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(Agent::class, 'agent_id', 'agent_id');
     }
 
     /**

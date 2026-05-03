@@ -10,7 +10,13 @@ use Illuminate\Validation\Rule;
 class SellerLeadService
 {
     private const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
-    private const TIMELINES = ['Immediately', '1-3 months', '3-6 months', 'Just exploring'];
+    private const HOME_CONDITIONS = [
+        'Excellent - like new, move-in ready',
+        'Good - well maintained, minor cosmetic needs',
+        'Fair - functional, but needs updates',
+        'Poor - needs major repairs/renovation',
+        'New Construction',
+    ];
 
     public function store(Request $request): JsonResponse
     {
@@ -19,11 +25,13 @@ class SellerLeadService
             'email' => ['required', 'email:rfc', 'max:180'],
             'phone' => ['required', 'string', 'max:30'],
             'property_type' => ['required', Rule::in(self::PROPERTY_TYPES)],
-            'address_line' => ['required', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:100'],
-            'province' => ['required', 'string', 'max:100'],
+            'property_address' => ['required', 'string', 'max:255'],
+            'bedrooms' => ['required', 'integer', 'min:0', 'max:50'],
+            'bathrooms' => ['required', 'integer', 'min:0', 'max:50'],
+            'home_size' => ['nullable', 'numeric', 'min:1'],
+            'lot_size' => ['nullable', 'numeric', 'min:1'],
+            'condition_of_home' => ['required', Rule::in(self::HOME_CONDITIONS)],
             'expected_price' => ['nullable', 'numeric', 'min:1'],
-            'timeline' => ['required', Rule::in(self::TIMELINES)],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -33,7 +41,6 @@ class SellerLeadService
             'message' => 'Seller consultation request received.',
             'data' => [
                 'seller_lead_id' => $lead->seller_lead_id,
-                'timeline' => $lead->timeline,
                 'created_at' => optional($lead->created_at)->toIso8601String(),
             ],
         ], 201);

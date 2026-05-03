@@ -53,12 +53,6 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const sendVerification = useCallback(async () => {
-    return apiRequest('/auth/email/verification-notification', {
-      method: 'POST',
-    });
-  }, []);
-
   const logout = useCallback(async () => {
     await apiRequest('/auth/logout', {
       method: 'POST',
@@ -77,11 +71,10 @@ export function AuthProvider({ children }) {
       login,
       logout,
       register,
-      sendVerification,
       user,
       setUser,
     }),
-    [authFetch, loading, login, logout, register, sendVerification, user],
+    [authFetch, loading, login, logout, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

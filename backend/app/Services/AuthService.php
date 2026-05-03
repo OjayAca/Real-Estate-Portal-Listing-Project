@@ -85,16 +85,11 @@ class AuthService
             $request->session()->regenerate();
         }
 
-        if (! $user->hasVerifiedEmail()) {
-            $user->sendEmailVerificationNotification();
-        }
-
         return response()->json([
             'message' => $user->isAgent()
                 ? 'Agent account created. An admin still needs to approve the agent profile.'
                 : 'Account created successfully.',
             'user' => $this->portal->formatUser($user),
-            'requires_email_verification' => ! $user->hasVerifiedEmail(),
         ], 201);
     }
 
@@ -123,7 +118,6 @@ class AuthService
         return response()->json([
             'message' => 'Logged in successfully.',
             'user' => $this->portal->formatUser($user),
-            'requires_email_verification' => ! $user->hasVerifiedEmail(),
         ]);
     }
 
@@ -198,21 +192,6 @@ class AuthService
         Auth::forgetGuards();
 
         return response()->json(['message' => 'Logged out successfully.']);
-    }
-
-    public function sendVerificationNotification(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        if ($user->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Your email address is already verified.']);
-        }
-
-        $user->sendEmailVerificationNotification();
-
-        return response()->json([
-            'message' => 'A fresh verification link has been sent to your email address.',
-        ], 202);
     }
 
     public function forgotPassword(Request $request): JsonResponse

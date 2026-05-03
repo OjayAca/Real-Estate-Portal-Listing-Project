@@ -13,9 +13,9 @@ class DashboardAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_unverified_admin_can_open_the_dashboard_and_admin_overview(): void
+    public function test_admin_can_open_the_dashboard_and_admin_overview(): void
     {
-        $admin = User::factory()->unverified()->create([
+        $admin = User::factory()->create([
             'role' => UserRole::ADMIN,
         ]);
 
@@ -29,9 +29,9 @@ class DashboardAccessTest extends TestCase
             ->assertOk();
     }
 
-    public function test_unverified_pending_agent_cannot_open_dashboard_or_manage_approved_agent_tools(): void
+    public function test_pending_agent_can_open_limited_dashboard_but_cannot_manage_properties(): void
     {
-        $agentUser = User::factory()->unverified()->create([
+        $agentUser = User::factory()->create([
             'role' => UserRole::AGENT,
         ]);
 
@@ -47,7 +47,8 @@ class DashboardAccessTest extends TestCase
 
         $this->actingAs($agentUser->fresh('agentProfile'), 'web')
             ->getJson('/api/dashboard')
-            ->assertForbidden();
+            ->assertOk()
+            ->assertJsonPath('profile.approval_status', 'pending');
 
         $this->actingAs($agentUser->fresh('agentProfile'), 'web')
             ->getJson('/api/agent/properties')
@@ -65,9 +66,9 @@ class DashboardAccessTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_unverified_buyer_can_open_saved_properties(): void
+    public function test_buyer_can_open_saved_properties(): void
     {
-        $buyer = User::factory()->unverified()->create([
+        $buyer = User::factory()->create([
             'role' => UserRole::USER,
         ]);
         $property = Property::factory()->create(['status' => 'Available']);

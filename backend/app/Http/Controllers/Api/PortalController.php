@@ -59,11 +59,6 @@ class PortalController extends Controller
         return $this->authService->logout($request);
     }
 
-    public function sendVerificationNotification(Request $request): JsonResponse
-    {
-        return $this->authService->sendVerificationNotification($request);
-    }
-
     public function forgotPassword(Request $request): JsonResponse
     {
         return $this->authService->forgotPassword($request);

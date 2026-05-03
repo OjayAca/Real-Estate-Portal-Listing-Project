@@ -1,5 +1,5 @@
 import { startTransition, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiRequest } from '../api/client';
 import AgentInquiryModal from '../components/AgentInquiryModal';
 import PropertyCard from '../components/PropertyCard';
@@ -59,6 +59,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
   const config = MODE_CONFIG[mode] || MODE_CONFIG.buy;
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState(() => readFiltersFromSearch(searchParams));
   const [draftFilters, setDraftFilters] = useState(() => readFiltersFromSearch(searchParams));
@@ -208,7 +209,12 @@ export default function PropertiesPage({ mode = 'buy' }) {
   };
 
   const openAgentInquiry = (property) => {
-    if (!canUseBuyerActions) {
+    if (!user) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+
+    if (user.role !== 'user') {
       setMessage('Log in as a buyer to email an agent.');
       return;
     }

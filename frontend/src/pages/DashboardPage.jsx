@@ -8,7 +8,6 @@ import AgentDashboard from '../components/dashboard/AgentDashboard';
 import AdminDashboard from '../components/dashboard/AdminDashboard';
 import {
   ShieldCheck,
-  Mail,
   Users,
   UserCheck,
   Building,
@@ -41,7 +40,7 @@ function createFallbackDashboard(agentProfile) {
 }
 
 export default function DashboardPage() {
-  const { authFetch, loading: authLoading, user, sendVerification } = useAuth();
+  const { authFetch, loading: authLoading, user } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [adminOverview, setAdminOverview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,22 +80,6 @@ export default function DashboardPage() {
   const deferredUserSearch = useDeferredValue(userSearch);
   const deferredAgentSearch = useDeferredValue(agentSearch);
   const deferredPropertySearch = useDeferredValue(propertySearch);
-
-  const [verificationBusy, setVerificationBusy] = useState(false);
-  const [verificationMessage, setVerificationMessage] = useState('');
-
-  const handleResendVerification = async () => {
-    setVerificationBusy(true);
-    setVerificationMessage('');
-    try {
-      const response = await sendVerification();
-      setVerificationMessage(response.message || 'Verification link sent to your email.');
-    } catch (error) {
-      setVerificationMessage(error.message);
-    } finally {
-      setVerificationBusy(false);
-    }
-  };
 
   const loadAdminOverview = useCallback(async (uSearch = '', aSearch = '', pSearch = '', pages = { users: 1, agents: 1, properties: 1 }) => {
     try {
@@ -182,8 +165,7 @@ export default function DashboardPage() {
 
   const agentProfile = dashboard?.profile || user?.agent_profile || null;
   const isApprovedAgent = user?.role === 'agent' &&
-    agentProfile?.approval_status === 'approved' &&
-    Boolean(user?.email_verified_at);
+    agentProfile?.approval_status === 'approved';
 
   useEffect(() => {
     if (!isApprovedAgent) {
@@ -555,26 +537,6 @@ export default function DashboardPage() {
           <ShieldCheck size={18} color="var(--primary-base)" aria-hidden="true" />
           Clearance Level: <strong style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>{user.role}</strong>
         </p>
-
-        {user.email_verified_at === null && user.role === 'agent' ? (
-          <div className="inline-message animate-enter" style={{ marginTop: '2rem', marginBottom: '1rem', border: '1px solid var(--tone-warning-border)', background: 'var(--tone-warning-bg)' }}>
-            <Mail size={24} style={{ color: 'var(--tone-warning-color)' }} aria-hidden="true" />
-            <div style={{ flex: 1 }}>
-              <strong style={{ display: 'block', color: 'var(--text-main)', marginBottom: '0.25rem' }}>Verify Your Email Address</strong>
-              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                {verificationMessage || 'To protect your account and access all features, please verify your email. If you did not receive the link, we can send it again.'}
-              </p>
-            </div>
-            <button
-              className="primary-button"
-              style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem' }}
-              disabled={verificationBusy}
-              onClick={handleResendVerification}
-            >
-              {verificationBusy ? 'Sending...' : 'Resend Link'}
-            </button>
-          </div>
-        ) : null}
 
         {message ? (
           <p className="inline-message animate-enter" style={{ marginTop: '1.5rem', marginBottom: 0 }} role="status">

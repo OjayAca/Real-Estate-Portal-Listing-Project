@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AgentInquiryModal from '../components/AgentInquiryModal';
 import ConfirmModal from '../components/ConfirmModal';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
@@ -12,6 +13,7 @@ export default function SavedPropertiesPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState(null);
+  const [contactProperty, setContactProperty] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
 
   useEffect(() => {
@@ -109,6 +111,12 @@ export default function SavedPropertiesPage() {
       <PropertyDetailsDrawer
         property={selected}
         onClose={() => setSelected(null)}
+        onInquire={setContactProperty}
+      />
+
+      <AgentInquiryModal
+        property={contactProperty}
+        onClose={() => setContactProperty(null)}
         onMessage={setMessage}
       />
 

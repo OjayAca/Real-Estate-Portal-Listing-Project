@@ -148,4 +148,15 @@ class PortalService
             abort(403, 'This property does not belong to the authenticated agent.');
         }
     }
+
+    public function resolveAgency(string $name): \App\Models\Agency
+    {
+        return \App\Models\Agency::query()->firstOrCreate(
+            ['name' => $name],
+            [
+                'slug' => \Illuminate\Support\Str::slug($name),
+                'agency_type' => 'Agency',
+            ]
+        );
+    }
 }

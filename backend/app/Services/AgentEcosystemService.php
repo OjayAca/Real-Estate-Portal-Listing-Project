@@ -20,6 +20,7 @@ class AgentEcosystemService
 {
     public function __construct(
         private readonly NotificationService $notifications,
+        private readonly InquiryService $inquiryService,
     ) {}
 
     private const BOOKING_STATUSES = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
@@ -46,20 +47,19 @@ class AgentEcosystemService
                     ->where('first_name', 'like', "%{$search}%")
                     ->orWhere('last_name', 'like', "%{$search}%")
                     ->orWhere('agency_name', 'like', "%{$search}%")
-                    ->orWhere('bio', 'like', "%{$search}%");
+                    ->orWhere('bio', 'like', "%{$search}%")
+                    ->orWhereHas('properties', function ($q) use ($search) {
+                        $q->where('city', 'like', "%{$search}%")
+                            ->orWhere('province', 'like', "%{$search}%")
+                            ->orWhere('address_line', 'like', "%{$search}%");
+                    });
             });
         }
 
-        if ($request->filled('agency_id')) {
-            $query->where('agency_id', $request->integer('agency_id'));
-        }
-
         $agents = $query->get();
-        $agencies = Agency::query()->withCount('agents')->orderBy('name')->get();
 
         return response()->json([
             'data' => $agents->map(fn (Agent $agent) => $this->formatAgentCard($agent)),
-            'agencies' => $agencies->map(fn (Agency $agency) => $this->formatAgency($agency, true)),
         ]);
     }
 
@@ -341,6 +341,11 @@ class AgentEcosystemService
             'message' => 'Agent review saved.',
             'data' => $this->formatReview($review->load('user')),
         ]);
+    }
+
+    public function createAgentInquiry(Request $request, Agent $agent): JsonResponse
+    {
+        return $this->inquiryService->createAgentInquiry($request, $agent);
     }
 
     private function syncNamedAgencies(): void
