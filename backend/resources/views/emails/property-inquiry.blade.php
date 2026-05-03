@@ -12,4 +12,10 @@
 <p>{{ $data['message'] }}</p>
 
 <hr>
-<p>Please reply to the buyer directly via email or phone.</p>
+<p>
+    <a href="mailto:{{ $data['buyer_email'] }}?subject=Re: Inquiry for {{ $property->title }}" 
+       style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+        Reply via Email
+    </a>
+</p>
+<p>Or reply directly to the buyer via phone if provided.</p>

@@ -28,6 +28,9 @@ class PropertyInquiryMail extends Mailable
     {
         return new Envelope(
             subject: 'New Inquiry: ' . $this->property->title,
+            replyTo: [
+                $this->data['buyer_email'],
+            ],
         );
     }
 

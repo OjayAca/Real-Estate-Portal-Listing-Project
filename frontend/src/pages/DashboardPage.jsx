@@ -13,7 +13,9 @@ import {
   Building,
   CheckCircle,
   Save,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  FileText
 } from 'lucide-react';
 
 const WEEKDAY_OPTIONS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

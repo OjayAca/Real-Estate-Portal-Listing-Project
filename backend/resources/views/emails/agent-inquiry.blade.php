@@ -12,4 +12,10 @@
 <p>{{ $data['message'] }}</p>
 
 <hr>
-<p>Please reply to the contact directly via email or phone.</p>
+<p>
+    <a href="mailto:{{ $data['buyer_email'] }}?subject=Re: Your Inquiry to {{ $agent->full_name }}" 
+       style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+        Reply via Email
+    </a>
+</p>
+<p>Or reply directly to the contact via phone if provided.</p>

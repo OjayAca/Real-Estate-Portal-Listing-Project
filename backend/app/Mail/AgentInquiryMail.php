@@ -28,6 +28,9 @@ class AgentInquiryMail extends Mailable
     {
         return new Envelope(
             subject: 'New Direct Message: Lead Inquiry',
+            replyTo: [
+                $this->data['buyer_email'],
+            ],
         );
     }
 
