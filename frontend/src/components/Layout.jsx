@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
 import NotificationCenter from './NotificationCenter';
@@ -38,9 +38,12 @@ function getUserStatusLabel(user) {
 export default function Layout() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const location = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const isSavedProperties = location.pathname === '/saved-properties';
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -94,15 +97,14 @@ export default function Layout() {
 
         <div className={`topbar-actions ${isMenuOpen ? 'topbar-actions-open' : ''}`}>
           {!user || user.role === 'user' ? (
-          <NavLink
-            className="icon-button"
-            to="/saved-properties"
-            onClick={closeMenu}
-            title="Saved properties"
-            aria-label="Saved properties"
-          >
-            <Heart size={20} aria-hidden="true" />
-          </NavLink>
+            <NavLink
+              className={`icon-button ${isSavedProperties ? 'topbar-heart-active' : ''}`}
+              to="/saved-properties"
+              onClick={closeMenu}
+              aria-label="Saved Properties"
+            >
+              <Heart size={20} aria-hidden="true" />
+            </NavLink>
           ) : null}
 
           {user ? (

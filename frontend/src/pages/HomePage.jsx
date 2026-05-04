@@ -94,8 +94,10 @@ export default function HomePage() {
           <div className="hero-search-bar">
             <input
               type="text"
+              id="home_search"
+              name="home_search"
               className="hero-search-input"
-              placeholder="Address, School, City, Zip or Neighborhood"
+              placeholder="Address, City, or Neighborhood"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               onKeyDown={(event) => {

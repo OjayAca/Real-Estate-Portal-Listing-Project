@@ -1,0 +1,353 @@
+/* ------------------------------------------------------------------ */
+/* Admin dashboard header                                              */
+/* ------------------------------------------------------------------ */
+.dashboard-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-header-copy .eyebrow {
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-header-copy h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.4vw, 2.1rem);
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.dashboard-header-copy p {
+  margin: 0.4rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  max-width: 60ch;
+}
+
+.dashboard-header-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tab bar (sticky + horizontal scroll)                                */
+/* ------------------------------------------------------------------ */
+.dashboard-tabs-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -0.25rem 1.5rem;
+  padding: 0.25rem 0.25rem 0;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.dashboard-tabs {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 1px; /* keep underline visible */
+}
+
+.dashboard-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-btn {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  padding: 12px 16px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color var(--transition-fast),
+              background var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+.tab-btn:hover:not(.tab-active) {
+  color: var(--text-main);
+  background: var(--btn-ghost-hover-bg);
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+.tab-btn.tab-active {
+  color: var(--brand-base);
+  border-bottom-color: var(--brand-base);
+  background: transparent;
+}
+
+.tab-icon {
+  display: inline-flex;
+  align-items: center;
+  color: currentColor;
+}
+
+.tab-label {
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tab badges                                                          */
+/* ------------------------------------------------------------------ */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.tab-badge-muted {
+  background: var(--btn-ghost-bg);
+  border-color: var(--btn-ghost-border);
+  color: var(--text-muted);
+}
+
+.tab-badge-attention {
+  background: var(--tone-warning-bg);
+  border-color: var(--tone-warning-border);
+  color: var(--tone-warning-color);
+}
+
+.tab-btn.tab-active .tab-badge-muted {
+  color: var(--brand-base);
+  border-color: var(--brand-light);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tab panel wrapper                                                   */
+/* ------------------------------------------------------------------ */
+.tab-panel {
+  padding-top: 0.25rem;
+  min-width: 0;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Overview layout (KPIs + charts)                                     */
+/* ------------------------------------------------------------------ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.kpi-card {
+  --kpi-accent: var(--primary-base);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--kpi-accent);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.kpi-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.kpi-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  color: var(--kpi-accent);
+  background: color-mix(in srgb, var(--kpi-accent) 15%, transparent);
+}
+
+.kpi-card-trend {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.kpi-card-value {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.kpi-card-label {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.charts-grid > .section-panel {
+  margin: 0;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared panel header (eyebrow + title + search)                      */
+/* ------------------------------------------------------------------ */
+.panel-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.panel-header-copy h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.panel-header-search {
+  flex: 1 1 280px;
+  min-width: 0;
+  max-width: 360px;
+}
+
+.panel-header-search input {
+  margin-top: 0;
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Empty state                                                         */
+/* ------------------------------------------------------------------ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-subtle);
+  background: var(--input-bg);
+}
+
+.empty-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--btn-ghost-bg);
+  color: var(--text-muted);
+}
+
+.empty-state-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.empty-state-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  max-width: 42ch;
+}
+
+.empty-state-success .empty-state-icon {
+  color: var(--status-success);
+  background: color-mix(in srgb, var(--status-success) 12%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                          */
+/* ------------------------------------------------------------------ */
+@media (max-width: 760px) {
+  .dashboard-header {
+    align-items: flex-start;
+  }
+
+  .panel-header {
+    align-items: stretch;
+  }
+
+  .panel-header-search {
+    max-width: none;
+  }
+
+  .tab-btn {
+    padding: 10px 12px;
+  }
+
+  .tab-label {
+    font-size: 0.9rem;
+  }
+
+}

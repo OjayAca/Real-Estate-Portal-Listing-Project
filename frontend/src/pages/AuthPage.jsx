@@ -136,11 +136,11 @@ export default function AuthPage({ mode }) {
               <div className="field-grid two-up">
                 <div>
                   <label htmlFor="first_name">First Name</label>
-                  <input id="first_name" name="first_name" onChange={handleChange} required value={form.first_name} placeholder="e.g. Avery" />
+                  <input id="first_name" name="first_name" onChange={handleChange} required value={form.first_name} placeholder="e.g. Avery" autoComplete="given-name" />
                 </div>
                 <div>
                   <label htmlFor="last_name">Last Name</label>
-                  <input id="last_name" name="last_name" onChange={handleChange} required value={form.last_name} placeholder="e.g. Davis" />
+                  <input id="last_name" name="last_name" onChange={handleChange} required value={form.last_name} placeholder="e.g. Davis" autoComplete="family-name" />
                 </div>
               </div>
               <label htmlFor="role">Account Type</label>
@@ -154,11 +154,11 @@ export default function AuthPage({ mode }) {
           <div className="field-grid two-up" style={{ marginTop: mode === 'register' ? '1rem' : 0 }}>
             <div>
               <label htmlFor="email">Email Address</label>
-              <input id="email" name="email" onChange={handleChange} required type="email" value={form.email} placeholder="name@domain.com" />
+              <input id="email" name="email" onChange={handleChange} required type="email" value={form.email} placeholder="name@domain.com" autoComplete="email" />
             </div>
             <div style={{ display: mode === 'register' ? 'block' : 'none' }}>
               <label htmlFor="phone">Phone Number</label>
-              <input id="phone" name="phone" onChange={handleChange} value={form.phone} placeholder="+1 234 567 890" />
+              <input id="phone" name="phone" onChange={handleChange} value={form.phone} placeholder="+1 234 567 890" autoComplete="tel" />
             </div>
           </div>
 
@@ -167,11 +167,11 @@ export default function AuthPage({ mode }) {
               <div className="field-grid two-up">
                 <div>
                   <label htmlFor="license_number">License Number</label>
-                  <input id="license_number" name="license_number" onChange={handleChange} required value={form.license_number} />
+                  <input id="license_number" name="license_number" onChange={handleChange} required value={form.license_number} autoComplete="off" />
                 </div>
                 <div>
                   <label htmlFor="agency_name">Firm/Agency Name</label>
-                  <input id="agency_name" name="agency_name" onChange={handleChange} value={form.agency_name} placeholder="Independent if none" />
+                  <input id="agency_name" name="agency_name" onChange={handleChange} value={form.agency_name} placeholder="Independent if none" autoComplete="organization" />
                 </div>
               </div>
               <label htmlFor="bio">Professional Biography</label>
@@ -182,7 +182,7 @@ export default function AuthPage({ mode }) {
           <div className="field-grid two-up" style={{ marginTop: '1rem' }}>
             <div>
               <label htmlFor="password">Secure Password</label>
-              <input id="password" name="password" onChange={handleChange} required type="password" value={form.password} />
+              <input id="password" name="password" onChange={handleChange} required type="password" value={form.password} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
             </div>
             {mode === 'register' ? (
               <div>
@@ -194,6 +194,7 @@ export default function AuthPage({ mode }) {
                   required
                   type="password"
                   value={form.password_confirmation}
+                  autoComplete="new-password"
                 />
               </div>
             ) : null}
@@ -223,6 +224,7 @@ export default function AuthPage({ mode }) {
                       placeholder="name@domain.com"
                       type="email"
                       value={forgotEmail}
+                      autoComplete="email"
                     />
                     <button className="ghost-button" disabled={forgotBusy} onClick={handleForgotSubmit} type="button">
                       {forgotBusy ? 'Sending...' : 'Send Reset Link'}

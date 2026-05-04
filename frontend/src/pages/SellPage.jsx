@@ -112,22 +112,22 @@ export default function SellPage() {
           <div className="two-up seller-form-grid">
             <label>
               Full Name
-              <input required value={values.full_name} onChange={(event) => updateValue('full_name', event.target.value)} />
+              <input id="full_name" name="full_name" required value={values.full_name} onChange={(event) => updateValue('full_name', event.target.value)} autoComplete="name" />
               {getFieldError(fieldErrors, 'full_name') ? <span className="field-error">{getFieldError(fieldErrors, 'full_name')}</span> : null}
             </label>
             <label>
               Email
-              <input required type="email" value={values.email} onChange={(event) => updateValue('email', event.target.value)} />
+              <input id="email" name="email" required type="email" value={values.email} onChange={(event) => updateValue('email', event.target.value)} autoComplete="email" />
               {getFieldError(fieldErrors, 'email') ? <span className="field-error">{getFieldError(fieldErrors, 'email')}</span> : null}
             </label>
             <label>
               Phone
-              <input required value={values.phone} onChange={(event) => updateValue('phone', event.target.value)} />
+              <input id="phone" name="phone" required value={values.phone} onChange={(event) => updateValue('phone', event.target.value)} autoComplete="tel" />
               {getFieldError(fieldErrors, 'phone') ? <span className="field-error">{getFieldError(fieldErrors, 'phone')}</span> : null}
             </label>
             <label>
               Property Type
-              <select value={values.property_type} onChange={(event) => updateValue('property_type', event.target.value)}>
+              <select id="property_type" name="property_type" value={values.property_type} onChange={(event) => updateValue('property_type', event.target.value)}>
                 {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
               </select>
               {getFieldError(fieldErrors, 'property_type') ? <span className="field-error">{getFieldError(fieldErrors, 'property_type')}</span> : null}
@@ -136,7 +136,7 @@ export default function SellPage() {
 
           <label>
             Property Address
-            <input required value={values.property_address} onChange={(event) => updateValue('property_address', event.target.value)} />
+            <input id="property_address" name="property_address" required value={values.property_address} onChange={(event) => updateValue('property_address', event.target.value)} autoComplete="street-address" />
             {getFieldError(fieldErrors, 'property_address') ? <span className="field-error">{getFieldError(fieldErrors, 'property_address')}</span> : null}
           </label>
 
@@ -172,7 +172,7 @@ export default function SellPage() {
             <label>
               Home Size
               <div className="seller-form-input-unit">
-                <input type="number" min="1" value={values.home_size} onChange={(event) => updateValue('home_size', event.target.value)} placeholder="0" />
+                <input id="home_size" name="home_size" type="number" min="1" value={values.home_size} onChange={(event) => updateValue('home_size', event.target.value)} placeholder="0" />
                 <span className="unit">sqm</span>
               </div>
               {getFieldError(fieldErrors, 'home_size') ? <span className="field-error">{getFieldError(fieldErrors, 'home_size')}</span> : null}
@@ -181,7 +181,7 @@ export default function SellPage() {
             <label>
               Lot Size
               <div className="seller-form-input-unit">
-                <input type="number" min="1" value={values.lot_size} onChange={(event) => updateValue('lot_size', event.target.value)} placeholder="0" />
+                <input id="lot_size" name="lot_size" type="number" min="1" value={values.lot_size} onChange={(event) => updateValue('lot_size', event.target.value)} placeholder="0" />
                 <span className="unit">sqm</span>
               </div>
               {getFieldError(fieldErrors, 'lot_size') ? <span className="field-error">{getFieldError(fieldErrors, 'lot_size')}</span> : null}
@@ -189,7 +189,7 @@ export default function SellPage() {
 
             <label>
               Condition of Home
-              <select value={values.condition_of_home} onChange={(event) => updateValue('condition_of_home', event.target.value)}>
+              <select id="condition_of_home" name="condition_of_home" value={values.condition_of_home} onChange={(event) => updateValue('condition_of_home', event.target.value)}>
                 {HOME_CONDITIONS.map((cond) => <option key={cond} value={cond}>{cond}</option>)}
               </select>
               {getFieldError(fieldErrors, 'condition_of_home') ? <span className="field-error">{getFieldError(fieldErrors, 'condition_of_home')}</span> : null}
@@ -197,14 +197,14 @@ export default function SellPage() {
 
             <label>
               Expected Price
-              <input min="1" type="number" value={values.expected_price} onChange={(event) => updateValue('expected_price', event.target.value)} placeholder="Optional" />
+              <input id="expected_price" name="expected_price" min="1" type="number" value={values.expected_price} onChange={(event) => updateValue('expected_price', event.target.value)} placeholder="Optional" />
               {getFieldError(fieldErrors, 'expected_price') ? <span className="field-error">{getFieldError(fieldErrors, 'expected_price')}</span> : null}
             </label>
           </div>
 
           <label>
             Notes
-            <textarea rows={4} value={values.notes} onChange={(event) => updateValue('notes', event.target.value)} placeholder="Renovations, occupancy status, documents, or pricing questions." />
+            <textarea id="notes" name="notes" rows={4} value={values.notes} onChange={(event) => updateValue('notes', event.target.value)} placeholder="Renovations, occupancy status, documents, or pricing questions." />
             {getFieldError(fieldErrors, 'notes') ? <span className="field-error">{getFieldError(fieldErrors, 'notes')}</span> : null}
           </label>
 

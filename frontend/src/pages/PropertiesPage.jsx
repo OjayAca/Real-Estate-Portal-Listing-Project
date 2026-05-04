@@ -407,16 +407,18 @@ export default function PropertiesPage({ mode = 'buy' }) {
             <div className="filter-group">
               <span className="filter-label">Amenities</span>
               <div className="checkbox-grid">
-                {amenities.map((amenity) => (
-                  <label key={amenity.amenity_id} className="checkbox-item">
-                    <input
-                      type="checkbox"
-                      checked={(draftFilters.amenity_ids || []).includes(String(amenity.amenity_id))}
-                      onChange={() => toggleAmenity(amenity.amenity_id)}
-                    />
-                    <span>{amenity.amenity_name}</span>
-                  </label>
-                ))}
+                {amenities
+                  .filter((a) => a.amenity_name.toLowerCase() !== 'parking')
+                  .map((amenity) => (
+                    <label key={amenity.amenity_id} className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={(draftFilters.amenity_ids || []).includes(String(amenity.amenity_id))}
+                        onChange={() => toggleAmenity(amenity.amenity_id)}
+                      />
+                      <span>{amenity.amenity_name}</span>
+                    </label>
+                  ))}
               </div>
             </div>
 
@@ -521,25 +523,37 @@ export default function PropertiesPage({ mode = 'buy' }) {
 
       {saveSearchOpen && (
         <div className="modal-backdrop" onClick={() => setSaveSearchOpen(false)}>
-          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-            <h3>Save This Search</h3>
-            <p className="modal-subtext">Give your search a name so you can find it later.</p>
-            <label>
-              Name
-              <input
-                autoFocus
-                maxLength={100}
-                value={saveSearchName}
-                onChange={(event) => setSaveSearchName(event.target.value)}
-                placeholder="e.g. 3BR condos in Makati"
-                onKeyDown={(event) => { if (event.key === 'Enter') saveCurrentSearch(); }}
-              />
-            </label>
+          <div className="modal-card modal-card-premium" onClick={(event) => event.stopPropagation()}>
+            <div className="flex-row" style={{ gap: '1.25rem', marginBottom: '0.75rem', alignItems: 'center' }}>
+              <div className="modal-icon-container">
+                <Bookmark size={24} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Save This Search</h3>
+                <p className="modal-subtext" style={{ margin: '0.25rem 0 0', opacity: 0.8 }}>Get alerts for new properties matching this criteria.</p>
+              </div>
+            </div>
+
+            <div className="modal-body" style={{ marginTop: '2rem' }}>
+              <label className="form-label-premium">
+                Search Name
+                <input
+                  autoFocus
+                  className="premium-input"
+                  maxLength={100}
+                  value={saveSearchName}
+                  onChange={(event) => setSaveSearchName(event.target.value)}
+                  placeholder="e.g. 3BR condos in Makati"
+                  onKeyDown={(event) => { if (event.key === 'Enter') saveCurrentSearch(); }}
+                />
+              </label>
+            </div>
+
             <div className="modal-actions">
-              <button className="primary-button" type="button" disabled={saveSearchBusy || !saveSearchName.trim()} onClick={saveCurrentSearch}>
-                {saveSearchBusy ? 'Saving...' : 'Save'}
-              </button>
               <button className="ghost-button" type="button" onClick={() => setSaveSearchOpen(false)}>Cancel</button>
+              <button className="primary-button" type="button" disabled={saveSearchBusy || !saveSearchName.trim()} onClick={saveCurrentSearch}>
+                {saveSearchBusy ? 'Saving...' : 'Save Search'}
+              </button>
             </div>
           </div>
         </div>

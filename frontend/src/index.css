@@ -1923,6 +1923,11 @@ img.agent-inquiry-image {
   grid-column: 1 / -1;
 }
 
+.dashboard-grid > .tab-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
 .dashboard-hero {
   background: var(--panel-gradient);
   border: 1px solid var(--border-subtle);
@@ -3716,4 +3721,176 @@ img.agent-inquiry-image {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* Modal Components */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  animation: fade-in 0.3s ease;
+}
+
+.modal-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
+  width: min(480px, 90%);
+  box-shadow: var(--shadow-2xl);
+  animation: animate-enter 0.4s var(--ease-out-expo);
+  position: relative;
+}
+
+.modal-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--text-main);
+}
+
+.modal-subtext {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.modal-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2rem;
+}
+
+.modal-card input {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  color: var(--text-main);
+  transition: all var(--transition-fast);
+}
+
+.modal-card input:focus {
+  border-color: var(--brand-base);
+  box-shadow: 0 0 0 4px var(--primary-light);
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.modal-actions button {
+  flex: 0 1 auto;
+  min-width: 120px;
+  justify-content: center;
+  padding: 0.85rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.topbar-heart-active {
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+  transform: scale(1.05);
+}
+
+.topbar-heart-active svg {
+  fill: #ef4444;
+  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.3));
+  animation: heart-beat 1.5s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+@keyframes heart-beat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.2); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.15); }
+  60% { transform: scale(1); }
+}
+
+@media (max-width: 768px) {
+  .modal-actions {
+    flex-direction: column;
+  }
+  .modal-actions button {
+    width: 100%;
+    flex: 1;
+  }
+}
+
+.modal-card-premium {
+  max-width: 500px;
+  width: 95%;
+  padding: 2.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-xl);
+  animation: modal-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-icon-container {
+  background-color: var(--brand-light);
+  padding: 1rem;
+  border-radius: 16px;
+  color: var(--brand-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px var(--brand-light);
+}
+
+.form-label-premium {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.premium-input {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 2px solid var(--border-subtle);
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 1rem;
+  transition: all var(--transition-fast);
+}
+
+.premium-input:focus {
+  border-color: var(--brand-base);
+  background: var(--bg-base);
+  box-shadow: 0 0 0 4px var(--brand-light);
+  outline: none;
+}
+
+@keyframes modal-enter {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

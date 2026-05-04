@@ -3,6 +3,7 @@ import {
   PieChart, Pie, Cell,
   Legend
 } from 'recharts';
+import { useEffect, useState } from 'react';
 import { TrendingUp, PieChart as PieChartIcon, Users, Home, UserCheck } from 'lucide-react';
 
 const PIE_COLORS = ['#D4AF37', '#808080', '#A9A9A9', '#C0C0C0', '#4B5320'];
@@ -42,15 +43,22 @@ const CustomTooltip = ({ active, payload, label, prefix = '' }) => {
 export default function AdminAnalytics({ analytics }) {
   if (!analytics) return null;
 
-  const { user_growth, property_distribution } = analytics;
+  const user_growth = Array.isArray(analytics.user_growth) ? analytics.user_growth : [];
+  const property_distribution = Array.isArray(analytics.property_distribution) ? analytics.property_distribution : [];
 
   // Calculate high-level insights
-  const totalUsers = user_growth.reduce((sum, d) => sum + d.users, 0);
-  const totalProperties = property_distribution.reduce((sum, d) => sum + d.value, 0);
+  const totalUsers = user_growth.reduce((sum, d) => sum + (Number(d?.users) || 0), 0);
+  const totalProperties = property_distribution.reduce((sum, d) => sum + (Number(d?.value) || 0), 0);
   
   const lastGrowth = user_growth[user_growth.length - 1]?.users || 0;
   const prevGrowth = user_growth[user_growth.length - 2]?.users || 0;
   const growthRate = prevGrowth ? ((lastGrowth - prevGrowth) / prevGrowth * 100).toFixed(1) : 0;
+
+  const [chartsMounted, setChartsMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setChartsMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   return (
     <div className="analytics-container animate-enter" style={{ marginBottom: '3rem' }}>
@@ -98,31 +106,35 @@ export default function AdminAnalytics({ analytics }) {
               <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><TrendingUp size={14} aria-hidden="true" /> Growth</p>
               <h2 style={{ margin: 0, fontSize: '1.4rem' }}>User Registrations</h2>
             </div>
-            <div style={{ width: '100%', height: 260 }}>
-              <ResponsiveContainer>
-                <AreaChart data={user_growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary-base)" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="var(--primary-base)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="users" 
-                    name="Users"
-                    stroke="var(--primary-base)" 
-                    strokeWidth={3} 
-                    fillOpacity={1} 
-                    fill="url(#colorUsers)" 
-                    animationDuration={1500}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div style={{ width: '100%', height: 260, minWidth: 0 }}>
+              {chartsMounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={user_growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--primary-base)" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="var(--primary-base)" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                    <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="users" 
+                      name="Users"
+                      stroke="var(--primary-base)" 
+                      strokeWidth={3} 
+                      fillOpacity={1} 
+                      fill="url(#colorUsers)" 
+                      animationDuration={1500}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: 260 }} />
+              )}
             </div>
           </section>
 
@@ -132,32 +144,36 @@ export default function AdminAnalytics({ analytics }) {
               <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><PieChartIcon size={14} aria-hidden="true" /> Inventory</p>
               <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Property Status</h2>
             </div>
-            <div style={{ width: '100%', height: 260 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={property_distribution}
-                    innerRadius={70}
-                    outerRadius={95}
-                    paddingAngle={6}
-                    dataKey="value"
-                    nameKey="status"
-                    stroke="none"
-                    animationBegin={200}
-                    animationDuration={1200}
-                  >
-                    {property_distribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    iconType="circle"
-                    formatter={(value) => <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div style={{ width: '100%', height: 260, minWidth: 0 }}>
+              {chartsMounted ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={property_distribution}
+                      innerRadius={70}
+                      outerRadius={95}
+                      paddingAngle={6}
+                      dataKey="value"
+                      nameKey="status"
+                      stroke="none"
+                      animationBegin={200}
+                      animationDuration={1200}
+                    >
+                      {property_distribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      iconType="circle"
+                      formatter={(value) => <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ height: 260 }} />
+              )}
             </div>
           </section>
         </div>

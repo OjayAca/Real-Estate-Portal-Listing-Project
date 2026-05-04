@@ -83,7 +83,7 @@ export default function SavedPropertiesPage() {
       <section className="section-panel saved-properties-hero">
         <div>
           <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
-            <Heart size={14} aria-hidden="true" />
+            <Heart size={14} aria-hidden="true" style={{ color: '#ef4444', fill: '#ef4444' }} />
             Saved Properties
           </p>
           <h2>{user?.full_name ? `${user.full_name}'s Saved Listings` : 'Saved Listings'}</h2>
