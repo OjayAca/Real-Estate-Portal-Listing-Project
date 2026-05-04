@@ -232,6 +232,7 @@ class DatabaseSeeder extends Seeder
             $property->amenities()->sync(
                 $amenities->whereIn('amenity_name', $amenityNames)->pluck('amenity_id')->all()
             );
+
             return $property->load(['agent.user', 'amenities']);
         });
 

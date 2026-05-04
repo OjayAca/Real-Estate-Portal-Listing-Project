@@ -8,6 +8,7 @@ use App\Models\SavedSearch;
 use App\Support\ImageUrlResolver;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 class NotifySavedSearches extends Command
@@ -58,7 +59,7 @@ class NotifySavedSearches extends Command
             });
 
             $purpose = $search->listing_purpose === 'rent' ? 'rent' : 'buy';
-            $frontendUrl = config('app.frontend_url', 'http://localhost:5173') . "/{$purpose}?" . http_build_query($search->filters);
+            $frontendUrl = config('app.frontend_url', 'http://localhost:5173')."/{$purpose}?".http_build_query($search->filters);
 
             Mail::to($search->user->email)->send(
                 new NewMatchingPropertiesMail($search->name, $formatted, $frontendUrl)
@@ -77,9 +78,9 @@ class NotifySavedSearches extends Command
      * Build and execute the property query using the saved filter set,
      * scoped to listings created since the last notification (or 24 hours).
      *
-     * @return \Illuminate\Support\Collection<int, Property>
+     * @return Collection<int, Property>
      */
-    private function findNewMatches(SavedSearch $search): \Illuminate\Support\Collection
+    private function findNewMatches(SavedSearch $search): Collection
     {
         $since = $search->last_notified_at ?? now()->subDay();
         $filters = $search->filters;
@@ -147,7 +148,7 @@ class NotifySavedSearches extends Command
             $ids[] = $legacyId;
         }
 
-        if (!empty($ids)) {
+        if (! empty($ids)) {
             $ids = array_filter(array_unique(array_map('intval', $ids)));
 
             foreach ($ids as $id) {

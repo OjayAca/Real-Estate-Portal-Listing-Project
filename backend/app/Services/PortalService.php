@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\Agency;
 use App\Models\Agent;
 use App\Models\Amenity;
 use App\Models\Property;
+use App\Models\PropertyStatusLog;
+use App\Models\SellerLead;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PortalService
 {
@@ -20,7 +23,7 @@ class PortalService
 
     public function logStatusChange(Property $property, User $user, string $oldStatus, string $newStatus, ?string $reason = null): void
     {
-        \App\Models\PropertyStatusLog::query()->create([
+        PropertyStatusLog::query()->create([
             'property_id' => $property->property_id,
             'user_id' => $user->id,
             'old_status' => $oldStatus,
@@ -35,7 +38,7 @@ class PortalService
                     $admin,
                     'property_status_change',
                     'Property Status Change Request',
-                    "Agent {$user->full_name} has requested to mark property '{$property->title}' as " . str_replace('Pending ', '', $newStatus) . ".",
+                    "Agent {$user->full_name} has requested to mark property '{$property->title}' as ".str_replace('Pending ', '', $newStatus).'.',
                     ['property_id' => $property->property_id]
                 );
             }
@@ -81,22 +84,33 @@ class PortalService
                     'stats' => [
                         'properties' => 0,
                         'active_listings' => 0,
+                        'seller_leads' => 0,
+                        'new_seller_leads' => 0,
                     ],
                     'profile' => $this->formatAgent($agent),
                     'properties' => [],
+                    'assigned_seller_leads' => [],
                 ]);
             }
 
             $properties = Property::query()->with(['agent.user', 'amenities'])->where('agent_id', $agent->agent_id)->latest()->take(5)->get();
+            $sellerLeads = SellerLead::query()
+                ->with('assignedAgent')
+                ->where('assigned_agent_id', $agent->agent_id)
+                ->latest()
+                ->get();
 
             return response()->json([
                 'role' => $user->role->value,
                 'stats' => [
                     'properties' => Property::query()->where('agent_id', $agent->agent_id)->count(),
                     'active_listings' => Property::query()->where('agent_id', $agent->agent_id)->where('status', 'Available')->count(),
+                    'seller_leads' => $sellerLeads->count(),
+                    'new_seller_leads' => $sellerLeads->where('status', 'New')->count(),
                 ],
                 'profile' => $this->formatAgent($agent),
                 'properties' => $properties->map(fn (Property $entry) => $this->formatProperty($entry)),
+                'assigned_seller_leads' => $sellerLeads->map(fn (SellerLead $lead) => $this->formatSellerLead($lead)),
             ]);
         }
 
@@ -133,12 +147,12 @@ class PortalService
         }
     }
 
-    public function resolveAgency(string $name): \App\Models\Agency
+    public function resolveAgency(string $name): Agency
     {
-        return \App\Models\Agency::query()->firstOrCreate(
+        return Agency::query()->firstOrCreate(
             ['name' => $name],
             [
-                'slug' => \Illuminate\Support\Str::slug($name),
+                'slug' => Str::slug($name),
                 'agency_type' => 'Agency',
             ]
         );

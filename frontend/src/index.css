@@ -812,6 +812,21 @@ textarea {
   color: #10b981;
 }
 
+.status-new {
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #60a5fa;
+}
+
+.status-contacted {
+  border-color: rgba(245, 158, 11, 0.45);
+  color: var(--status-warning);
+}
+
+.status-converted {
+  border-color: rgba(16, 185, 129, 0.5);
+  color: var(--status-success);
+}
+
 .status-draft {
   color: var(--text-muted);
 }
@@ -1214,10 +1229,6 @@ textarea {
 
 .seller-submit {
   width: 100%;
-}
-
-.seller-success {
-  color: var(--status-success);
 }
 
 .sell-info-grid {
@@ -1993,9 +2004,14 @@ img.agent-inquiry-image {
   grid-column: 1 / -1;
 }
 
+.seller-leads-panel {
+  grid-column: 1 / -1;
+}
+
 .agent-manager-header,
 .agent-property-form-header,
 .agent-form-section-header,
+.seller-lead-header,
 .agent-listing-heading,
 .agent-listing-submeta {
   display: flex;
@@ -2005,7 +2021,8 @@ img.agent-inquiry-image {
 
 .agent-manager-header,
 .agent-property-form-header,
-.agent-form-section-header {
+.agent-form-section-header,
+.seller-lead-header {
   align-items: flex-start;
 }
 
@@ -2151,6 +2168,77 @@ img.agent-inquiry-image {
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 2rem;
+}
+
+.seller-leads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.seller-lead-card {
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  background: var(--input-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.seller-lead-header {
+  margin-bottom: 1.25rem;
+}
+
+.seller-lead-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.seller-lead-contact,
+.seller-lead-details {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.seller-lead-contact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.seller-lead-details {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 1.15rem;
+}
+
+.seller-lead-contact span,
+.seller-lead-details span,
+.seller-lead-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.seller-lead-contact span,
+.seller-lead-details span {
+  overflow-wrap: anywhere;
+}
+
+.seller-lead-notes {
+  align-items: flex-start;
+  margin: 1.15rem 0 0;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.seller-lead-notes svg {
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
 }
 
 .agent-listings-grid {
@@ -2784,17 +2872,74 @@ img.agent-inquiry-image {
 }
 
 .inline-message {
-  padding: 1.5rem 2rem;
-  border-radius: var(--radius-lg);
-  background: var(--primary-light);
-  color: var(--primary-text);
+  --inline-message-color: var(--primary-base);
+  --inline-message-bg: var(--primary-light);
+  --inline-message-border: var(--primary-base);
+  padding: 1rem 1rem 1rem 1.15rem;
+  border-radius: var(--radius-md);
+  background: var(--inline-message-bg);
+  color: var(--inline-message-color);
   font-weight: 400;
   font-size: 1rem;
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.85rem;
   margin-bottom: 2.5rem;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid color-mix(in srgb, var(--inline-message-border) 42%, transparent);
+  border-left: 4px solid var(--inline-message-border);
+  box-shadow: var(--shadow-sm);
+  animation: inline-message-enter 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.inline-message-success {
+  --inline-message-color: var(--status-success);
+  --inline-message-bg: rgba(16, 185, 129, 0.12);
+  --inline-message-border: var(--status-success);
+}
+
+.inline-message-error {
+  --inline-message-color: var(--status-danger);
+  --inline-message-bg: rgba(239, 68, 68, 0.12);
+  --inline-message-border: var(--status-danger);
+}
+
+.inline-message-warning {
+  --inline-message-color: var(--status-warning);
+  --inline-message-bg: rgba(245, 158, 11, 0.14);
+  --inline-message-border: var(--status-warning);
+}
+
+.inline-message-info {
+  --inline-message-color: var(--primary-base);
+  --inline-message-bg: var(--primary-light);
+  --inline-message-border: var(--primary-base);
+}
+
+.inline-message-icon {
+  flex: 0 0 auto;
+}
+
+.inline-message span {
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.inline-message-dismiss.icon-button {
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  background: transparent;
+  border-color: transparent;
+  color: var(--inline-message-color);
+  opacity: 0.8;
+}
+
+.inline-message-dismiss.icon-button:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--inline-message-border) 12%, transparent);
+  border-color: color-mix(in srgb, var(--inline-message-border) 35%, transparent);
+  color: var(--inline-message-color);
 }
 
 .empty-copy {
@@ -3203,6 +3348,12 @@ img.agent-inquiry-image {
   animation-delay: 0.3s;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .inline-message {
+    animation: none;
+  }
+}
+
 /* Desktop Hover */
 @media (hover: hover) and (pointer: fine) {
   /* Enforce hover rules defined previously */
@@ -3462,6 +3613,7 @@ img.agent-inquiry-image {
   .agent-manager-header,
   .agent-property-form-header,
   .agent-form-section-header,
+  .seller-lead-header,
   .agent-listing-heading,
   .agent-listing-submeta,
   .agent-form-actions {
@@ -3469,6 +3621,8 @@ img.agent-inquiry-image {
   }
 
   .agent-form-grid-4,
+  .seller-lead-contact,
+  .seller-lead-details,
   .agent-listing-meta,
   .agent-listing-actions {
     grid-template-columns: 1fr;
@@ -3550,4 +3704,16 @@ img.agent-inquiry-image {
   font-size: 0.9rem;
   color: var(--text-main);
   user-select: none;
+}
+
+@keyframes inline-message-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

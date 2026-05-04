@@ -46,7 +46,7 @@ class SavedSearchService
 
         if ($user->savedSearches()->count() >= self::MAX_SAVED_SEARCHES) {
             return response()->json([
-                'message' => 'You can save up to ' . self::MAX_SAVED_SEARCHES . ' searches. Remove an existing one first.',
+                'message' => 'You can save up to '.self::MAX_SAVED_SEARCHES.' searches. Remove an existing one first.',
             ], 422);
         }
 
@@ -106,7 +106,7 @@ class SavedSearchService
         $this->guardOwnership($request, $savedSearch);
 
         $savedSearch->update([
-            'notify_email' => !$savedSearch->notify_email,
+            'notify_email' => ! $savedSearch->notify_email,
         ]);
 
         return response()->json([
@@ -152,7 +152,7 @@ class SavedSearchService
 
             if (is_array($value)) {
                 $value = array_filter($value);
-                if (!empty($value)) {
+                if (! empty($value)) {
                     $clean[$key] = $value;
                 }
             } elseif ($value !== null && trim((string) $value) !== '') {

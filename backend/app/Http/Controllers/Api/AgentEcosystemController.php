@@ -11,9 +11,7 @@ use Illuminate\Http\Request;
 
 class AgentEcosystemController extends Controller
 {
-    public function __construct(private readonly AgentEcosystemService $agentEcosystemService)
-    {
-    }
+    public function __construct(private readonly AgentEcosystemService $agentEcosystemService) {}
 
     public function agentsIndex(Request $request): JsonResponse
     {

@@ -12,9 +12,13 @@ use Illuminate\Support\Str;
 class ImageService
 {
     private const FEATURED_IMAGE_TARGET_WIDTH = 1600;
+
     private const FEATURED_IMAGE_TARGET_HEIGHT = 900;
+
     private const FEATURED_IMAGE_JPEG_QUALITY = 82;
+
     private const FEATURED_IMAGE_WEBP_QUALITY = 82;
+
     private const FEATURED_IMAGE_PNG_COMPRESSION = 8;
 
     public function storeFeaturedImage(UploadedFile $file, Agent $agent, ?Property $existingProperty = null): string

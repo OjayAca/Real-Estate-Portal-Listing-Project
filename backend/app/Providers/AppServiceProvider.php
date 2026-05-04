@@ -5,8 +5,9 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,8 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Validation\Rules\Password::defaults(function () {
-            return \Illuminate\Validation\Rules\Password::min(8);
+        Password::defaults(function () {
+            return Password::min(8);
         });
 
         RateLimiter::for('auth', function (Request $request): Limit {

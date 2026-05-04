@@ -103,8 +103,8 @@ class BuyerImprovementsTest extends TestCase
             'name' => 'Updated Name',
             'notify_email' => false,
         ])->assertStatus(200)
-          ->assertJsonPath('data.name', 'Updated Name')
-          ->assertJsonPath('data.notify_email', false);
+            ->assertJsonPath('data.name', 'Updated Name')
+            ->assertJsonPath('data.notify_email', false);
 
         // Delete
         $this->actingAs($user)->deleteJson("/api/saved-searches/{$searchId}")

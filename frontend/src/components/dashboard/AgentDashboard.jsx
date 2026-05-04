@@ -1,4 +1,5 @@
-import { UserCheck, CalendarDays, MessageSquare, Plus, Home, CheckCircle, AlertCircle, Building, MapPin, BedDouble, Bath, Layers3, Square, ImageIcon, Pencil, Trash2, Clock3 } from 'lucide-react';
+import { UserCheck, CalendarDays, MessageSquare, Plus, Home, CheckCircle, AlertCircle, Building, MapPin, BedDouble, Bath, Layers3, Square, ImageIcon, Pencil, Trash2, Clock3, Phone, Mail, ClipboardList, CircleDollarSign } from 'lucide-react';
+import InlineMessage from '../InlineMessage';
 import AgentPropertyForm from './AgentPropertyForm';
 
 const WEEKDAY_OPTIONS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -33,10 +34,16 @@ function formatListedAt(value) {
   });
 }
 
+function formatLeadValue(value, fallback = 'Not provided') {
+  return value === null || value === undefined || value === '' ? fallback : value;
+}
+
 export default function AgentDashboard({
   agentProfile,
   isApprovedAgent,
   agentMessage,
+  agentMessageTone,
+  onAgentMessageDismiss,
   openCreateForm,
   agentFormMode,
   editingProperty,
@@ -44,10 +51,13 @@ export default function AgentDashboard({
   agentFormBusy,
   agentFormErrors,
   agentFormMessage,
+  agentFormMessageTone,
+  onAgentFormMessageDismiss,
   closeAgentForm,
   handlePropertySubmit,
   agentPropertiesLoading,
   agentProperties,
+  assignedSellerLeads = [],
   openEditForm,
   handleDeleteProperty,
 }) {
@@ -74,6 +84,62 @@ export default function AgentDashboard({
         </div>
       </section>
 
+      <section className="section-panel seller-leads-panel animate-enter">
+        <div className="agent-manager-header">
+          <div>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><ClipboardList size={14} aria-hidden="true" /> Assigned Seller Leads</p>
+            <h2>Seller Lead Queue</h2>
+            <p className="agent-manager-copy">
+              Review assigned seller intake details before outreach.
+            </p>
+          </div>
+          <span className="property-status status-new">{assignedSellerLeads.length} assigned</span>
+        </div>
+
+        {assignedSellerLeads.length > 0 ? (
+          <div className="seller-leads-grid">
+            {assignedSellerLeads.map((lead) => (
+              <article className="seller-lead-card" key={lead.seller_lead_id}>
+                <div className="seller-lead-header">
+                  <div>
+                    <h3>{lead.full_name}</h3>
+                    <p className="property-loc">
+                      <MapPin size={14} aria-hidden="true" />
+                      {lead.property_address}
+                    </p>
+                  </div>
+                  <span className={`property-status status-${String(lead.status || 'new').toLowerCase()}`}>{lead.status || 'New'}</span>
+                </div>
+
+                <div className="seller-lead-contact">
+                  <span><Phone size={15} aria-hidden="true" /> {formatLeadValue(lead.phone)}</span>
+                  <span><Mail size={15} aria-hidden="true" /> {formatLeadValue(lead.email)}</span>
+                </div>
+
+                <div className="seller-lead-details">
+                  <span><Home size={15} aria-hidden="true" /> {formatLeadValue(lead.property_type)}</span>
+                  <span><CircleDollarSign size={15} aria-hidden="true" /> {lead.expected_price !== null && lead.expected_price !== undefined ? formatPrice(lead.expected_price) : 'Price not provided'}</span>
+                  <span><CheckCircle size={15} aria-hidden="true" /> {formatLeadValue(lead.condition_of_home)}</span>
+                  <span><CalendarDays size={15} aria-hidden="true" /> Submitted {formatListedAt(lead.created_at)}</span>
+                </div>
+
+                {lead.notes ? (
+                  <p className="seller-lead-notes">
+                    <MessageSquare size={15} aria-hidden="true" />
+                    {lead.notes}
+                  </p>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-copy">
+            <ClipboardList size={22} aria-hidden="true" />
+            No seller leads are assigned to you yet.
+          </p>
+        )}
+      </section>
+
       <section className="section-panel agent-manager-panel animate-enter">
         <div className="agent-manager-header">
           <div>
@@ -96,12 +162,12 @@ export default function AgentDashboard({
           )}
         </div>
 
-        {agentMessage ? (
-          <p className="inline-message" role="status">
-            <CheckCircle size={18} aria-hidden="true" />
-            {agentMessage}
-          </p>
-        ) : null}
+        <InlineMessage
+          icon={CheckCircle}
+          message={agentMessage}
+          tone={agentMessageTone}
+          onDismiss={onAgentMessageDismiss}
+        />
 
         {!isApprovedAgent ? (
           <div className="agent-approval-notice">
@@ -120,6 +186,8 @@ export default function AgentDashboard({
             busy={agentFormBusy}
             fieldErrors={agentFormErrors}
             formMessage={agentFormMessage}
+            formMessageTone={agentFormMessageTone}
+            onMessageDismiss={onAgentFormMessageDismiss}
             initialProperty={editingProperty}
             mode={agentFormMode}
             onCancel={closeAgentForm}

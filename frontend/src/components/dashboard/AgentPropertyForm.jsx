@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import InlineMessage from '../InlineMessage';
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
 const LISTING_PURPOSES = [
@@ -104,9 +105,11 @@ export default function AgentPropertyForm({
   busy,
   fieldErrors,
   formMessage,
+  formMessageTone,
   initialProperty,
   mode,
   onCancel,
+  onMessageDismiss,
   onSubmit,
 }) {
   const [values, setValues] = useState(() => mapPropertyToFormValues(initialProperty));
@@ -211,12 +214,12 @@ export default function AgentPropertyForm({
         </button>
       </div>
 
-      {formMessage ? (
-        <p className="inline-message" role="status">
-          <AlertCircle size={18} aria-hidden="true" />
-          {formMessage}
-        </p>
-      ) : null}
+      <InlineMessage
+        icon={AlertCircle}
+        message={formMessage}
+        tone={formMessageTone}
+        onDismiss={onMessageDismiss}
+      />
 
       <div className="agent-form-section">
         <p className="eyebrow">Core Details</p>

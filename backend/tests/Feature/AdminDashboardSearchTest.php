@@ -33,7 +33,7 @@ class AdminDashboardSearchTest extends TestCase
     public function test_admin_can_search_agents_by_name_or_agency(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        
+
         $user1 = User::factory()->create(['first_name' => 'Agent', 'last_name' => 'One', 'email' => 'agent1@example.com']);
         Agent::query()->create([
             'user_id' => $user1->id,

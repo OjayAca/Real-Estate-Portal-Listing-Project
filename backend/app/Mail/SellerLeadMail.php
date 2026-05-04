@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\SellerLead;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -26,7 +27,7 @@ class SellerLeadMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Seller Consultation Request: ' . $this->lead->full_name,
+            subject: 'New Seller Consultation Request: '.$this->lead->full_name,
         );
     }
 
@@ -43,7 +44,7 @@ class SellerLeadMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {

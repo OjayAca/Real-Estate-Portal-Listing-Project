@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Agency;
 use App\Models\Agent;
 use App\Models\Amenity;
 use App\Models\Property;

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\UserRole;
 use App\Models\Agent;
 use App\Models\Property;
+use App\Models\SellerLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -64,6 +65,67 @@ class DashboardAccessTest extends TestCase
         $this->actingAs($buyer, 'web')
             ->getJson('/api/dashboard')
             ->assertForbidden();
+    }
+
+    public function test_approved_agent_dashboard_returns_only_assigned_seller_leads(): void
+    {
+        $agentUser = User::factory()->create(['role' => UserRole::AGENT]);
+        $otherAgentUser = User::factory()->create(['role' => UserRole::AGENT]);
+        $agent = Agent::factory()->create([
+            'user_id' => $agentUser->id,
+            'approval_status' => 'approved',
+        ]);
+        $otherAgent = Agent::factory()->create([
+            'user_id' => $otherAgentUser->id,
+            'approval_status' => 'approved',
+        ]);
+
+        $assignedLead = SellerLead::query()->create([
+            'full_name' => 'Assigned Seller',
+            'email' => 'assigned@example.com',
+            'phone' => '09171234567',
+            'property_type' => 'House',
+            'property_address' => '12 Maple Avenue, Quezon City',
+            'bedrooms' => 3,
+            'bathrooms' => 2,
+            'condition_of_home' => 'Good',
+            'expected_price' => 5500000,
+            'status' => 'New',
+            'assigned_agent_id' => $agent->agent_id,
+        ]);
+
+        SellerLead::query()->create([
+            'full_name' => 'Other Seller',
+            'email' => 'other@example.com',
+            'phone' => '09170000000',
+            'property_type' => 'Condo',
+            'property_address' => '34 Oak Tower, Makati',
+            'bedrooms' => 1,
+            'bathrooms' => 1,
+            'status' => 'New',
+            'assigned_agent_id' => $otherAgent->agent_id,
+        ]);
+
+        SellerLead::query()->create([
+            'full_name' => 'Unassigned Seller',
+            'email' => 'unassigned@example.com',
+            'phone' => '09171111111',
+            'property_type' => 'Lot',
+            'property_address' => '56 Pine Road, Taguig',
+            'bedrooms' => 0,
+            'bathrooms' => 0,
+            'status' => 'New',
+        ]);
+
+        $this->actingAs($agentUser, 'web')
+            ->getJson('/api/dashboard')
+            ->assertOk()
+            ->assertJsonPath('stats.seller_leads', 1)
+            ->assertJsonPath('stats.new_seller_leads', 1)
+            ->assertJsonCount(1, 'assigned_seller_leads')
+            ->assertJsonPath('assigned_seller_leads.0.seller_lead_id', $assignedLead->seller_lead_id)
+            ->assertJsonPath('assigned_seller_leads.0.full_name', 'Assigned Seller')
+            ->assertJsonPath('assigned_seller_leads.0.property_address', '12 Maple Avenue, Quezon City');
     }
 
     public function test_buyer_can_open_saved_properties(): void

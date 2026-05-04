@@ -5,6 +5,7 @@ import AgentInquiryModal from '../components/AgentInquiryModal';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import ConfirmModal from '../components/ConfirmModal';
+import InlineMessage from '../components/InlineMessage';
 import { useAuth } from '../context/AuthContext';
 import { Search, Map, Filter, MessageSquare, ChevronLeft, ChevronRight, BedDouble, Bath, Car, SlidersHorizontal, Bookmark } from 'lucide-react';
 
@@ -86,6 +87,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
   const [contactProperty, setContactProperty] = useState(null);
   const [savedIds, setSavedIds] = useState([]);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [busy, setBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
   const [saveSearchOpen, setSaveSearchOpen] = useState(false);
@@ -218,6 +220,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
   const toggleSave = async (property) => {
     if (!canUseBuyerActions) {
       setMessage('Log in as a buyer to save properties.');
+      setMessageTone('warning');
       return;
     }
 
@@ -229,18 +232,31 @@ export default function PropertiesPage({ mode = 'buy' }) {
         message: `Are you sure you want to remove "${property.title}" from your saved collection?`,
         tone: 'warning',
         onConfirm: async () => {
-          await apiRequest(`/saved-properties/${property.property_id}`, { method: 'DELETE' });
-          setSavedIds((current) => current.filter((entry) => entry !== property.property_id));
-          setMessage('Property removed from saved list.');
-          setConfirmState(null);
+          try {
+            await apiRequest(`/saved-properties/${property.property_id}`, { method: 'DELETE' });
+            setSavedIds((current) => current.filter((entry) => entry !== property.property_id));
+            setMessage('Property removed from saved list.');
+            setMessageTone('success');
+          } catch (error) {
+            setMessage(error.message);
+            setMessageTone('error');
+          } finally {
+            setConfirmState(null);
+          }
         },
       });
       return;
     }
 
-    await apiRequest(`/saved-properties/${property.property_id}`, { method: 'POST' });
-    setSavedIds((current) => [...current, property.property_id]);
-    setMessage('Property saved successfully.');
+    try {
+      await apiRequest(`/saved-properties/${property.property_id}`, { method: 'POST' });
+      setSavedIds((current) => [...current, property.property_id]);
+      setMessage('Property saved successfully.');
+      setMessageTone('success');
+    } catch (error) {
+      setMessage(error.message);
+      setMessageTone('error');
+    }
   };
 
   const openAgentInquiry = (property) => {
@@ -251,6 +267,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
 
     if (user.role !== 'user') {
       setMessage('Log in as a buyer to email an agent.');
+      setMessageTone('warning');
       return;
     }
 
@@ -279,10 +296,12 @@ export default function PropertiesPage({ mode = 'buy' }) {
       });
 
       setMessage('Search saved! Manage alerts from Account Settings.');
+      setMessageTone('success');
       setSaveSearchOpen(false);
       setSaveSearchName('');
     } catch (error) {
       setMessage(error.message);
+      setMessageTone('error');
     } finally {
       setSaveSearchBusy(false);
     }
@@ -426,7 +445,12 @@ export default function PropertiesPage({ mode = 'buy' }) {
             )}
           </div>
 
-          {message ? <p className="inline-message animate-enter"><MessageSquare size={18} /> {message}</p> : null}
+          <InlineMessage
+            icon={MessageSquare}
+            message={message}
+            tone={messageTone}
+            onDismiss={() => setMessage('')}
+          />
 
           {busy ? (
             <div className="card-grid">
@@ -480,7 +504,10 @@ export default function PropertiesPage({ mode = 'buy' }) {
       <AgentInquiryModal
         property={contactProperty}
         onClose={() => setContactProperty(null)}
-        onMessage={setMessage}
+        onMessage={(nextMessage) => {
+          setMessage(nextMessage);
+          setMessageTone('success');
+        }}
       />
 
       <ConfirmModal

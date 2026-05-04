@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ConfirmModal from '../components/ConfirmModal';
+import InlineMessage from '../components/InlineMessage';
 import { useAuth } from '../context/AuthContext';
 import { Bell, BellOff, Bookmark, Search, Trash2, ArrowRight } from 'lucide-react';
 
@@ -47,6 +48,7 @@ export default function SavedSearchesPage() {
   const [amenities, setAmenities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [confirmState, setConfirmState] = useState(null);
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export default function SavedSearchesPage() {
       } catch (error) {
         if (!ignore) {
           setMessage(error.message);
+          setMessageTone('error');
         }
       } finally {
         if (!ignore) {
@@ -91,8 +94,10 @@ export default function SavedSearchesPage() {
         current.map((s) => (s.id === search.id ? { ...s, notify_email: response.notify_email } : s))
       );
       setMessage(`Alerts ${response.notify_email ? 'enabled' : 'disabled'} for "${search.name}".`);
+      setMessageTone('success');
     } catch (error) {
       setMessage(error.message);
+      setMessageTone('error');
     }
   };
 
@@ -107,8 +112,10 @@ export default function SavedSearchesPage() {
           await authFetch(`/saved-searches/${search.id}`, { method: 'DELETE' });
           setSearches((current) => current.filter((s) => s.id !== search.id));
           setMessage('Search deleted successfully.');
+          setMessageTone('success');
         } catch (error) {
           setMessage(error.message);
+          setMessageTone('error');
         } finally {
           setConfirmState(null);
         }
@@ -145,7 +152,11 @@ export default function SavedSearchesPage() {
         <span className="result-count">{searches.length} saved</span>
       </section>
 
-      {message ? <p className="inline-message animate-enter">{message}</p> : null}
+      <InlineMessage
+        message={message}
+        tone={messageTone}
+        onDismiss={() => setMessage('')}
+      />
 
       {loading ? (
         <div className="saved-searches-list">

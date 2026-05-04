@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Agent;
 use App\Models\BuyerAgentInteraction;
 use App\Models\Property;
+use App\Models\SellerLead;
 use App\Models\User;
 use App\Notifications\PropertyStatusNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -113,6 +114,57 @@ class InAppNotificationsTest extends TestCase
         $this->assertSame('Sold', $notification->data['new_status']);
     }
 
+    public function test_admin_seller_lead_assignment_notifies_newly_assigned_agent(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        [$agentUser, $agent] = $this->createApprovedAgent();
+        $lead = $this->createSellerLead();
+
+        $this->actingAs($admin)
+            ->patchJson("/api/admin/seller-leads/{$lead->seller_lead_id}", [
+                'assigned_agent_id' => $agent->agent_id,
+            ])
+            ->assertOk();
+
+        $notification = $agentUser->notifications()->firstOrFail();
+
+        $this->assertSame('seller_lead_assigned', $notification->data['notification_type']);
+        $this->assertSame('Seller Lead Assigned', $notification->data['title']);
+        $this->assertSame('/dashboard', $notification->data['action_url']);
+        $this->assertSame($lead->seller_lead_id, $notification->data['seller_lead_id']);
+    }
+
+    public function test_clearing_seller_lead_assignment_does_not_notify_agent(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        [$agentUser, $agent] = $this->createApprovedAgent();
+        $lead = $this->createSellerLead(['assigned_agent_id' => $agent->agent_id]);
+
+        $this->actingAs($admin)
+            ->patchJson("/api/admin/seller-leads/{$lead->seller_lead_id}", [
+                'assigned_agent_id' => null,
+            ])
+            ->assertOk();
+
+        $this->assertSame(0, $agentUser->notifications()->count());
+    }
+
+    public function test_resaving_same_seller_lead_assignment_does_not_duplicate_notification(): void
+    {
+        $admin = User::factory()->create(['role' => UserRole::ADMIN]);
+        [$agentUser, $agent] = $this->createApprovedAgent();
+        $lead = $this->createSellerLead(['assigned_agent_id' => $agent->agent_id]);
+
+        $this->actingAs($admin)
+            ->patchJson("/api/admin/seller-leads/{$lead->seller_lead_id}", [
+                'status' => 'Contacted',
+                'assigned_agent_id' => $agent->agent_id,
+            ])
+            ->assertOk();
+
+        $this->assertSame(0, $agentUser->notifications()->count());
+    }
+
     public function test_new_review_creates_in_app_notification_for_agent(): void
     {
         $buyer = User::factory()->create(['role' => UserRole::USER]);
@@ -156,5 +208,21 @@ class InAppNotificationsTest extends TestCase
         ]);
 
         return [$user, $agent];
+    }
+
+    private function createSellerLead(array $attributes = []): SellerLead
+    {
+        return SellerLead::query()->create(array_merge([
+            'full_name' => 'Maria Santos',
+            'email' => 'maria@example.com',
+            'phone' => '09171234567',
+            'property_type' => 'House',
+            'property_address' => '18 Mango Street, Makati',
+            'bedrooms' => 3,
+            'bathrooms' => 2,
+            'condition_of_home' => 'Good',
+            'expected_price' => 7200000,
+            'status' => 'New',
+        ], $attributes));
     }
 }

@@ -16,7 +16,9 @@ use Illuminate\Validation\Rule;
 class AdminService
 {
     private const AGENT_STATUSES = ['pending', 'approved', 'suspended'];
+
     private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
+
     private const SELLER_LEAD_STATUSES = ['New', 'Contacted', 'Converted'];
 
     public function __construct(
@@ -71,6 +73,7 @@ class AdminService
                     ->orWhere('email', 'like', "%{$search}%");
             });
         }
+
         return $query->paginate(15, ['*'], 'users_page')->withQueryString();
     }
 
@@ -85,6 +88,7 @@ class AdminService
                     ->orWhere('email', 'like', "%{$search}%");
             });
         }
+
         return $query->paginate(15, ['*'], 'agents_page')->withQueryString();
     }
 
@@ -99,6 +103,7 @@ class AdminService
                     ->orWhere('address_line', 'like', "%{$search}%");
             });
         }
+
         return $query->paginate(15, ['*'], 'properties_page')->withQueryString();
     }
 
@@ -132,7 +137,7 @@ class AdminService
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->map(fn($item) => ['month' => $item->month, 'users' => $item->count]);
+            ->map(fn ($item) => ['month' => $item->month, 'users' => $item->count]);
 
         $propertyDistribution = Property::query()
             ->select('status', DB::raw('count(*) as value'))
@@ -144,7 +149,6 @@ class AdminService
             'property_distribution' => $propertyDistribution,
         ];
     }
-
 
     private function getGeneralStats(): array
     {
@@ -159,7 +163,6 @@ class AdminService
             'total_views' => Property::query()->sum('views_count'),
         ];
     }
-
 
     public function adminUserUpdate(Request $request, User $user): JsonResponse
     {
@@ -252,7 +255,32 @@ class AdminService
             return response()->json(['message' => 'Provide a status or assigned agent update.'], 422);
         }
 
+        $previousAssignedAgentId = $sellerLead->assigned_agent_id;
+
         $sellerLead->update($validated);
+
+        $nextAssignedAgentId = $validated['assigned_agent_id'] ?? null;
+        if (
+            array_key_exists('assigned_agent_id', $validated)
+            && $nextAssignedAgentId !== null
+            && (int) $nextAssignedAgentId !== (int) $previousAssignedAgentId
+        ) {
+            $assignedAgent = Agent::query()->with('user')->find($nextAssignedAgentId);
+
+            if ($assignedAgent?->user) {
+                $this->notifications->pushNotification(
+                    $assignedAgent->user,
+                    'seller_lead_assigned',
+                    'Seller Lead Assigned',
+                    "A seller lead from {$sellerLead->full_name} has been assigned to you.",
+                    [
+                        'seller_lead_id' => $sellerLead->seller_lead_id,
+                        'seller_name' => $sellerLead->full_name,
+                        'action_url' => '/dashboard',
+                    ],
+                );
+            }
+        }
 
         return response()->json([
             'message' => 'Seller lead updated.',

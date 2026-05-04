@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { apiRequest } from '../api/client';
 import { ArrowRight, CheckCircle2, ClipboardCheck, Home, MapPin, Minus, Plus, ShieldCheck, Sparkles } from 'lucide-react';
+import InlineMessage from '../components/InlineMessage';
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
 const HOME_CONDITIONS = [
@@ -34,6 +35,7 @@ export default function SellPage() {
   const [values, setValues] = useState(emptyLeadForm);
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -53,6 +55,7 @@ export default function SellPage() {
     setBusy(true);
     setFieldErrors({});
     setMessage('');
+    setSubmitted(false);
 
     try {
       await apiRequest('/seller-leads', {
@@ -67,9 +70,11 @@ export default function SellPage() {
       setSubmitted(true);
       setValues(emptyLeadForm);
       setMessage('Your request was received. An EstateFlow agent will review the property details and follow up.');
+      setMessageTone('success');
     } catch (error) {
       setFieldErrors(error.details || {});
       setMessage(error.message || 'Unable to submit your request right now.');
+      setMessageTone('error');
     } finally {
       setBusy(false);
     }
@@ -97,12 +102,12 @@ export default function SellPage() {
             <h2>Tell us about the property</h2>
           </div>
 
-          {message ? (
-            <p className={`inline-message ${submitted ? 'seller-success' : ''}`} role="status">
-              {submitted ? <CheckCircle2 size={18} aria-hidden="true" /> : <Sparkles size={18} aria-hidden="true" />}
-              {message}
-            </p>
-          ) : null}
+          <InlineMessage
+            icon={submitted ? CheckCircle2 : Sparkles}
+            message={message}
+            tone={messageTone}
+            onDismiss={() => setMessage('')}
+          />
 
           <div className="two-up seller-form-grid">
             <label>

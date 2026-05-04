@@ -73,7 +73,7 @@ class InquiryService
 
     public function createAgentInquiry(Request $request, Agent $agent): JsonResponse
     {
-        if (!$agent->isApproved()) {
+        if (! $agent->isApproved()) {
             return response()->json(['message' => 'This agent is not currently accepting inquiries.'], 422);
         }
 

@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\Property;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -27,7 +28,7 @@ class PropertyInquiryMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Inquiry: ' . $this->property->title,
+            subject: 'New Inquiry: '.$this->property->title,
             replyTo: [
                 $this->data['buyer_email'],
             ],
@@ -47,7 +48,7 @@ class PropertyInquiryMail extends Mailable
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {

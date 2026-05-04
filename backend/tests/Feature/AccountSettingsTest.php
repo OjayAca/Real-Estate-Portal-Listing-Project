@@ -2,11 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\VerifyEmailChangeMail;
+use App\Models\Agent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\VerifyEmailChangeMail;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -111,7 +112,7 @@ class AccountSettingsTest extends TestCase
     public function test_agent_profile_syncs_on_update(): void
     {
         $user = User::factory()->create(['role' => 'agent']);
-        $agent = \App\Models\Agent::factory()->create([
+        $agent = Agent::factory()->create([
             'user_id' => $user->id,
             'first_name' => 'John',
             'last_name' => 'Doe',

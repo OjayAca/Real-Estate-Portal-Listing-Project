@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Agent;
-use App\Models\Amenity;
 use App\Models\Property;
 use App\Support\ImageUrlResolver;
 use Illuminate\Http\JsonResponse;
@@ -18,15 +17,25 @@ use Illuminate\Validation\Rules\File;
 class PropertyService
 {
     private const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
+
     private const LISTING_PURPOSES = ['sale', 'rent'];
+
     private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
+
     private const AGENT_CREATE_STATUSES = ['Draft', 'Available'];
+
     private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Pending Sold', 'Pending Rented'];
+
     private const FEATURED_IMAGE_MAX_SIZE_KB = 25600;
+
     private const FEATURED_IMAGE_MIN_WIDTH = 1200;
+
     private const FEATURED_IMAGE_MIN_HEIGHT = 675;
+
     private const FEATURED_IMAGE_MAX_WIDTH = 4000;
+
     private const FEATURED_IMAGE_MAX_HEIGHT = 4000;
+
     private const MAX_PER_PAGE = 24;
 
     public function __construct(

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -19,8 +20,8 @@ return new class extends Migration
 
         // SQLite doesn't support ALTER TABLE MODIFY COLUMN, and it treats ENUM as TEXT mostly.
         // For MySQL/MariaDB, we need raw SQL to update the enum options.
-        if (collect(['mysql', 'mariadb'])->contains(Illuminate\Support\Facades\DB::getDriverName())) {
-            Illuminate\Support\Facades\DB::statement("ALTER TABLE properties MODIFY COLUMN status ENUM('Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented') DEFAULT 'Available'");
+        if (collect(['mysql', 'mariadb'])->contains(DB::getDriverName())) {
+            DB::statement("ALTER TABLE properties MODIFY COLUMN status ENUM('Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented') DEFAULT 'Available'");
         }
 
         if (! Schema::hasTable('property_status_logs')) {
@@ -46,8 +47,8 @@ return new class extends Migration
     {
         Schema::dropIfExists('property_status_logs');
 
-        if (collect(['mysql', 'mariadb'])->contains(Illuminate\Support\Facades\DB::getDriverName())) {
-            Illuminate\Support\Facades\DB::statement("ALTER TABLE properties MODIFY COLUMN status ENUM('Draft', 'Available', 'Sold', 'Rented', 'Inactive') DEFAULT 'Available'");
+        if (collect(['mysql', 'mariadb'])->contains(DB::getDriverName())) {
+            DB::statement("ALTER TABLE properties MODIFY COLUMN status ENUM('Draft', 'Available', 'Sold', 'Rented', 'Inactive') DEFAULT 'Available'");
         }
 
         if (Schema::hasColumn('properties', 'views_count')) {

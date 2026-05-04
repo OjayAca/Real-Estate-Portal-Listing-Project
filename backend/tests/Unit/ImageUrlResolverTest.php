@@ -30,9 +30,9 @@ class ImageUrlResolverTest extends TestCase
     {
         Storage::fake('public');
         $path = 'properties/agent-1/test.jpg';
-        
+
         $resolved = ImageUrlResolver::resolve($path);
-        
+
         $this->assertStringContainsString('/storage/'.$path, $resolved);
     }
 
@@ -40,9 +40,9 @@ class ImageUrlResolverTest extends TestCase
     {
         Storage::fake('public');
         $path = 'storage/properties/agent-1/test.jpg';
-        
+
         $resolved = ImageUrlResolver::resolve($path);
-        
+
         $this->assertStringContainsString('/properties/agent-1/test.jpg', $resolved);
         $this->assertStringNotContainsString('/storage/storage/', $resolved);
     }
@@ -52,7 +52,7 @@ class ImageUrlResolverTest extends TestCase
         $this->assertTrue(ImageUrlResolver::isManaged('properties/test.jpg'));
         $this->assertTrue(ImageUrlResolver::isManaged('storage/properties/test.jpg'));
         $this->assertTrue(ImageUrlResolver::isManaged('/properties/test.jpg'));
-        
+
         $this->assertFalse(ImageUrlResolver::isManaged(null));
         $this->assertFalse(ImageUrlResolver::isManaged('other/test.jpg'));
         $this->assertFalse(ImageUrlResolver::isManaged('https://example.com/test.jpg'));

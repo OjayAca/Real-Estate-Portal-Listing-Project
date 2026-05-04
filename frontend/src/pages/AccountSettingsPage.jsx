@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import InlineMessage from '../components/InlineMessage';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -35,6 +36,7 @@ export default function AccountSettingsPage() {
   });
   const [emailForm, setEmailForm] = useState({ email: user?.email || '' });
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [savedSearches, setSavedSearches] = useState([]);
@@ -48,8 +50,10 @@ export default function AccountSettingsPage() {
   useEffect(() => {
     if (searchParams.get('verified')) {
       setMessage('Your email address has been successfully verified and updated.');
+      setMessageTone('success');
     } else if (searchParams.get('error') === 'invalid_signature') {
       setMessage('The verification link is invalid or has expired.');
+      setMessageTone('error');
     }
   }, [searchParams]);
 
@@ -106,9 +110,11 @@ export default function AccountSettingsPage() {
       });
       setUser(response.user);
       setMessage(response.message || 'Profile updated.');
+      setMessageTone('success');
     } catch (error) {
       setErrors(error.details || {});
       setMessage(error.details ? 'Review the highlighted fields and submit again.' : error.message);
+      setMessageTone('error');
     } finally {
       setBusy(false);
     }
@@ -126,6 +132,7 @@ export default function AccountSettingsPage() {
         body: passwordForm,
       });
       setMessage(response.message);
+      setMessageTone('success');
       setPasswordForm({
         current_password: '',
         password: '',
@@ -134,6 +141,7 @@ export default function AccountSettingsPage() {
     } catch (error) {
       setErrors(error.details || {});
       setMessage(error.details ? 'Review the highlighted fields and submit again.' : error.message);
+      setMessageTone('error');
     } finally {
       setBusy(false);
     }
@@ -151,9 +159,11 @@ export default function AccountSettingsPage() {
         body: emailForm,
       });
       setMessage(response.message);
+      setMessageTone('success');
     } catch (error) {
       setErrors(error.details || {});
       setMessage(error.details ? 'Review the highlighted fields and submit again.' : error.message);
+      setMessageTone('error');
     } finally {
       setBusy(false);
     }
@@ -168,8 +178,11 @@ export default function AccountSettingsPage() {
       setSavedSearches((current) =>
         current.map((entry) => (entry.id === search.id ? updated.data : entry)),
       );
+      setMessage(`Email alerts ${updated.data.notify_email ? 'enabled' : 'disabled'} for "${updated.data.name}".`);
+      setMessageTone('success');
     } catch (error) {
       setMessage(error.message);
+      setMessageTone('error');
     }
   };
 
@@ -178,8 +191,10 @@ export default function AccountSettingsPage() {
       await authFetch(`/saved-searches/${search.id}`, { method: 'DELETE' });
       setSavedSearches((current) => current.filter((entry) => entry.id !== search.id));
       setMessage('Saved search removed.');
+      setMessageTone('success');
     } catch (error) {
       setMessage(error.message);
+      setMessageTone('error');
     }
   };
 
@@ -197,7 +212,11 @@ export default function AccountSettingsPage() {
         <span className="result-count">{user?.role}</span>
       </section>
 
-      {message ? <p className="inline-message animate-enter">{message}</p> : null}
+      <InlineMessage
+        message={message}
+        tone={messageTone}
+        onDismiss={() => setMessage('')}
+      />
 
       <section className="section-panel settings-section">
         <div className="settings-section-heading">

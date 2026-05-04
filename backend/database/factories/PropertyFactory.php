@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Property>
+ * @extends Factory<Property>
  */
 class PropertyFactory extends Factory
 {
@@ -22,6 +22,7 @@ class PropertyFactory extends Factory
     public function definition(): array
     {
         $title = fake()->sentence(4);
+
         return [
             'agent_id' => Agent::factory(),
             'title' => $title,

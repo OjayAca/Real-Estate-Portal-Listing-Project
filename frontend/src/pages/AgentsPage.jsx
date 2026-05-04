@@ -4,6 +4,7 @@ import { apiRequest } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, Building2, CalendarDays, ChevronRight, Search, Star, UserRound, X } from 'lucide-react';
 import ContactAgentModal from '../components/ContactAgentModal';
+import InlineMessage from '../components/InlineMessage';
 
 function formatRating(value) {
   return value ? Number(value).toFixed(1) : 'New';
@@ -31,6 +32,7 @@ export default function AgentsPage() {
   const [busy, setBusy] = useState(false);
   const [detailBusy, setDetailBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: '5', review_text: '' });
 
@@ -45,7 +47,10 @@ export default function AgentsPage() {
       .then((data) => {
         setAgents(data.data || []);
       })
-      .catch((error) => setMessage(error.message))
+      .catch((error) => {
+        setMessage(error.message);
+        setMessageTone('error');
+      })
       .finally(() => setBusy(false));
   }, [search]);
 
@@ -58,7 +63,10 @@ export default function AgentsPage() {
     setDetailBusy(true);
     apiRequest(`/agents/${selected.agent_id}`)
       .then((data) => setSelectedDetail(data.data || null))
-      .catch((error) => setMessage(error.message))
+      .catch((error) => {
+        setMessage(error.message);
+        setMessageTone('error');
+      })
       .finally(() => setDetailBusy(false));
   }, [selected]);
 
@@ -73,6 +81,7 @@ export default function AgentsPage() {
 
     if (user?.role !== 'user') {
       setMessage('Log in as a buyer account to leave a review.');
+      setMessageTone('warning');
       return;
     }
 
@@ -90,8 +99,10 @@ export default function AgentsPage() {
       setSelectedDetail(refreshed.data || null);
       setReviewForm({ rating: '5', review_text: '' });
       setMessage('Agent review saved.');
+      setMessageTone('success');
     } catch (error) {
       setMessage(error.message);
+      setMessageTone('error');
     } finally {
       setReviewBusy(false);
     }
@@ -122,12 +133,12 @@ export default function AgentsPage() {
           </label>
         </div>
 
-        {message ? (
-          <p className="inline-message" role="status">
-            <AlertCircle size={18} aria-hidden="true" />
-            {message}
-          </p>
-        ) : null}
+        <InlineMessage
+          icon={AlertCircle}
+          message={message}
+          tone={messageTone}
+          onDismiss={() => setMessage('')}
+        />
 
         {busy ? (
           <div className="agent-directory-grid">
@@ -187,7 +198,10 @@ export default function AgentsPage() {
         <ContactAgentModal
           agent={contactAgent}
           onClose={() => setContactAgent(null)}
-          onMessage={setMessage}
+          onMessage={(nextMessage) => {
+            setMessage(nextMessage);
+            setMessageTone('success');
+          }}
         />
       ) : null}
 

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useDeferredValue } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../api/client';
 import ConfirmModal from '../components/ConfirmModal';
+import InlineMessage from '../components/InlineMessage';
 import MetricCard from '../components/MetricCard';
 import DashboardLoading from '../components/dashboard/DashboardLoading';
 import AgentDashboard from '../components/dashboard/AgentDashboard';
@@ -29,6 +30,7 @@ function createFallbackDashboard(agentProfile) {
     },
     profile: agentProfile,
     properties: [],
+    assigned_seller_leads: [],
   };
 }
 
@@ -38,6 +40,7 @@ export default function DashboardPage() {
   const [adminOverview, setAdminOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [confirmState, setConfirmState] = useState(null);
   const [amenities, setAmenities] = useState([]);
 
@@ -48,8 +51,10 @@ export default function DashboardPage() {
   const [editingProperty, setEditingProperty] = useState(null);
   const [agentFormBusy, setAgentFormBusy] = useState(false);
   const [agentFormMessage, setAgentFormMessage] = useState('');
+  const [agentFormMessageTone, setAgentFormMessageTone] = useState('info');
   const [agentFormErrors, setAgentFormErrors] = useState({});
   const [agentMessage, setAgentMessage] = useState('');
+  const [agentMessageTone, setAgentMessageTone] = useState('info');
 
   // Admin Search States
   const [userSearch, setUserSearch] = useState('');
@@ -76,6 +81,7 @@ export default function DashboardPage() {
       setAdminOverview(overview);
     } catch (error) {
       setMessage(error.message);
+      setMessageTone('error');
     }
   }, [authFetch]);
 
@@ -114,6 +120,7 @@ export default function DashboardPage() {
           setAgentProperties([]);
         } else {
           setMessage(error.message);
+          setMessageTone('error');
         }
       } finally {
         if (!ignore) setLoading(false);
@@ -162,7 +169,10 @@ export default function DashboardPage() {
         if (!ignore) setAgentProperties(data.data || []);
       })
       .catch((error) => {
-        if (!ignore) setAgentMessage(error.message);
+        if (!ignore) {
+          setAgentMessage(error.message);
+          setAgentMessageTone('error');
+        }
       })
       .finally(() => {
         if (!ignore) setAgentPropertiesLoading(false);
@@ -180,6 +190,7 @@ export default function DashboardPage() {
     }
     const data = await authFetch(path, { method, body: finalBody });
     setMessage(data.message);
+    setMessageTone('success');
     if (user?.role === 'admin') {
       const [nextDashboard] = await Promise.all([
         authFetch('/dashboard'),
@@ -215,6 +226,9 @@ export default function DashboardPage() {
         try {
           const requestBody = requiredInputValue ? { ...body, confirmation: reason } : body;
           await updateAdminRecord(path, requestBody, requiredInputValue ? null : reason, method);
+        } catch (error) {
+          setMessage(error.message);
+          setMessageTone('error');
         } finally {
           setConfirmState(null);
         }
@@ -240,6 +254,7 @@ export default function DashboardPage() {
     setEditingProperty(null);
     setAgentFormErrors({});
     setAgentFormMessage('');
+    setAgentFormMessageTone('info');
   };
 
   const openEditForm = (property) => {
@@ -247,6 +262,7 @@ export default function DashboardPage() {
     setEditingProperty(property);
     setAgentFormErrors({});
     setAgentFormMessage('');
+    setAgentFormMessageTone('info');
   };
 
   const closeAgentForm = () => {
@@ -254,12 +270,14 @@ export default function DashboardPage() {
     setEditingProperty(null);
     setAgentFormErrors({});
     setAgentFormMessage('');
+    setAgentFormMessageTone('info');
   };
 
   const handlePropertySubmit = async (values) => {
     setAgentFormBusy(true);
     setAgentFormErrors({});
     setAgentFormMessage('');
+    setAgentFormMessageTone('info');
     setAgentMessage('');
 
     try {
@@ -311,6 +329,7 @@ export default function DashboardPage() {
 
       await refreshAgentWorkspace();
       setAgentMessage(response.message);
+      setAgentMessageTone('success');
       closeAgentForm();
     } catch (error) {
       if (error.details) {
@@ -318,8 +337,10 @@ export default function DashboardPage() {
           Object.entries(error.details).map(([field, messages]) => [field, Array.isArray(messages) ? messages[0] : messages])
         ));
         setAgentFormMessage('Review the highlighted fields and submit again.');
+        setAgentFormMessageTone('error');
       } else {
         setAgentFormMessage(error.message);
+        setAgentFormMessageTone('error');
       }
     } finally {
       setAgentFormBusy(false);
@@ -340,8 +361,10 @@ export default function DashboardPage() {
             closeAgentForm();
           }
           setAgentMessage(response.message);
+          setAgentMessageTone('success');
         } catch (error) {
           setAgentMessage(error.message);
+          setAgentMessageTone('error');
         } finally {
           setConfirmState(null);
         }
@@ -368,6 +391,8 @@ export default function DashboardPage() {
     draft_properties: FileText,
     available_properties: CheckCircle,
     active_listings: CheckCircle,
+    seller_leads: FileText,
+    new_seller_leads: Clock,
     saved_properties: Save,
     approved: CheckCircle,
   };
@@ -390,11 +415,12 @@ export default function DashboardPage() {
           Clearance Level: <strong style={{ textTransform: 'uppercase', letterSpacing: '0.1em' }}>{user.role}</strong>
         </p>
 
-        {message ? (
-          <p className="inline-message animate-enter" style={{ marginTop: '1.5rem', marginBottom: 0 }} role="status">
-            {message}
-          </p>
-        ) : null}
+        <InlineMessage
+          message={message}
+          tone={messageTone}
+          onDismiss={() => setMessage('')}
+          style={{ marginTop: '1.5rem', marginBottom: 0 }}
+        />
 
         {statsEntries.length > 0 && (
           <div className="metrics-grid">
@@ -421,6 +447,8 @@ export default function DashboardPage() {
           agentProfile={agentProfile}
           isApprovedAgent={isApprovedAgent}
           agentMessage={agentMessage}
+          agentMessageTone={agentMessageTone}
+          onAgentMessageDismiss={() => setAgentMessage('')}
           openCreateForm={openCreateForm}
           agentFormMode={agentFormMode}
           editingProperty={editingProperty}
@@ -428,10 +456,13 @@ export default function DashboardPage() {
           agentFormBusy={agentFormBusy}
           agentFormErrors={agentFormErrors}
           agentFormMessage={agentFormMessage}
+          agentFormMessageTone={agentFormMessageTone}
+          onAgentFormMessageDismiss={() => setAgentFormMessage('')}
           closeAgentForm={closeAgentForm}
           handlePropertySubmit={handlePropertySubmit}
           agentPropertiesLoading={agentPropertiesLoading}
           agentProperties={agentProperties}
+          assignedSellerLeads={dashboard?.assigned_seller_leads || []}
           openEditForm={openEditForm}
           handleDeleteProperty={handleDeleteProperty}
         />

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AgentInquiryModal from '../components/AgentInquiryModal';
 import ConfirmModal from '../components/ConfirmModal';
+import InlineMessage from '../components/InlineMessage';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +15,7 @@ export default function SavedPropertiesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState('info');
   const [selected, setSelected] = useState(null);
   const [contactProperty, setContactProperty] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
@@ -32,6 +34,7 @@ export default function SavedPropertiesPage() {
       .catch((error) => {
         if (!ignore) {
           setMessage(error.message);
+          setMessageTone('error');
           setProperties([]);
         }
       })
@@ -64,8 +67,10 @@ export default function SavedPropertiesPage() {
           }
 
           setMessage('Property removed from saved list.');
+          setMessageTone('success');
         } catch (error) {
           setMessage(error.message);
+          setMessageTone('error');
         } finally {
           setConfirmState(null);
         }
@@ -86,7 +91,11 @@ export default function SavedPropertiesPage() {
         <span className="result-count">{meta.total} saved</span>
       </section>
 
-      {message ? <p className="inline-message animate-enter">{message}</p> : null}
+      <InlineMessage
+        message={message}
+        tone={messageTone}
+        onDismiss={() => setMessage('')}
+      />
 
       {loading ? (
         <div className="card-grid">
@@ -141,7 +150,10 @@ export default function SavedPropertiesPage() {
       <AgentInquiryModal
         property={contactProperty}
         onClose={() => setContactProperty(null)}
-        onMessage={setMessage}
+        onMessage={(nextMessage) => {
+          setMessage(nextMessage);
+          setMessageTone('success');
+        }}
       />
 
       <ConfirmModal

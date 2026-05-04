@@ -177,7 +177,7 @@ class AgentEcosystemService
             return response()->json(['message' => 'You cannot review yourself.'], 403);
         }
 
-        if ($user->isBuyer() && !$user->hasInteractedWith($agent->agent_id)) {
+        if ($user->isBuyer() && ! $user->hasInteractedWith($agent->agent_id)) {
             return response()->json([
                 'message' => 'You can only review agents you\'ve previously contacted or requested a viewing with.',
             ], 403);
