@@ -5,11 +5,11 @@ namespace App\Services;
 use App\Models\Agent;
 use App\Models\Amenity;
 use App\Models\Property;
-use App\Models\User;
 use App\Support\ImageUrlResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -19,8 +19,9 @@ class PropertyService
 {
     private const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
     private const LISTING_PURPOSES = ['sale', 'rent'];
-    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'];
-    private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Sold', 'Rented'];
+    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
+    private const AGENT_CREATE_STATUSES = ['Draft', 'Available'];
+    private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Pending Sold', 'Pending Rented'];
     private const FEATURED_IMAGE_MAX_SIZE_KB = 25600;
     private const FEATURED_IMAGE_MIN_WIDTH = 1200;
     private const FEATURED_IMAGE_MIN_HEIGHT = 675;
@@ -50,11 +51,19 @@ class PropertyService
         }
 
         if ($search = $request->query('search')) {
-            $query->where(function ($builder) use ($search): void {
-                $builder->where('title', 'like', "%{$search}%")
-                    ->orWhere('city', 'like', "%{$search}%")
-                    ->orWhere('province', 'like', "%{$search}%")
-                    ->orWhere('address_line', 'like', "%{$search}%");
+            $terms = array_filter(explode(' ', (string) $search));
+
+            $query->where(function ($builder) use ($terms): void {
+                foreach ($terms as $term) {
+                    $builder->where(function ($termBuilder) use ($term): void {
+                        $termBuilder->where('title', 'like', "%{$term}%")
+                            ->orWhere('description', 'like', "%{$term}%")
+                            ->orWhere('property_type', 'like', "%{$term}%")
+                            ->orWhere('city', 'like', "%{$term}%")
+                            ->orWhere('province', 'like', "%{$term}%")
+                            ->orWhere('address_line', 'like', "%{$term}%");
+                    });
+                }
             });
         }
 
@@ -67,7 +76,10 @@ class PropertyService
         }
 
         if ($city = $request->query('city')) {
-            $query->where('city', 'like', "%{$city}%");
+            $query->where(function ($builder) use ($city): void {
+                $builder->where('city', 'like', "%{$city}%")
+                    ->orWhere('province', 'like', "%{$city}%");
+            });
         }
 
         if ($province = $request->query('province')) {
@@ -75,27 +87,39 @@ class PropertyService
         }
 
         if ($request->filled('min_price')) {
-            $query->where('price', '>=', (float) $request->query('min_price'));
+            $query->where('price', '>=', $this->sanitizeNumeric($request->query('min_price'), true));
         }
 
         if ($request->filled('max_price')) {
-            $query->where('price', '<=', (float) $request->query('max_price'));
+            $query->where('price', '<=', $this->sanitizeNumeric($request->query('max_price'), true));
         }
 
         if ($request->filled('bedrooms')) {
-            $query->where('bedrooms', '>=', (int) $request->query('bedrooms'));
+            $query->where('bedrooms', '>=', $this->sanitizeNumeric($request->query('bedrooms')));
         }
 
         if ($request->filled('bathrooms')) {
-            $query->where('bathrooms', '>=', (int) $request->query('bathrooms'));
+            $query->where('bathrooms', '>=', $this->sanitizeNumeric($request->query('bathrooms')));
         }
 
         if ($request->filled('parking_spaces')) {
-            $query->where('parking_spaces', '>=', (int) $request->query('parking_spaces'));
+            $query->where('parking_spaces', '>=', $this->sanitizeNumeric($request->query('parking_spaces')));
         }
 
-        if ($request->filled('amenity_id')) {
-            $query->whereHas('amenities', fn ($builder) => $builder->where('amenity_id', $request->integer('amenity_id')));
+        if ($request->filled('amenity_ids') || $request->filled('amenity_id')) {
+            $ids = is_array($request->query('amenity_ids'))
+                ? $request->query('amenity_ids')
+                : explode(',', (string) $request->query('amenity_ids'));
+
+            if ($request->filled('amenity_id')) {
+                $ids[] = $request->query('amenity_id');
+            }
+
+            $ids = array_filter(array_unique(array_map('intval', $ids)));
+
+            foreach ($ids as $id) {
+                $query->whereHas('amenities', fn ($builder) => $builder->where('property_amenities.amenity_id', $id));
+            }
         }
 
         $perPage = max(1, min($request->integer('per_page', 9), self::MAX_PER_PAGE));
@@ -113,6 +137,10 @@ class PropertyService
 
         if (! $canViewPrivate && $property->status !== 'Available') {
             abort(404);
+        }
+
+        if (! $canViewPrivate) {
+            $property->increment('views_count');
         }
 
         return response()->json([
@@ -133,7 +161,7 @@ class PropertyService
     public function agentPropertyStore(Request $request): JsonResponse
     {
         $agent = $this->portal->requireApprovedAgent($request->user());
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, false, null, self::AGENT_ALLOWED_STATUSES);
+        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, false, null, self::AGENT_CREATE_STATUSES);
         $payload['agent_id'] = $agent->agent_id;
         $payload['slug'] = $this->generateSlug($payload['title']);
         $payload['listing_purpose'] ??= 'sale';
@@ -168,10 +196,18 @@ class PropertyService
             $payload['listed_at'] = now();
         }
 
-        $property->update($payload);
-        if ($amenityIds !== null) {
-            $property->amenities()->sync($amenityIds);
-        }
+        DB::transaction(function () use ($amenityIds, $payload, $property, $request): void {
+            $oldStatus = $property->status;
+            $property->update($payload);
+
+            if ($amenityIds !== null) {
+                $property->amenities()->sync($amenityIds);
+            }
+
+            if (isset($payload['status']) && $payload['status'] !== $oldStatus) {
+                $this->portal->logStatusChange($property, $request->user(), $oldStatus, $payload['status'], $request->input('status_reason'));
+            }
+        });
 
         return response()->json([
             'message' => 'Property listing updated.',
@@ -195,11 +231,16 @@ class PropertyService
 
     public function savedPropertiesIndex(Request $request): JsonResponse
     {
-        $properties = $request->user()->savedProperties()->with(['agent.user', 'amenities'])->latest()->get();
+        $perPage = max(1, min($request->integer('per_page', 12), self::MAX_PER_PAGE));
 
-        return response()->json([
-            'data' => $properties->map(fn (Property $property) => $this->portal->formatProperty($property)),
-        ]);
+        $properties = $request->user()
+            ->savedProperties()
+            ->with(['agent.user', 'amenities'])
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return response()->json($this->paginatedPropertiesResponse($properties));
     }
 
     public function saveProperty(Request $request, Property $property): JsonResponse
@@ -254,6 +295,7 @@ class PropertyService
                     ->maxHeight(self::FEATURED_IMAGE_MAX_HEIGHT),
             ],
             'status' => ['nullable', Rule::in($allowedStatuses)],
+            'status_reason' => ['nullable', 'string', 'max:255'],
             'amenity_ids' => ['nullable', 'array'],
             'amenity_ids.*' => ['integer', 'exists:amenities,amenity_id'],
         ]);
@@ -297,5 +339,19 @@ class PropertyService
                 'total' => $properties->total(),
             ],
         ];
+    }
+
+    /**
+     * Clean numeric input (remove commas/spaces) and return correct type.
+     */
+    private function sanitizeNumeric(mixed $value, bool $isFloat = false): float|int
+    {
+        if (is_numeric($value)) {
+            return $isFloat ? (float) $value : (int) $value;
+        }
+
+        $clean = preg_replace('/[^0-9.]/', '', (string) $value);
+
+        return $isFloat ? (float) $clean : (int) $clean;
     }
 }

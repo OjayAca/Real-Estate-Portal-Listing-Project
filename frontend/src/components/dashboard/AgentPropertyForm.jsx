@@ -6,7 +6,7 @@ const LISTING_PURPOSES = [
   { label: 'For Sale', value: 'sale' },
   { label: 'For Rent', value: 'rent' },
 ];
-const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Sold', 'Rented'];
+const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Pending Sold', 'Pending Rented'];
 const FEATURED_IMAGE_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 const FEATURED_IMAGE_MIN_WIDTH = 1200;
 const FEATURED_IMAGE_MIN_HEIGHT = 675;
@@ -28,6 +28,7 @@ const emptyPropertyForm = {
   featured_image: '',
   featured_image_file: null,
   status: 'Draft',
+  status_reason: '',
   amenity_ids: [],
 };
 
@@ -354,6 +355,24 @@ export default function AgentPropertyForm({
               })()}
             </select>
             {getFieldError(fieldErrors, 'status') ? <span className="field-error">{getFieldError(fieldErrors, 'status')}</span> : null}
+            {values.status.startsWith('Pending') && (
+              <div style={{ marginTop: '1rem', width: '100%', gridColumn: 'span 2' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                  Reason for status change
+                  <textarea
+                    rows={2}
+                    value={values.status_reason}
+                    onChange={(e) => updateValue('status_reason', e.target.value)}
+                    placeholder="e.g., Buyer has signed the contract and paid the deposit."
+                    style={{ marginTop: '0.5rem' }}
+                  />
+                </label>
+                <span className="field-hint" style={{ color: 'var(--accent-base)', fontWeight: 500, marginTop: '0.5rem', display: 'block' }}>
+                  <AlertCircle size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                  Setting status to "{values.status}" requires administrator approval before it takes effect on the public portal.
+                </span>
+              </div>
+            )}
           </label>
         </div>
       </div>

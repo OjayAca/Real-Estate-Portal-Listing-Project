@@ -6,6 +6,7 @@ use App\Mail\ViewingRequestMail;
 use App\Models\Agency;
 use App\Models\Agent;
 use App\Models\AgentReview;
+use App\Models\BuyerAgentInteraction;
 use App\Models\Property;
 use App\Support\ImageUrlResolver;
 use Illuminate\Http\JsonResponse;
@@ -78,6 +79,11 @@ class AgentEcosystemService
         $soldListings = $agent->properties->where('status', 'Sold')->values();
         $averageRating = round((float) $agent->reviews->avg('rating'), 1);
 
+        $canReview = false;
+        if ($viewer && $viewer->isBuyer()) {
+            $canReview = $viewer->hasInteractedWith($agent->agent_id);
+        }
+
         return response()->json([
             'data' => [
                 'agent' => $this->formatAgentProfile($agent, $averageRating, $activeListings->count(), $soldListings->count()),
@@ -88,6 +94,7 @@ class AgentEcosystemService
                     ->take(8)
                     ->values()
                     ->map(fn (AgentReview $review) => $this->formatReview($review)),
+                'can_review' => $canReview,
             ],
         ]);
     }
@@ -126,6 +133,12 @@ class AgentEcosystemService
             Mail::to($agent->email)->send(new ViewingRequestMail($property, $buyerData));
         }
 
+        BuyerAgentInteraction::firstOrCreate([
+            'user_id' => $user->id,
+            'agent_id' => $agent->agent_id,
+            'interaction_type' => 'viewing_request',
+        ]);
+
         return response()->json([
             'message' => 'Viewing request sent to the agent via email.',
         ], 201);
@@ -146,6 +159,12 @@ class AgentEcosystemService
 
         if ($user->agentProfile?->agent_id === $agent->agent_id) {
             return response()->json(['message' => 'You cannot review yourself.'], 403);
+        }
+
+        if ($user->isBuyer() && !$user->hasInteractedWith($agent->agent_id)) {
+            return response()->json([
+                'message' => 'You can only review agents you\'ve previously contacted or requested a viewing with.',
+            ], 403);
         }
 
         $review = AgentReview::query()->updateOrCreate(

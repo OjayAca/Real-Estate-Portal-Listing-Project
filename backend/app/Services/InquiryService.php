@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\AgentInquiryMail;
 use App\Mail\PropertyInquiryMail;
 use App\Models\Agent;
+use App\Models\BuyerAgentInteraction;
 use App\Models\Property;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,14 @@ class InquiryService
             Mail::to($property->agent->email)->send(new PropertyInquiryMail($property, $buyerData));
         }
 
+        if ($property->agent) {
+            BuyerAgentInteraction::firstOrCreate([
+                'user_id' => $user->id,
+                'agent_id' => $property->agent->agent_id,
+                'interaction_type' => 'inquiry',
+            ]);
+        }
+
         return response()->json([
             'message' => 'Inquiry sent successfully to the agent via email.',
         ], 201);
@@ -69,6 +78,12 @@ class InquiryService
         if ($agent->email) {
             Mail::to($agent->email)->send(new AgentInquiryMail($agent, $buyerData));
         }
+
+        BuyerAgentInteraction::firstOrCreate([
+            'user_id' => $user->id,
+            'agent_id' => $agent->agent_id,
+            'interaction_type' => 'agent_inquiry',
+        ]);
 
         return response()->json([
             'message' => 'Message sent to agent successfully via email.',

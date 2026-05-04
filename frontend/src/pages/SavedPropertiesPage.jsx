@@ -5,11 +5,13 @@ import ConfirmModal from '../components/ConfirmModal';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import { useAuth } from '../context/AuthContext';
-import { Heart, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Search } from 'lucide-react';
 
 export default function SavedPropertiesPage() {
   const { authFetch, user } = useAuth();
   const [properties, setProperties] = useState([]);
+  const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [selected, setSelected] = useState(null);
@@ -20,10 +22,11 @@ export default function SavedPropertiesPage() {
     let ignore = false;
 
     setLoading(true);
-    authFetch('/saved-properties')
+    authFetch(`/saved-properties?page=${page}&per_page=12`)
       .then((data) => {
         if (!ignore) {
           setProperties(data.data || []);
+          setMeta(data.meta || { current_page: 1, last_page: 1, total: 0 });
         }
       })
       .catch((error) => {
@@ -41,7 +44,7 @@ export default function SavedPropertiesPage() {
     return () => {
       ignore = true;
     };
-  }, [authFetch]);
+  }, [authFetch, page]);
 
   const confirmRemove = (property) => {
     setConfirmState({
@@ -53,6 +56,13 @@ export default function SavedPropertiesPage() {
         try {
           await authFetch(`/saved-properties/${property.property_id}`, { method: 'DELETE' });
           setProperties((current) => current.filter((entry) => entry.property_id !== property.property_id));
+          setMeta((current) => ({ ...current, total: Math.max(0, current.total - 1) }));
+
+          // If the page is now empty and not the first page, go back one page
+          if (properties.length <= 1 && page > 1) {
+            setPage((current) => current - 1);
+          }
+
           setMessage('Property removed from saved list.');
         } catch (error) {
           setMessage(error.message);
@@ -73,7 +83,7 @@ export default function SavedPropertiesPage() {
           </p>
           <h2>{user?.full_name ? `${user.full_name}'s Saved Listings` : 'Saved Listings'}</h2>
         </div>
-        <span className="result-count">{properties.length} saved</span>
+        <span className="result-count">{meta.total} saved</span>
       </section>
 
       {message ? <p className="inline-message animate-enter">{message}</p> : null}
@@ -105,6 +115,20 @@ export default function SavedPropertiesPage() {
             <Link className="primary-button" to="/buy">Browse For Sale</Link>
             <Link className="ghost-button" to="/rent">Browse Rentals</Link>
           </div>
+        </div>
+      )}
+
+      {!loading && properties.length > 0 && meta.last_page > 1 && (
+        <div className="pager-row listing-pager">
+          <button className="ghost-button" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} aria-label="Previous Page">
+            <ChevronLeft size={16} aria-hidden="true" /> Previous
+          </button>
+          <span>
+            Page {meta.current_page || 1} of {meta.last_page || 1}
+          </span>
+          <button className="ghost-button" disabled={page >= (meta.last_page || 1)} onClick={() => setPage((current) => current + 1)} aria-label="Next Page">
+            Next <ChevronRight size={16} aria-hidden="true" />
+          </button>
         </div>
       )}
 

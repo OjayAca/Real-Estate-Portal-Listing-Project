@@ -178,6 +178,7 @@ export default function AgentDashboard({
                       </div>
 
                       <div className="agent-listing-submeta">
+                        <span title="Total page views"><Clock3 size={14} aria-hidden="true" /> {property.views_count || 0} Views</span>
                         <span><ImageIcon size={14} aria-hidden="true" /> {property.featured_image ? 'Image linked' : 'No image'}</span>
                         <span>Listed {formatListedAt(property.listed_at || property.created_at)}</span>
                       </div>

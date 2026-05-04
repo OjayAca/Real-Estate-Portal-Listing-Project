@@ -79,6 +79,7 @@ trait FormatsResources
             'city' => $property->city,
             'province' => $property->province,
             'status' => $property->status,
+            'views_count' => $property->views_count,
             'featured_image' => ImageUrlResolver::resolve($property->featured_image),
             'listed_at' => optional($property->listed_at)->toIso8601String(),
             'created_at' => optional($property->created_at)->toIso8601String(),
@@ -87,6 +88,16 @@ trait FormatsResources
                 : null,
             'amenities' => $property->relationLoaded('amenities')
                 ? $property->amenities->map(fn (Amenity $amenity) => $this->formatAmenity($amenity))->values()
+                : [],
+            'status_logs' => $property->relationLoaded('statusLogs')
+                ? $property->statusLogs->sortByDesc('created_at')->map(fn ($log) => [
+                    'status_log_id' => $log->status_log_id,
+                    'old_status' => $log->old_status,
+                    'new_status' => $log->new_status,
+                    'reason' => $log->reason,
+                    'created_at' => $log->created_at->toIso8601String(),
+                    'user_name' => $log->user?->full_name,
+                ])->values()
                 : [],
         ];
     }

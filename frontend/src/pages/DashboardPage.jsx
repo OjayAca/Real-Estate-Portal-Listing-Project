@@ -172,8 +172,12 @@ export default function DashboardPage() {
     };
   }, [authFetch, isApprovedAgent]);
 
-  const updateAdminRecord = async (path, body) => {
-    const data = await authFetch(path, { method: 'PATCH', body });
+  const updateAdminRecord = async (path, body, reason = null) => {
+    const finalBody = { ...body };
+    if (reason) {
+      finalBody.status_reason = reason;
+    }
+    const data = await authFetch(path, { method: 'PATCH', body: finalBody });
     setMessage(data.message);
     if (user?.role === 'admin') {
       const [nextDashboard] = await Promise.all([
@@ -184,14 +188,17 @@ export default function DashboardPage() {
     }
   };
 
-  const openAdminConfirm = ({ body, message: confirmMessage, path, title, tone = 'warning' }) => {
+  const openAdminConfirm = ({ body, message: confirmMessage, path, title, tone = 'warning', showInput = false, inputPlaceholder, inputLabel }) => {
     setConfirmState({
       title,
       message: confirmMessage,
       tone,
-      onConfirm: async () => {
+      showInput,
+      inputPlaceholder,
+      inputLabel,
+      onConfirm: async (reason) => {
         try {
-          await updateAdminRecord(path, body);
+          await updateAdminRecord(path, body, reason);
         } finally {
           setConfirmState(null);
         }
@@ -259,6 +266,7 @@ export default function DashboardPage() {
       appendValue('city', values.city.trim());
       appendValue('province', values.province.trim());
       appendValue('status', values.status || null);
+      appendValue('status_reason', values.status_reason || null);
 
       if (values.amenity_ids.length > 0) {
         values.amenity_ids.forEach((amenityId) => {
@@ -432,6 +440,9 @@ export default function DashboardPage() {
         title={confirmState?.title}
         message={confirmState?.message}
         tone={confirmState?.tone}
+        showInput={confirmState?.showInput}
+        inputPlaceholder={confirmState?.inputPlaceholder}
+        inputLabel={confirmState?.inputLabel}
         confirmText={confirmState?.confirmText}
         onConfirm={confirmState?.onConfirm || (() => setConfirmState(null))}
         onCancel={() => setConfirmState(null)}

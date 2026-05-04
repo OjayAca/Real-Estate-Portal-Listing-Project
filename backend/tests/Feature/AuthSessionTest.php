@@ -57,7 +57,6 @@ class AuthSessionTest extends TestCase
         $this->withHeader('Origin', config('app.frontend_url'))
             ->getJson('/api/auth/me')
             ->assertOk()
-            ->assertJsonPath('user', null)
-            ->assertJsonPath('unread_notifications', 0);
+            ->assertJsonPath('user', null);
     }
 }

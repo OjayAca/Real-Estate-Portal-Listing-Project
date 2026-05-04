@@ -247,7 +247,7 @@ export default function AgentsPage() {
                       </div>
                     </div>
                     <div className="agent-availability-list">
-                      {selectedDetail.availability.map((slot) => (
+                      {(selectedDetail.availability || []).map((slot) => (
                         <div className="agent-availability-row" key={slot.id}>
                           <span>{slot.day_label}</span>
                           <strong>{slot.start_time} - {slot.end_time}</strong>
@@ -307,7 +307,7 @@ export default function AgentsPage() {
                       {selectedDetail.reviews.length === 0 ? <p className="empty-copy" style={{ padding: '2rem' }}>No reviews yet.</p> : null}
                     </div>
 
-                    {user?.role === 'user' ? (
+                    {user?.role === 'user' && selectedDetail.can_review ? (
                       <div className="agent-review-form">
                         <label>
                           Rating
@@ -328,6 +328,22 @@ export default function AgentsPage() {
                         </label>
                         <button className="primary-button" disabled={reviewBusy} onClick={submitReview} type="button">
                           {reviewBusy ? 'Saving Review...' : 'Submit Review'}
+                        </button>
+                      </div>
+                    ) : user?.role === 'user' ? (
+                      <div className="empty-copy" style={{ padding: '2rem', textAlign: 'center' }}>
+                        <CalendarDays size={18} aria-hidden="true" />
+                        <span>Submit an inquiry or request a viewing to unlock agent reviews.</span>
+                        <button
+                          className="ghost-button"
+                          type="button"
+                          style={{ marginTop: '0.75rem' }}
+                          onClick={() => {
+                            setSelected(null);
+                            setContactAgent(selectedDetail.agent);
+                          }}
+                        >
+                          Contact {selectedDetail.agent.full_name}
                         </button>
                       </div>
                     ) : (

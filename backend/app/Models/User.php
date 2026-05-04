@@ -73,12 +73,36 @@ class User extends Authenticatable
     }
 
     /**
+     * @return HasMany<BuyerAgentInteraction, $this>
+     */
+    public function agentInteractions(): HasMany
+    {
+        return $this->hasMany(BuyerAgentInteraction::class);
+    }
+
+    /**
+     * Check whether this buyer has at least one recorded interaction with the given agent.
+     */
+    public function hasInteractedWith(int $agentId): bool
+    {
+        return $this->agentInteractions()->where('agent_id', $agentId)->exists();
+    }
+
+    /**
      * @return BelongsToMany<Property, $this>
      */
     public function savedProperties(): BelongsToMany
     {
         return $this->belongsToMany(Property::class, 'saved_properties', 'user_id', 'property_id')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<SavedSearch, $this>
+     */
+    public function savedSearches(): HasMany
+    {
+        return $this->hasMany(SavedSearch::class);
     }
 
     /**

@@ -45,6 +45,25 @@ class PropertyPurposeAndSellerLeadTest extends TestCase
             ->assertJsonPath('data.0.listing_purpose', 'rent');
     }
 
+    public function test_property_index_returns_both_sale_and_rent_listings_when_no_purpose_filter_applied(): void
+    {
+        $agent = Agent::factory()->create(['approval_status' => 'approved']);
+        Property::factory()->create([
+            'agent_id' => $agent->agent_id,
+            'listing_purpose' => 'sale',
+            'status' => 'Available',
+        ]);
+        Property::factory()->create([
+            'agent_id' => $agent->agent_id,
+            'listing_purpose' => 'rent',
+            'status' => 'Available',
+        ]);
+
+        $response = $this->getJson('/api/properties');
+        $response->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
     public function test_agent_create_and_update_accept_valid_listing_purpose_and_reject_invalid_values(): void
     {
         [$user] = $this->createApprovedAgent();

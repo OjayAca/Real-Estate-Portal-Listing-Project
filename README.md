@@ -42,10 +42,12 @@ Override it with `VITE_API_BASE_URL` if needed.
 
 - Public property browsing with filters.
 - Role-based authentication.
-- Buyer saved listings and email-based inquiry submission.
+- Buyer saved listings (with pagination) and email-based inquiry submission.
+- Restricted agent reviews (verified interaction required).
+- Saved searches with automated daily email alerts for new matching properties.
 - Agent listing management.
 - Admin user, agent, and property oversight.
-- Email notifications for status updates and inquiries.
+- Email notifications for status updates, inquiries, and saved search alerts.
 
 ## Verified locally
 

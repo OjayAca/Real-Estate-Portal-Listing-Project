@@ -3,7 +3,7 @@ import {
   PieChart, Pie, Cell,
   Legend
 } from 'recharts';
-import { TrendingUp, PieChart as PieChartIcon, Users, Home } from 'lucide-react';
+import { TrendingUp, PieChart as PieChartIcon, Users, Home, UserCheck } from 'lucide-react';
 
 const PIE_COLORS = ['#D4AF37', '#808080', '#A9A9A9', '#C0C0C0', '#4B5320'];
 
@@ -65,6 +65,8 @@ export default function AdminAnalytics({ analytics }) {
         {[
           { label: 'Total Registrations', value: totalUsers, icon: <Users size={20} />, trend: `+${growthRate}% vs prev month`, color: 'var(--primary-base)' },
           { label: 'Active Inventory', value: totalProperties, icon: <Home size={20} />, trend: 'Healthy Distribution', color: 'var(--brand-base)' },
+          { label: 'Pending Approvals', value: analytics.stats?.pending_approvals || 0, icon: <UserCheck size={20} />, trend: 'Needs Attention', color: 'var(--accent-base)' },
+          { label: 'Platform Reach', value: analytics.stats?.total_views || 0, icon: <TrendingUp size={20} />, trend: 'Total Views', color: '#10B981' },
         ].map((insight, i) => (
           <div key={i} className="section-panel admin-panel" style={{ 
             padding: '1.5rem', 

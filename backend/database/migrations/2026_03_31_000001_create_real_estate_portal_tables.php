@@ -48,7 +48,7 @@ return new class extends Migration
             $table->string('city', 100);
             $table->string('province', 100);
             $table->string('featured_image')->nullable();
-            $table->enum('status', ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'])->default('Available');
+            $table->enum('status', ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'])->default('Available');
             $table->timestamp('listed_at')->nullable();
             $table->timestamps();
             $table->index('city');

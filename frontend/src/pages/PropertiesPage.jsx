@@ -6,7 +6,7 @@ import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
 import ConfirmModal from '../components/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
-import { Search, Map, Filter, MessageSquare, ChevronLeft, ChevronRight, BedDouble, Bath, Car, SlidersHorizontal } from 'lucide-react';
+import { Search, Map, Filter, MessageSquare, ChevronLeft, ChevronRight, BedDouble, Bath, Car, SlidersHorizontal, Bookmark } from 'lucide-react';
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
 
@@ -46,18 +46,32 @@ const baseFilters = {
   bedrooms: '',
   bathrooms: '',
   parking_spaces: '',
-  amenity_id: '',
+  amenity_ids: [],
 };
 
 function readFiltersFromSearch(searchParams) {
-  return Object.fromEntries(
-    Object.keys(baseFilters).map((key) => [key, searchParams.get(key) || '']),
-  );
+  const filters = {};
+  Object.keys(baseFilters).forEach((key) => {
+    if (key === 'amenity_ids') {
+      const vals = searchParams.get('amenity_ids');
+      const legacyVal = searchParams.get('amenity_id');
+      if (vals) {
+        filters[key] = vals.split(',').filter(Boolean);
+      } else if (legacyVal) {
+        filters[key] = [legacyVal];
+      } else {
+        filters[key] = [];
+      }
+    } else {
+      filters[key] = searchParams.get(key) || '';
+    }
+  });
+  return filters;
 }
 
 export default function PropertiesPage({ mode = 'buy' }) {
   const config = MODE_CONFIG[mode] || MODE_CONFIG.buy;
-  const { user } = useAuth();
+  const { user, authFetch } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -74,6 +88,9 @@ export default function PropertiesPage({ mode = 'buy' }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmState, setConfirmState] = useState(null);
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState('');
+  const [saveSearchBusy, setSaveSearchBusy] = useState(false);
 
   useEffect(() => {
     const nextFilters = readFiltersFromSearch(new URLSearchParams(location.search));
@@ -152,7 +169,12 @@ export default function PropertiesPage({ mode = 'buy' }) {
   }, [config.listingPurpose, filters, page]);
 
   const canUseBuyerActions = useMemo(() => user?.role === 'user', [user]);
-  const appliedFilterCount = useMemo(() => Object.values(filters).filter(Boolean).length, [filters]);
+  const appliedFilterCount = useMemo(() => {
+    return Object.entries(filters).filter(([key, value]) => {
+      if (Array.isArray(value)) return value.length > 0;
+      return !!value;
+    }).length;
+  }, [filters]);
 
   const updateDraftFilter = (name, value) => {
     setDraftFilters((current) => ({ ...current, [name]: value }));
@@ -163,7 +185,11 @@ export default function PropertiesPage({ mode = 'buy' }) {
     startTransition(() => {
       const nextParams = new URLSearchParams();
       Object.entries(draftFilters).forEach(([key, value]) => {
-        if (value) nextParams.set(key, value);
+        if (key === 'amenity_ids') {
+          if (value.length > 0) nextParams.set('amenity_ids', value.join(','));
+        } else if (value) {
+          nextParams.set(key, value);
+        }
       });
       setPage(1);
       setSearchParams(nextParams, { replace: true });
@@ -177,6 +203,15 @@ export default function PropertiesPage({ mode = 'buy' }) {
       setDraftFilters(baseFilters);
       setFilters(baseFilters);
       setSearchParams({}, { replace: true });
+    });
+  };
+
+  const toggleAmenity = (id) => {
+    setDraftFilters((current) => {
+      const ids = current.amenity_ids.includes(String(id))
+        ? current.amenity_ids.filter((item) => item !== String(id))
+        : [...current.amenity_ids, String(id)];
+      return { ...current, amenity_ids: ids };
     });
   };
 
@@ -220,6 +255,37 @@ export default function PropertiesPage({ mode = 'buy' }) {
     }
 
     setContactProperty(property);
+  };
+
+  const saveCurrentSearch = async () => {
+    if (!saveSearchName.trim()) return;
+
+    setSaveSearchBusy(true);
+    try {
+      const activeFilters = {};
+
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) activeFilters[key] = value;
+      });
+
+      await authFetch('/saved-searches', {
+        method: 'POST',
+        body: {
+          name: saveSearchName.trim(),
+          filters: activeFilters,
+          listing_purpose: config.listingPurpose,
+          notify_email: false,
+        },
+      });
+
+      setMessage('Search saved! Manage alerts from Account Settings.');
+      setSaveSearchOpen(false);
+      setSaveSearchName('');
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setSaveSearchBusy(false);
+    }
   };
 
   return (
@@ -319,15 +385,21 @@ export default function PropertiesPage({ mode = 'buy' }) {
               </label>
             </div>
 
-            <label>
-              Amenities
-              <select value={draftFilters.amenity_id} onChange={(event) => updateDraftFilter('amenity_id', event.target.value)}>
-                <option value="">Any amenities</option>
+            <div className="filter-group">
+              <span className="filter-label">Amenities</span>
+              <div className="checkbox-grid">
                 {amenities.map((amenity) => (
-                  <option key={amenity.amenity_id} value={amenity.amenity_id}>{amenity.amenity_name}</option>
+                  <label key={amenity.amenity_id} className="checkbox-item">
+                    <input
+                      type="checkbox"
+                      checked={(draftFilters.amenity_ids || []).includes(String(amenity.amenity_id))}
+                      onChange={() => toggleAmenity(amenity.amenity_id)}
+                    />
+                    <span>{amenity.amenity_name}</span>
+                  </label>
                 ))}
-              </select>
-            </label>
+              </div>
+            </div>
 
             <div className="filter-actions">
               <button className="primary-button" type="submit">
@@ -347,6 +419,11 @@ export default function PropertiesPage({ mode = 'buy' }) {
               <h2>{config.title}</h2>
             </div>
             <span className="result-count">{meta.total || 0} matched{appliedFilterCount ? ` - ${appliedFilterCount} filters` : ''}</span>
+            {canUseBuyerActions && appliedFilterCount > 0 && (
+              <button className="ghost-button" type="button" onClick={() => setSaveSearchOpen(true)} style={{ marginLeft: '0.25rem' }}>
+                <Bookmark size={14} aria-hidden="true" /> Save Search
+              </button>
+            )}
           </div>
 
           {message ? <p className="inline-message animate-enter"><MessageSquare size={18} /> {message}</p> : null}
@@ -414,6 +491,32 @@ export default function PropertiesPage({ mode = 'buy' }) {
         onConfirm={confirmState?.onConfirm || (() => setConfirmState(null))}
         onCancel={() => setConfirmState(null)}
       />
+
+      {saveSearchOpen && (
+        <div className="modal-backdrop" onClick={() => setSaveSearchOpen(false)}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+            <h3>Save This Search</h3>
+            <p className="modal-subtext">Give your search a name so you can find it later.</p>
+            <label>
+              Name
+              <input
+                autoFocus
+                maxLength={100}
+                value={saveSearchName}
+                onChange={(event) => setSaveSearchName(event.target.value)}
+                placeholder="e.g. 3BR condos in Makati"
+                onKeyDown={(event) => { if (event.key === 'Enter') saveCurrentSearch(); }}
+              />
+            </label>
+            <div className="modal-actions">
+              <button className="primary-button" type="button" disabled={saveSearchBusy || !saveSearchName.trim()} onClick={saveCurrentSearch}>
+                {saveSearchBusy ? 'Saving...' : 'Save'}
+              </button>
+              <button className="ghost-button" type="button" onClick={() => setSaveSearchOpen(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

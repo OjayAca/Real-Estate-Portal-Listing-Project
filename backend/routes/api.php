@@ -10,6 +10,7 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/forgot-password', [PortalController::class, 'forgotPassword'])->middleware('throttle:auth');
     Route::post('/reset-password', [PortalController::class, 'resetPassword'])->middleware('throttle:auth');
     Route::get('/me', [PortalController::class, 'me']);
+    Route::get('/email/verify/{user}', [PortalController::class, 'verifyEmailUpdate'])->name('auth.email.verify');
 });
 
 Route::get('/amenities', [PortalController::class, 'amenitiesIndex']);
@@ -22,6 +23,8 @@ Route::post('/seller-leads', [PortalController::class, 'sellerLeadStore'])->midd
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/auth/logout', [PortalController::class, 'logout']);
     Route::patch('/auth/profile', [PortalController::class, 'updateProfile'])->middleware('throttle:strict');
+    Route::patch('/auth/password', [PortalController::class, 'updatePassword'])->middleware('throttle:strict');
+    Route::patch('/auth/email', [PortalController::class, 'requestEmailUpdate'])->middleware('throttle:strict');
     Route::get('/dashboard', [PortalController::class, 'dashboard'])->middleware(['role:agent,admin']);
 
     Route::middleware(['auth:sanctum', 'role:agent', 'throttle:api'])->prefix('agent')->group(function (): void {
@@ -46,6 +49,12 @@ Route::middleware(['auth:sanctum', 'role:user', 'throttle:api'])->group(function
     Route::post('/properties/{property}/inquiries', [PortalController::class, 'createInquiry'])->middleware('throttle:strict');
     Route::post('/agents/{agent}/inquiries', [AgentEcosystemController::class, 'createAgentInquiry'])->middleware('throttle:strict');
     Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing'])->middleware('throttle:strict');
+
+    Route::get('/saved-searches', [PortalController::class, 'savedSearchesIndex']);
+    Route::post('/saved-searches', [PortalController::class, 'savedSearchStore'])->middleware('throttle:strict');
+    Route::patch('/saved-searches/{savedSearch}', [PortalController::class, 'savedSearchUpdate'])->middleware('throttle:strict');
+    Route::put('/saved-searches/{savedSearch}/toggle-alert', [PortalController::class, 'savedSearchToggleAlert'])->middleware('throttle:strict');
+    Route::delete('/saved-searches/{savedSearch}', [PortalController::class, 'savedSearchDestroy'])->middleware('throttle:strict');
 });
 
 Route::middleware(['auth:sanctum', 'role:user,agent', 'throttle:api'])->group(function (): void {

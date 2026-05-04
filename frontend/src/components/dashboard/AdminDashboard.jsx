@@ -1,4 +1,4 @@
-import { Users, UserCheck, Building, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, UserCheck, Building, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
 import AdminAnalytics from './AdminAnalytics';
 
 export default function AdminDashboard({
@@ -13,10 +13,85 @@ export default function AdminDashboard({
   onPageChange
 }) {
   if (!adminOverview) return null;
+  const analyticsWithStats = { ...adminOverview.analytics, stats: adminOverview.stats };
 
   return (
     <>
-      {adminOverview.analytics && <AdminAnalytics analytics={adminOverview.analytics} />}
+      {adminOverview.analytics && <AdminAnalytics analytics={analyticsWithStats} />}
+
+      {(adminOverview.stats.pending_approvals > 0 || adminOverview.stats.pending_agents > 0) && (
+        <section className="section-panel admin-panel animate-enter" style={{ border: '2px solid var(--accent-base)', background: 'var(--accent-light)05' }}>
+          <div className="flex-row" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
+            <span style={{ background: 'var(--accent-base)', color: 'white', padding: '8px', borderRadius: '8px' }}>
+              <Building size={20} />
+            </span>
+            <div>
+              <h2 style={{ margin: 0 }}>Action Required</h2>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                You have {adminOverview.stats.pending_approvals} property status updates and {adminOverview.stats.pending_agents} agent applications awaiting review.
+              </p>
+            </div>
+          </div>
+
+          {adminOverview.pending_property_approvals?.length > 0 && (
+            <div className="table-stack" style={{ marginTop: '1rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+              <p className="eyebrow">Pending Property Status Updates</p>
+              {adminOverview.pending_property_approvals.map((property) => (
+                <div className="table-row" key={`pending-${property.property_id}`} style={{ padding: '1rem', background: 'var(--bg-surface)', borderRadius: '12px', marginBottom: '0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="flex-row" style={{ gap: '0.5rem' }}>
+                      <strong style={{ fontSize: '1rem' }}>{property.title}</strong>
+                      <span className={`chip status-pending`}>{property.status}</span>
+                    </div>
+                    <p style={{ margin: '4px 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Requested by <strong>{property.agent?.full_name || 'Unknown Agent'}</strong>
+                    </p>
+                    {property.status_logs?.length > 0 && property.status_logs[0].reason && (
+                      <p style={{ margin: '8px 0', padding: '8px', background: 'var(--accent-light)08', borderRadius: '6px', fontSize: '0.85rem', borderLeft: '3px solid var(--accent-base)' }}>
+                        <strong>Reason:</strong> {property.status_logs[0].reason}
+                      </p>
+                    )}
+                  </div>
+                  <div className="table-actions" style={{ gap: '0.5rem' }}>
+                    <button
+                      className="primary-button"
+                      style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                      onClick={() => openAdminConfirm({
+                        title: 'Approve Status Change',
+                        message: `Approve marking "${property.title}" as ${property.status.replace('Pending ', '')}?`,
+                        path: `/admin/properties/${property.property_id}`,
+                        body: { status: property.status.replace('Pending ', '') },
+                        tone: 'success',
+                        showInput: true,
+                        inputLabel: 'Approval Note (Optional)',
+                        inputPlaceholder: 'Add a note about this approval...'
+                      })}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="ghost-button"
+                      style={{ padding: '6px 12px', fontSize: '0.85rem', color: 'var(--status-danger)' }}
+                      onClick={() => openAdminConfirm({
+                        title: 'Reject Status Change',
+                        message: `Reject status change for "${property.title}"? It will revert to "Available".`,
+                        path: `/admin/properties/${property.property_id}`,
+                        body: { status: 'Available' },
+                        tone: 'danger',
+                        showInput: true,
+                        inputLabel: 'Rejection Reason',
+                        inputPlaceholder: 'Explain why this status change was rejected...'
+                      })}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="section-panel admin-panel animate-enter animate-delay-2">
         <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -181,25 +256,39 @@ export default function AdminDashboard({
             <div className="table-row" key={entry.property_id}>
               <div>
                 <strong>{entry.title}</strong>
-                <span>{entry.city}, {entry.province}</span>
+                <div className="flex-row" style={{ gap: '0.8rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <span>{entry.city}, {entry.province}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock3 size={12} /> {entry.views_count || 0} views
+                  </span>
+                </div>
               </div>
               <div className="table-actions">
                 <select
                   value={entry.status}
                   aria-label={`Update status for ${entry.title}`}
-                  onChange={(event) => openAdminConfirm({
-                    title: 'Update Property Status',
-                    message: `Change the status of "${entry.title}" to ${event.target.value}?`,
-                    path: `/admin/properties/${entry.property_id}`,
-                    body: { status: event.target.value },
-                    tone: 'warning',
-                  })}
+                  onChange={(event) => {
+                    const newStatus = event.target.value;
+                    const needsReason = ['Sold', 'Rented', 'Inactive'].includes(newStatus);
+                    openAdminConfirm({
+                      title: 'Update Property Status',
+                      message: `Change the status of "${entry.title}" to ${newStatus}?`,
+                      path: `/admin/properties/${entry.property_id}`,
+                      body: { status: newStatus },
+                      tone: 'warning',
+                      showInput: needsReason,
+                      inputLabel: 'Change Reason (Optional)',
+                      inputPlaceholder: 'Explain the reason for this manual status update...'
+                    });
+                  }}
                 >
                   <option value="Draft">Draft</option>
                   <option value="Available">Available</option>
                   <option value="Sold">Sold</option>
                   <option value="Rented">Rented</option>
                   <option value="Inactive">Inactive</option>
+                  <option value="Pending Sold">Pending Sold</option>
+                  <option value="Pending Rented">Pending Rented</option>
                 </select>
               </div>
             </div>

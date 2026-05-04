@@ -32,6 +32,7 @@ class Property extends Model
         'featured_image',
         'status',
         'listed_at',
+        'views_count',
     ];
 
     protected function casts(): array
@@ -39,6 +40,7 @@ class Property extends Model
         return [
             'listed_at' => 'datetime',
             'price' => 'decimal:2',
+            'views_count' => 'integer',
         ];
     }
 
@@ -56,5 +58,13 @@ class Property extends Model
     public function amenities(): BelongsToMany
     {
         return $this->belongsToMany(Amenity::class, 'property_amenities', 'property_id', 'amenity_id');
+    }
+
+    /**
+     * @return HasMany<PropertyStatusLog, $this>
+     */
+    public function statusLogs(): HasMany
+    {
+        return $this->hasMany(PropertyStatusLog::class, 'property_id', 'property_id');
     }
 }

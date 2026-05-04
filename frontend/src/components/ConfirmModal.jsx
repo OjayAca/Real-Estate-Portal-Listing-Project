@@ -1,24 +1,49 @@
-import { useEffect, useRef } from 'react';
-import { AlertTriangle, LogOut, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, LogOut, Trash2, X, CheckCircle } from 'lucide-react';
 
 const toneConfig = {
-  danger: { color: 'var(--tone-danger-color)', bg: 'var(--tone-danger-bg)', border: 'var(--tone-danger-border)', Icon: Trash2 },
-  warning: { color: 'var(--tone-warning-color)', bg: 'var(--tone-warning-bg)', border: 'var(--tone-warning-border)', Icon: AlertTriangle },
+  danger: { color: 'var(--status-danger)', bg: 'var(--status-danger)15', border: 'var(--status-danger)', Icon: Trash2 },
+  warning: { color: 'var(--status-warning)', bg: 'var(--status-warning)15', border: 'var(--status-warning)', Icon: AlertTriangle },
+  success: { color: 'var(--status-success)', bg: 'var(--status-success)15', border: 'var(--status-success)', Icon: CheckCircle },
 };
 
-export default function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', tone = 'danger' }) {
+export default function ConfirmModal({ 
+  isOpen, 
+  title, 
+  message, 
+  onConfirm, 
+  onCancel, 
+  confirmText = 'Confirm', 
+  tone = 'danger',
+  showInput = false,
+  inputPlaceholder = 'Reason...',
+  inputLabel = 'Reason'
+}) {
   const confirmRef = useRef(null);
   const cancelRef = useRef(null);
   const closeRef = useRef(null);
+  const inputRef = useRef(null);
+  const [inputValue, setInputValue] = useState('');
   const config = toneConfig[tone] || toneConfig.warning;
   const ToneIcon = config.Icon;
 
-  // Focus the confirm button when opened for keyboard accessibility
+  // Reset input when modal opens
   useEffect(() => {
-    if (isOpen && confirmRef.current) {
-      confirmRef.current.focus();
+    if (isOpen) {
+      setInputValue('');
     }
   }, [isOpen]);
+
+  // Focus the correct element when opened
+  useEffect(() => {
+    if (isOpen) {
+      if (showInput && inputRef.current) {
+        inputRef.current.focus();
+      } else if (confirmRef.current) {
+        confirmRef.current.focus();
+      }
+    }
+  }, [isOpen, showInput]);
 
   // Basic Focus Trap & Close on Escape
   useEffect(() => {
@@ -30,7 +55,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
       }
 
       if (e.key === 'Tab') {
-        const focusableElements = [closeRef.current, cancelRef.current, confirmRef.current].filter(Boolean);
+        const focusableElements = [closeRef.current, inputRef.current, cancelRef.current, confirmRef.current].filter(Boolean);
         const first = focusableElements[0];
         const last = focusableElements[focusableElements.length - 1];
 
@@ -84,7 +109,23 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
           </div>
 
           <h2 id="confirm-title" style={{ fontSize: '1.5rem', fontWeight: 300, marginBottom: '0.5rem' }}>{title}</h2>
-          <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', marginBottom: '2rem', fontWeight: 300, fontSize: '0.95rem' }}>{message}</p>
+          <p style={{ color: 'var(--text-muted)', lineHeight: '1.7', marginBottom: showInput ? '1.5rem' : '2rem', fontWeight: 300, fontSize: '0.95rem' }}>{message}</p>
+
+          {showInput && (
+            <div style={{ width: '100%', textAlign: 'left', marginBottom: '2rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
+                {inputLabel}
+              </label>
+              <textarea
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={inputPlaceholder}
+                rows={3}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-subtle)' }}
+              />
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
             <button ref={cancelRef} className="ghost-button" style={{ flex: 1, justifyContent: 'center' }} onClick={onCancel}>
@@ -94,7 +135,7 @@ export default function ConfirmModal({ isOpen, title, message, onConfirm, onCanc
               ref={confirmRef}
               className="primary-button"
               style={{ flex: 1, justifyContent: 'center', backgroundColor: config.color, borderColor: config.color }}
-              onClick={onConfirm}
+              onClick={() => onConfirm(inputValue)}
             >
               {confirmText}
             </button>

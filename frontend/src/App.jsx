@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import PropertiesPage from './pages/PropertiesPage';
 import SavedPropertiesPage from './pages/SavedPropertiesPage';
 import AccountSettingsPage from './pages/AccountSettingsPage';
+import SavedSearchesPage from './pages/SavedSearchesPage';
 import SellPage from './pages/SellPage';
 import { useAuth } from './context/AuthContext';
 
@@ -89,6 +90,14 @@ export default function App() {
               </BuyerRoute>
             )}
             path="/saved-properties"
+          />
+          <Route
+            element={(
+              <BuyerRoute>
+                <SavedSearchesPage />
+              </BuyerRoute>
+            )}
+            path="/saved-searches"
           />
           <Route
             element={(

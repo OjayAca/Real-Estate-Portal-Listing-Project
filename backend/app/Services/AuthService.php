@@ -3,15 +3,19 @@
 namespace App\Services;
 
 use App\Enums\UserRole;
+use App\Mail\VerifyEmailChangeMail;
 use App\Models\Agent;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -128,13 +132,11 @@ class AuthService
         if (! $user) {
             return response()->json([
                 'user' => null,
-                'unread_notifications' => 0,
             ]);
         }
 
         return response()->json([
             'user' => $this->portal->formatUser($user->load('agentProfile.agency')),
-            'unread_notifications' => $user->unreadNotifications()->count(),
         ]);
     }
 
@@ -144,18 +146,24 @@ class AuthService
             'first_name' => ['required', 'string', 'max:80'],
             'last_name' => ['required', 'string', 'max:80'],
             'phone' => ['nullable', 'string', 'max:20'],
+            'bio' => ['nullable', 'string'],
         ]);
         $validated['phone'] = filled($validated['phone'] ?? null) ? $validated['phone'] : null;
 
         $user = DB::transaction(function () use ($request, $validated): User {
             $user = $request->user()->load('agentProfile.agency');
-            $user->update($validated);
+            $user->update([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'phone' => $validated['phone'],
+            ]);
 
             if ($user->agentProfile) {
                 $user->agentProfile->update([
                     'first_name' => $validated['first_name'],
                     'last_name' => $validated['last_name'],
-                    'phone' => $validated['phone'] ?? null,
+                    'phone' => $validated['phone'],
+                    'bio' => $validated['bio'] ?? $user->agentProfile->bio,
                 ]);
             }
 
@@ -166,6 +174,62 @@ class AuthService
             'message' => 'Profile updated.',
             'user' => $this->portal->formatUser($user),
         ]);
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+        ]);
+
+        $request->user()->update([
+            'password' => $request->password,
+        ]);
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
+        ]);
+    }
+
+    public function requestEmailUpdate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'max:180', 'unique:users,email'],
+        ]);
+
+        $user = $request->user();
+        $newEmail = $request->email;
+
+        $verificationUrl = URL::temporarySignedRoute(
+            'auth.email.verify',
+            now()->addMinutes(60),
+            ['user' => $user->id, 'email' => $newEmail]
+        );
+
+        Mail::to($newEmail)->send(new VerifyEmailChangeMail($user, $newEmail, $verificationUrl));
+
+        return response()->json([
+            'message' => 'A verification email has been sent to '.$newEmail.'. Please click the link in the email to complete the update.',
+        ]);
+    }
+
+    public function verifyEmailUpdate(Request $request, User $user): RedirectResponse
+    {
+        if (! $request->hasValidSignature()) {
+            return redirect(config('app.frontend_url').'/account/settings?error=invalid_signature');
+        }
+
+        $newEmail = $request->email;
+
+        DB::transaction(function () use ($user, $newEmail): void {
+            $user->update(['email' => $newEmail]);
+            if ($user->agentProfile) {
+                $user->agentProfile->update(['email' => $newEmail]);
+            }
+        });
+
+        return redirect(config('app.frontend_url').'/account/settings?verified=1');
     }
 
     public function logout(Request $request): JsonResponse

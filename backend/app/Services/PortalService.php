@@ -14,6 +14,34 @@ class PortalService
 {
     use FormatsResources;
 
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
+    public function logStatusChange(Property $property, User $user, string $oldStatus, string $newStatus, ?string $reason = null): void
+    {
+        \App\Models\PropertyStatusLog::query()->create([
+            'property_id' => $property->property_id,
+            'user_id' => $user->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'reason' => $reason,
+        ]);
+
+        if (str_starts_with($newStatus, 'Pending')) {
+            $admins = User::query()->where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                $this->notifications->pushNotification(
+                    $admin,
+                    'property_status_change',
+                    'Property Status Change Request',
+                    "Agent {$user->full_name} has requested to mark property '{$property->title}' as " . str_replace('Pending ', '', $newStatus) . ".",
+                    ['property_id' => $property->property_id]
+                );
+            }
+        }
+    }
+
     public function amenitiesIndex(): JsonResponse
     {
         $amenities = Amenity::query()->orderBy('amenity_category')->orderBy('amenity_name')->get();

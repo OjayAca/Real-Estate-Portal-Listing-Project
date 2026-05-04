@@ -15,7 +15,7 @@ use Illuminate\Validation\Rule;
 class AdminService
 {
     private const AGENT_STATUSES = ['pending', 'approved', 'suspended'];
-    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive'];
+    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
 
     public function __construct(
         private readonly NotificationService $notifications,
@@ -28,9 +28,16 @@ class AdminService
         $agents = $this->getPaginatedAgents($request->query('agent_search'));
         $properties = $this->getPaginatedProperties($request->query('property_search'));
 
+        // Fetch properties awaiting status approval
+        $pendingApprovals = Property::query()
+            ->with(['agent.user', 'statusLogs.user'])
+            ->whereIn('status', ['Pending Sold', 'Pending Rented'])
+            ->get();
+
         return response()->json([
             'stats' => $this->getGeneralStats(),
             'analytics' => $this->getAnalyticsData(),
+            'pending_property_approvals' => $pendingApprovals->map(fn (Property $p) => $this->portal->formatProperty($p)),
             'users' => [
                 'data' => collect($users->items())->map(fn (User $user) => $this->portal->formatUser($user)),
                 'meta' => $this->formatPaginationMeta($users),
@@ -119,6 +126,8 @@ class AdminService
             'agents' => Agent::query()->count(),
             'available_properties' => Property::query()->where('status', 'Available')->count(),
             'pending_agents' => Agent::query()->where('approval_status', 'pending')->count(),
+            'pending_approvals' => Property::query()->whereIn('status', ['Pending Sold', 'Pending Rented'])->count(),
+            'total_views' => Property::query()->sum('views_count'),
         ];
     }
 
@@ -181,7 +190,15 @@ class AdminService
         ]);
 
         $property->loadMissing('agent.user', 'amenities');
-        $property->update(['status' => $validated['status']]);
+
+        DB::transaction(function () use ($property, $request, $validated): void {
+            $oldStatus = $property->status;
+            $property->update(['status' => $validated['status']]);
+
+            if ($validated['status'] !== $oldStatus) {
+                $this->portal->logStatusChange($property, $request->user(), $oldStatus, $validated['status'], $request->input('status_reason'));
+            }
+        });
 
         return response()->json([
             'message' => 'Property status updated.',

@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
 use App\Models\Property;
+use App\Models\SavedSearch;
 use App\Models\User;
 use App\Services\AdminService;
 use App\Services\AuthService;
 use App\Services\InquiryService;
 use App\Services\PortalService;
 use App\Services\PropertyService;
+use App\Services\SavedSearchService;
 use App\Services\SellerLeadService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class PortalController extends Controller
@@ -24,6 +27,7 @@ class PortalController extends Controller
         private readonly InquiryService $inquiryService,
         private readonly AdminService $adminService,
         private readonly SellerLeadService $sellerLeadService,
+        private readonly SavedSearchService $savedSearchService,
     ) {}
 
     public function amenitiesIndex(): JsonResponse
@@ -49,6 +53,21 @@ class PortalController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         return $this->authService->updateProfile($request);
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        return $this->authService->updatePassword($request);
+    }
+
+    public function requestEmailUpdate(Request $request): JsonResponse
+    {
+        return $this->authService->requestEmailUpdate($request);
+    }
+
+    public function verifyEmailUpdate(Request $request, User $user): RedirectResponse
+    {
+        return $this->authService->verifyEmailUpdate($request, $user);
     }
 
     public function logout(Request $request): JsonResponse
@@ -144,5 +163,30 @@ class PortalController extends Controller
     public function adminPropertyUpdate(Request $request, Property $property): JsonResponse
     {
         return $this->adminService->adminPropertyUpdate($request, $property);
+    }
+
+    public function savedSearchesIndex(Request $request): JsonResponse
+    {
+        return $this->savedSearchService->index($request);
+    }
+
+    public function savedSearchStore(Request $request): JsonResponse
+    {
+        return $this->savedSearchService->store($request);
+    }
+
+    public function savedSearchUpdate(Request $request, SavedSearch $savedSearch): JsonResponse
+    {
+        return $this->savedSearchService->update($request, $savedSearch);
+    }
+
+    public function savedSearchToggleAlert(Request $request, SavedSearch $savedSearch): JsonResponse
+    {
+        return $this->savedSearchService->toggleAlert($request, $savedSearch);
+    }
+
+    public function savedSearchDestroy(Request $request, SavedSearch $savedSearch): JsonResponse
+    {
+        return $this->savedSearchService->destroy($request, $savedSearch);
     }
 }

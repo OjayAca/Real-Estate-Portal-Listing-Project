@@ -18,7 +18,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiRequest('/properties?per_page=12&listing_purpose=sale')
+    apiRequest('/properties?per_page=12')
       .then((data) => setFeatured(data.data || []))
       .catch(() => setFeatured([]));
   }, []);
