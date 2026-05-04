@@ -26,6 +26,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::patch('/auth/password', [PortalController::class, 'updatePassword'])->middleware('throttle:strict');
     Route::patch('/auth/email', [PortalController::class, 'requestEmailUpdate'])->middleware('throttle:strict');
     Route::get('/dashboard', [PortalController::class, 'dashboard'])->middleware(['role:agent,admin']);
+    Route::get('/notifications', [PortalController::class, 'notificationsIndex']);
+    Route::post('/notifications/read-all', [PortalController::class, 'notificationsReadAll'])->middleware('throttle:strict');
+    Route::post('/notifications/{notification}/read', [PortalController::class, 'notificationRead'])->middleware('throttle:strict');
 
     Route::middleware(['auth:sanctum', 'role:agent', 'throttle:api'])->prefix('agent')->group(function (): void {
         Route::get('/properties', [PortalController::class, 'agentPropertiesIndex']);
@@ -37,8 +40,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::middleware(['auth:sanctum', 'role:admin', 'throttle:api'])->prefix('admin')->group(function (): void {
         Route::get('/overview', [PortalController::class, 'adminOverview']);
         Route::patch('/users/{user}', [PortalController::class, 'adminUserUpdate'])->middleware('throttle:strict');
+        Route::delete('/users/{user}', [PortalController::class, 'adminUserDestroy'])->middleware('throttle:strict');
         Route::patch('/agents/{agent}', [PortalController::class, 'adminAgentUpdate'])->middleware('throttle:strict');
         Route::patch('/properties/{property}', [PortalController::class, 'adminPropertyUpdate'])->middleware('throttle:strict');
+        Route::patch('/seller-leads/{sellerLead}', [PortalController::class, 'adminSellerLeadUpdate'])->middleware('throttle:strict');
     });
 });
 

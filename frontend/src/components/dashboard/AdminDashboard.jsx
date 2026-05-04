@@ -1,5 +1,25 @@
-import { Users, UserCheck, Building, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
+import { Users, UserCheck, Building, ChevronLeft, ChevronRight, Clock3, ClipboardList, Trash2 } from 'lucide-react';
 import AdminAnalytics from './AdminAnalytics';
+
+function formatMoney(value) {
+  if (value === null || value === undefined || value === '') return 'Not provided';
+
+  return new Intl.NumberFormat('en-PH', {
+    style: 'currency',
+    currency: 'PHP',
+    maximumFractionDigits: 0,
+  }).format(Number(value));
+}
+
+function formatDate(value) {
+  if (!value) return 'Not recorded';
+
+  return new Intl.DateTimeFormat('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
+}
 
 export default function AdminDashboard({
   adminOverview,
@@ -138,6 +158,28 @@ export default function AdminDashboard({
                 >
                   {entry.is_active ? 'Suspend Access' : 'Restore Access'}
                 </button>
+                <button
+                  className="ghost-button danger-button"
+                  aria-label={`Delete ${entry.full_name}`}
+                  disabled={entry.role === 'admin'}
+                  onClick={() => openAdminConfirm({
+                    title: 'Permanently Delete User',
+                    message: `This will permanently delete ${entry.full_name}'s account. This action cannot be undone.`,
+                    path: `/admin/users/${entry.id}`,
+                    body: {},
+                    method: 'DELETE',
+                    tone: 'danger',
+                    confirmText: 'Delete User',
+                    showInput: true,
+                    inputLabel: 'Deletion Confirmation',
+                    inputPlaceholder: `DELETE ${entry.email}`,
+                    requiredInputValue: `DELETE ${entry.email}`,
+                  })}
+                  type="button"
+                >
+                  <Trash2 size={15} aria-hidden="true" />
+                  Delete
+                </button>
               </div>
             </div>
           ))}
@@ -157,6 +199,115 @@ export default function AdminDashboard({
               className="ghost-button" 
               disabled={adminOverview.users.meta.current_page === adminOverview.users.meta.last_page}
               onClick={() => onPageChange('users', adminOverview.users.meta.current_page + 1)}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      </section>
+
+      <section className="section-panel admin-panel animate-enter">
+        <div className="flex-row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          <div>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><ClipboardList size={14} aria-hidden="true" /> Seller Leads</p>
+            <h2 style={{ margin: 0 }}>Seller Lead Management</h2>
+          </div>
+        </div>
+
+        {adminOverview.seller_leads.data.length === 0 ? (
+          <p className="empty-copy">No seller leads have been submitted yet.</p>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-data-table">
+              <thead>
+                <tr>
+                  <th>Submitter</th>
+                  <th>Property</th>
+                  <th>Type</th>
+                  <th>Condition</th>
+                  <th>Expected Price</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                  <th>Assigned Agent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminOverview.seller_leads.data.map((lead) => (
+                  <tr key={lead.seller_lead_id}>
+                    <td>
+                      <strong>{lead.full_name}</strong>
+                      <span>{lead.email}</span>
+                      <span>{lead.phone}</span>
+                    </td>
+                    <td>{lead.property_address}</td>
+                    <td>{lead.property_type}</td>
+                    <td>{lead.condition_of_home}</td>
+                    <td>{formatMoney(lead.expected_price)}</td>
+                    <td>{formatDate(lead.created_at)}</td>
+                    <td>
+                      <select
+                        aria-label={`Update seller lead status for ${lead.full_name}`}
+                        value={lead.status}
+                        onChange={(event) => openAdminConfirm({
+                          title: 'Update Seller Lead Status',
+                          message: `Change ${lead.full_name}'s seller lead status to ${event.target.value}?`,
+                          path: `/admin/seller-leads/${lead.seller_lead_id}`,
+                          body: { status: event.target.value },
+                          tone: 'warning',
+                        })}
+                      >
+                        <option value="New">New</option>
+                        <option value="Contacted">Contacted</option>
+                        <option value="Converted">Converted</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        aria-label={`Assign seller lead from ${lead.full_name}`}
+                        value={lead.assigned_agent_id || ''}
+                        onChange={(event) => {
+                          const selectedAgentId = event.target.value ? Number(event.target.value) : null;
+                          const selectedAgent = adminOverview.assignable_agents.find((agent) => agent.agent_id === selectedAgentId);
+                          openAdminConfirm({
+                            title: 'Assign Seller Lead',
+                            message: selectedAgent
+                              ? `Assign ${lead.full_name}'s seller lead to ${selectedAgent.full_name}?`
+                              : `Clear the agent assignment for ${lead.full_name}'s seller lead?`,
+                            path: `/admin/seller-leads/${lead.seller_lead_id}`,
+                            body: { assigned_agent_id: selectedAgentId },
+                            tone: 'warning',
+                          });
+                        }}
+                      >
+                        <option value="">Unassigned</option>
+                        {adminOverview.assignable_agents.map((agent) => (
+                          <option key={agent.agent_id} value={agent.agent_id}>
+                            {agent.full_name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {adminOverview.seller_leads.meta.last_page > 1 && (
+          <div className="pager-row" style={{ marginTop: '2rem' }}>
+            <button
+              className="ghost-button"
+              disabled={adminOverview.seller_leads.meta.current_page === 1}
+              onClick={() => onPageChange('seller_leads', adminOverview.seller_leads.meta.current_page - 1)}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span>{adminOverview.seller_leads.meta.current_page} / {adminOverview.seller_leads.meta.last_page}</span>
+            <button
+              className="ghost-button"
+              disabled={adminOverview.seller_leads.meta.current_page === adminOverview.seller_leads.meta.last_page}
+              onClick={() => onPageChange('seller_leads', adminOverview.seller_leads.meta.current_page + 1)}
             >
               <ChevronRight size={16} />
             </button>

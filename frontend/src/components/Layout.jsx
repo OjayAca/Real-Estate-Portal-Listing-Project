@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from './ConfirmModal';
+import NotificationCenter from './NotificationCenter';
 import UserDropdown from './UserDropdown';
 import { CodeSquare, Heart, Menu, X } from 'lucide-react';
 
@@ -105,11 +106,14 @@ export default function Layout() {
           ) : null}
 
           {user ? (
-            <UserDropdown
-              user={user}
-              onLogout={() => setShowLogoutConfirm(true)}
-              userStatusLabel={getUserStatusLabel(user)}
-            />
+            <>
+              <NotificationCenter onNavigate={closeMenu} />
+              <UserDropdown
+                user={user}
+                onLogout={() => setShowLogoutConfirm(true)}
+                userStatusLabel={getUserStatusLabel(user)}
+              />
+            </>
           ) : (
             <>
               <NavLink className="text-link" to="/login" onClick={closeMenu} style={{ textTransform: 'none', fontWeight: 600, fontSize: '1rem', color: '#333' }}>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SellerLead extends Model
 {
@@ -24,6 +25,8 @@ class SellerLead extends Model
         'condition_of_home',
         'expected_price',
         'notes',
+        'assigned_agent_id',
+        'status',
     ];
 
     protected function casts(): array
@@ -35,5 +38,13 @@ class SellerLead extends Model
             'bedrooms' => 'integer',
             'bathrooms' => 'integer',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Agent, $this>
+     */
+    public function assignedAgent(): BelongsTo
+    {
+        return $this->belongsTo(Agent::class, 'assigned_agent_id', 'agent_id');
     }
 }

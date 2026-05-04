@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Agent;
 use App\Models\Property;
+use App\Models\SellerLead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -96,6 +97,44 @@ class AdminDashboardSearchTest extends TestCase
         $this->assertTrue($targetAdmin->fresh()->is_active);
     }
 
+    public function test_admin_can_permanently_delete_user_with_exact_confirmation(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'user', 'email' => 'spam@example.com']);
+
+        $this->actingAs($admin)->deleteJson("/api/admin/users/{$user->id}", [
+            'confirmation' => 'DELETE wrong@example.com',
+        ])->assertStatus(422);
+
+        $response = $this->actingAs($admin)->deleteJson("/api/admin/users/{$user->id}", [
+            'confirmation' => 'DELETE spam@example.com',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('message', 'User permanently deleted.');
+
+        $this->assertDatabaseMissing('users', [
+            'id' => $user->id,
+        ]);
+    }
+
+    public function test_admin_accounts_cannot_be_deleted(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $targetAdmin = User::factory()->create(['role' => 'admin', 'email' => 'owner@example.com']);
+
+        $response = $this->actingAs($admin)->deleteJson("/api/admin/users/{$targetAdmin->id}", [
+            'confirmation' => 'DELETE owner@example.com',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('message', 'Administrator accounts cannot be deleted.');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetAdmin->id,
+        ]);
+    }
+
     public function test_admin_can_search_properties_by_title_or_location(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -143,5 +182,47 @@ class AdminDashboardSearchTest extends TestCase
         $response = $this->actingAs($admin)->getJson('/api/admin/overview?property_search=Cebu');
         $response->assertJsonCount(1, 'properties.data');
         $response->assertJsonPath('properties.data.0.title', 'Beach Condo');
+    }
+
+    public function test_admin_can_view_assign_and_track_seller_leads(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $agent = Agent::factory()->create(['approval_status' => 'approved']);
+        $lead = SellerLead::query()->create([
+            'full_name' => 'Lara Santos',
+            'email' => 'lara@example.com',
+            'phone' => '09171234567',
+            'property_type' => 'House',
+            'property_address' => '18 Mango Street, Makati, Metro Manila',
+            'bedrooms' => 3,
+            'bathrooms' => 2,
+            'condition_of_home' => 'Good - well maintained, minor cosmetic needs',
+            'expected_price' => 7200000,
+            'status' => 'New',
+        ]);
+
+        $overview = $this->actingAs($admin)->getJson('/api/admin/overview');
+
+        $overview->assertOk()
+            ->assertJsonPath('seller_leads.data.0.full_name', 'Lara Santos')
+            ->assertJsonPath('seller_leads.data.0.property_address', '18 Mango Street, Makati, Metro Manila')
+            ->assertJsonPath('seller_leads.data.0.status', 'New')
+            ->assertJsonPath('assignable_agents.0.agent_id', $agent->agent_id);
+
+        $response = $this->actingAs($admin)->patchJson("/api/admin/seller-leads/{$lead->seller_lead_id}", [
+            'status' => 'Contacted',
+            'assigned_agent_id' => $agent->agent_id,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('message', 'Seller lead updated.')
+            ->assertJsonPath('data.status', 'Contacted')
+            ->assertJsonPath('data.assigned_agent.agent_id', $agent->agent_id);
+
+        $this->assertDatabaseHas('seller_leads', [
+            'seller_lead_id' => $lead->seller_lead_id,
+            'status' => 'Contacted',
+            'assigned_agent_id' => $agent->agent_id,
+        ]);
     }
 }

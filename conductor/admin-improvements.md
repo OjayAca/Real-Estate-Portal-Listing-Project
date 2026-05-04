@@ -1,7 +1,6 @@
 Admin Account
 
-1. Build a seller leads management panel. The Sell page collects detailed property submissions and sends them via email, but there is no admin UI to see these leads. The admin needs a table listing all submitted seller leads with the submitter name, property address, type, condition, expected price, and submission date. Leads should be assignable to an agent and trackable with a status like New, Contacted, or Converted.
-2. Add admin ability to delete users. Currently the only options are Suspend and Restore. Permanent deletion is a necessary tool for removing spam accounts, test accounts, or users who request data erasure. It should be behind a strong confirmation to prevent accidents.
+
 3. Add amenity management for admins. There is no interface to add, rename, or archive amenity types. If a new amenity category becomes relevant, it currently requires a direct database change. A simple CRUD panel for amenities is low-effort and gives the admin real control over the property data taxonomy.
 4. Add filters and prioritization to the admin property panel. The property status review section shows all properties with no way to filter by status. The admin should be able to quickly surface only Draft listings, only Available listings, or only flagged content. Sorting by date added would also help.
 5. Add admin ability to edit agent profiles. Currently admins can only change an agent's approval status. If an agent has incorrect information — a wrong license number, outdated agency name, or invalid contact details — the admin has no way to fix it. A basic edit form accessible from the agent row in the admin panel is needed.

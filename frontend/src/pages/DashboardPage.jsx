@@ -55,13 +55,13 @@ export default function DashboardPage() {
   const [userSearch, setUserSearch] = useState('');
   const [agentSearch, setAgentSearch] = useState('');
   const [propertySearch, setPropertySearch] = useState('');
-  const [adminPages, setAdminPages] = useState({ users: 1, agents: 1, properties: 1 });
+  const [adminPages, setAdminPages] = useState({ users: 1, agents: 1, properties: 1, seller_leads: 1 });
 
   const deferredUserSearch = useDeferredValue(userSearch);
   const deferredAgentSearch = useDeferredValue(agentSearch);
   const deferredPropertySearch = useDeferredValue(propertySearch);
 
-  const loadAdminOverview = useCallback(async (uSearch = '', aSearch = '', pSearch = '', pages = { users: 1, agents: 1, properties: 1 }) => {
+  const loadAdminOverview = useCallback(async (uSearch = '', aSearch = '', pSearch = '', pages = { users: 1, agents: 1, properties: 1, seller_leads: 1 }) => {
     try {
       const params = new URLSearchParams();
       if (uSearch) params.append('user_search', uSearch);
@@ -70,6 +70,7 @@ export default function DashboardPage() {
       params.append('users_page', String(pages.users));
       params.append('agents_page', String(pages.agents));
       params.append('properties_page', String(pages.properties));
+      params.append('seller_leads_page', String(pages.seller_leads));
 
       const overview = await authFetch(`/admin/overview?${params.toString()}`);
       setAdminOverview(overview);
@@ -172,12 +173,12 @@ export default function DashboardPage() {
     };
   }, [authFetch, isApprovedAgent]);
 
-  const updateAdminRecord = async (path, body, reason = null) => {
+  const updateAdminRecord = async (path, body, reason = null, method = 'PATCH') => {
     const finalBody = { ...body };
     if (reason) {
       finalBody.status_reason = reason;
     }
-    const data = await authFetch(path, { method: 'PATCH', body: finalBody });
+    const data = await authFetch(path, { method, body: finalBody });
     setMessage(data.message);
     if (user?.role === 'admin') {
       const [nextDashboard] = await Promise.all([
@@ -188,7 +189,19 @@ export default function DashboardPage() {
     }
   };
 
-  const openAdminConfirm = ({ body, message: confirmMessage, path, title, tone = 'warning', showInput = false, inputPlaceholder, inputLabel }) => {
+  const openAdminConfirm = ({
+    body,
+    message: confirmMessage,
+    path,
+    title,
+    tone = 'warning',
+    showInput = false,
+    inputPlaceholder,
+    inputLabel,
+    confirmText,
+    method = 'PATCH',
+    requiredInputValue,
+  }) => {
     setConfirmState({
       title,
       message: confirmMessage,
@@ -196,9 +209,12 @@ export default function DashboardPage() {
       showInput,
       inputPlaceholder,
       inputLabel,
+      confirmText,
+      requiredInputValue,
       onConfirm: async (reason) => {
         try {
-          await updateAdminRecord(path, body, reason);
+          const requestBody = requiredInputValue ? { ...body, confirmation: reason } : body;
+          await updateAdminRecord(path, requestBody, requiredInputValue ? null : reason, method);
         } finally {
           setConfirmState(null);
         }
@@ -444,6 +460,7 @@ export default function DashboardPage() {
         inputPlaceholder={confirmState?.inputPlaceholder}
         inputLabel={confirmState?.inputLabel}
         confirmText={confirmState?.confirmText}
+        requiredInputValue={confirmState?.requiredInputValue}
         onConfirm={confirmState?.onConfirm || (() => setConfirmState(null))}
         onCancel={() => setConfirmState(null)}
       />

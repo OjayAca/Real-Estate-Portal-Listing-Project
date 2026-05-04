@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Mail;
 
 class InquiryService
 {
+    public function __construct(
+        private readonly NotificationService $notifications,
+    ) {}
+
     public function createInquiry(Request $request, Property $property): JsonResponse
     {
         if ($property->status !== 'Available') {
@@ -28,7 +32,7 @@ class InquiryService
 
         $user = $request->user();
         $property->loadMissing('agent.user');
-        
+
         $buyerData = [
             'buyer_name' => trim((string) ($validated['buyer_name'] ?? '')) ?: $user->full_name,
             'buyer_email' => trim((string) ($validated['buyer_email'] ?? '')) ?: $user->email,
@@ -38,6 +42,20 @@ class InquiryService
 
         if ($property->agent?->email) {
             Mail::to($property->agent->email)->send(new PropertyInquiryMail($property, $buyerData));
+        }
+
+        if ($property->agent?->user) {
+            $this->notifications->pushNotification(
+                $property->agent->user,
+                'property_inquiry_received',
+                'New Property Inquiry',
+                "{$buyerData['buyer_name']} asked about '{$property->title}'.",
+                [
+                    'property_id' => $property->property_id,
+                    'buyer_name' => $buyerData['buyer_name'],
+                    'action_url' => '/dashboard',
+                ],
+            );
         }
 
         if ($property->agent) {
@@ -67,7 +85,7 @@ class InquiryService
         ]);
 
         $user = $request->user();
-        
+
         $buyerData = [
             'buyer_name' => trim((string) ($validated['full_name'] ?? '')) ?: $user->full_name,
             'buyer_email' => trim((string) ($validated['email'] ?? '')) ?: $user->email,
@@ -77,6 +95,21 @@ class InquiryService
 
         if ($agent->email) {
             Mail::to($agent->email)->send(new AgentInquiryMail($agent, $buyerData));
+        }
+
+        $agent->loadMissing('user');
+        if ($agent->user) {
+            $this->notifications->pushNotification(
+                $agent->user,
+                'agent_inquiry_received',
+                'New Agent Inquiry',
+                "{$buyerData['buyer_name']} sent you a message.",
+                [
+                    'agent_id' => $agent->agent_id,
+                    'buyer_name' => $buyerData['buyer_name'],
+                    'action_url' => '/dashboard',
+                ],
+            );
         }
 
         BuyerAgentInteraction::firstOrCreate([

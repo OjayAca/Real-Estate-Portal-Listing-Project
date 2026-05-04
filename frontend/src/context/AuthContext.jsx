@@ -53,6 +53,11 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const forgotPassword = useCallback((payload) => apiRequest('/forgot-password', {
+    method: 'POST',
+    body: payload,
+  }), []);
+
   const logout = useCallback(async () => {
     await apiRequest('/auth/logout', {
       method: 'POST',
@@ -67,6 +72,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       authFetch,
+      forgotPassword,
       loading,
       login,
       logout,
@@ -74,7 +80,7 @@ export function AuthProvider({ children }) {
       user,
       setUser,
     }),
-    [authFetch, loading, login, logout, register, user],
+    [authFetch, forgotPassword, loading, login, logout, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

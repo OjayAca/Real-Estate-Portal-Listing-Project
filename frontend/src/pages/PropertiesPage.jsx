@@ -170,7 +170,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
 
   const canUseBuyerActions = useMemo(() => user?.role === 'user', [user]);
   const appliedFilterCount = useMemo(() => {
-    return Object.entries(filters).filter(([key, value]) => {
+    return Object.values(filters).filter((value) => {
       if (Array.isArray(value)) return value.length > 0;
       return !!value;
     }).length;

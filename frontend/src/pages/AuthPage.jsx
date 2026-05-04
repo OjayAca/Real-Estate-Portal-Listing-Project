@@ -19,10 +19,15 @@ const initialState = {
 export default function AuthPage({ mode }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { forgotPassword, login, register } = useAuth();
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotBusy, setForgotBusy] = useState(false);
 
   const fromLocation = location.state?.from;
 
@@ -43,6 +48,48 @@ export default function AuthPage({ mode }) {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const openForgotPassword = () => {
+    setForgotOpen(true);
+    setForgotEmail((current) => current || form.email);
+    setForgotError('');
+    setForgotMessage('');
+  };
+
+  const handleForgotEmailChange = (event) => {
+    setForgotEmail(event.target.value);
+    setForgotError('');
+    setForgotMessage('');
+  };
+
+  const handleForgotSubmit = async () => {
+    const email = forgotEmail.trim();
+
+    if (!email) {
+      setForgotError('Enter the email address for your account.');
+      return;
+    }
+
+    setForgotBusy(true);
+    setForgotError('');
+    setForgotMessage('');
+
+    try {
+      const response = await forgotPassword({ email });
+      setForgotMessage(response.message || 'Password reset instructions have been sent.');
+    } catch (forgotPasswordError) {
+      setForgotError(forgotPasswordError.message);
+    } finally {
+      setForgotBusy(false);
+    }
+  };
+
+  const handleForgotKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleForgotSubmit();
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -151,6 +198,42 @@ export default function AuthPage({ mode }) {
               </div>
             ) : null}
           </div>
+
+          {mode === 'login' ? (
+            <div className="forgot-password-block">
+              <button
+                aria-controls="forgot-password-panel"
+                aria-expanded={forgotOpen}
+                className="text-button forgot-password-link"
+                onClick={openForgotPassword}
+                type="button"
+              >
+                Forgot your password?
+              </button>
+
+              {forgotOpen ? (
+                <div className="forgot-password-panel animate-enter" id="forgot-password-panel">
+                  <label htmlFor="forgot_email">Recovery Email</label>
+                  <div className="forgot-password-actions">
+                    <input
+                      id="forgot_email"
+                      name="forgot_email"
+                      onChange={handleForgotEmailChange}
+                      onKeyDown={handleForgotKeyDown}
+                      placeholder="name@domain.com"
+                      type="email"
+                      value={forgotEmail}
+                    />
+                    <button className="ghost-button" disabled={forgotBusy} onClick={handleForgotSubmit} type="button">
+                      {forgotBusy ? 'Sending...' : 'Send Reset Link'}
+                    </button>
+                  </div>
+                  {forgotError ? <p className="form-error compact-message" role="alert" aria-live="assertive">{forgotError}</p> : null}
+                  {forgotMessage ? <p className="form-success compact-message" role="status" aria-live="polite">{forgotMessage}</p> : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {error ? <p className="form-error animate-enter" role="alert" aria-live="assertive">{error}</p> : null}
 

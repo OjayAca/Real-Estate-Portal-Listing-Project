@@ -12,6 +12,7 @@ class PropertyStatusNotification extends Notification
     use Queueable;
 
     public function __construct(
+        private readonly string $notificationType,
         private readonly string $title,
         private readonly string $message,
         private readonly array $context = []
@@ -19,7 +20,7 @@ class PropertyStatusNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return Schema::hasTable('notifications') ? ['database', 'mail'] : ['mail'];
+        return Schema::hasTable('notifications') ? ['database'] : ['mail'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -33,6 +34,7 @@ class PropertyStatusNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return array_merge([
+            'notification_type' => $this->notificationType,
             'title' => $this->title,
             'message' => $this->message,
         ], $this->context);

@@ -6,6 +6,7 @@ use App\Models\Agency;
 use App\Models\Agent;
 use App\Models\Amenity;
 use App\Models\Property;
+use App\Models\SellerLead;
 use App\Models\User;
 use App\Support\ImageUrlResolver;
 
@@ -99,6 +100,31 @@ trait FormatsResources
                     'user_name' => $log->user?->full_name,
                 ])->values()
                 : [],
+        ];
+    }
+
+    public function formatSellerLead(SellerLead $lead): array
+    {
+        return [
+            'seller_lead_id' => $lead->seller_lead_id,
+            'full_name' => $lead->full_name,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'property_type' => $lead->property_type,
+            'property_address' => $lead->property_address,
+            'bedrooms' => $lead->bedrooms,
+            'bathrooms' => $lead->bathrooms,
+            'home_size' => $lead->home_size !== null ? (float) $lead->home_size : null,
+            'lot_size' => $lead->lot_size !== null ? (float) $lead->lot_size : null,
+            'condition_of_home' => $lead->condition_of_home,
+            'expected_price' => $lead->expected_price !== null ? (float) $lead->expected_price : null,
+            'notes' => $lead->notes,
+            'status' => $lead->status,
+            'assigned_agent_id' => $lead->assigned_agent_id,
+            'assigned_agent' => $lead->relationLoaded('assignedAgent') && $lead->assignedAgent
+                ? $this->formatAgent($lead->assignedAgent)
+                : null,
+            'created_at' => optional($lead->created_at)->toIso8601String(),
         ];
     }
 }

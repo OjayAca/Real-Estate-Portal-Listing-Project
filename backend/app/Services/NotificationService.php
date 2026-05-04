@@ -2,11 +2,10 @@
 
 namespace App\Services;
 
-use App\Mail\StatusUpdateMail;
 use App\Models\User;
+use App\Notifications\PropertyStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -18,7 +17,7 @@ class NotificationService
         return response()->json([
             'data' => $notifications->map(fn ($n) => [
                 'id' => $n->id,
-                'type' => $n->type,
+                'type' => $n->data['notification_type'] ?? $n->type,
                 'data' => $n->data,
                 'read_at' => $n->read_at ? $n->read_at->toIso8601String() : null,
                 'created_at' => $n->created_at->toIso8601String(),
@@ -44,6 +43,6 @@ class NotificationService
 
     public function pushNotification(User $user, string $type, string $title, string $message, array $context = []): void
     {
-        $user->notify(new \App\Notifications\PropertyStatusNotification($title, $message, $context));
+        $user->notify(new PropertyStatusNotification($type, $title, $message, $context));
     }
 }

@@ -10,28 +10,9 @@ import {
   LockKeyhole,
   Palette,
   Search,
-  ShieldCheck,
   Trash2,
   UserRound,
 } from 'lucide-react';
-
-const unavailableGroups = [
-  {
-    title: 'Security Settings',
-    icon: LockKeyhole,
-    fields: ['Two-factor authentication'],
-  },
-  {
-    title: 'Social Connections',
-    icon: ShieldCheck,
-    fields: ['Google sign-in', 'Facebook sign-in'],
-  },
-  {
-    title: 'Communication',
-    icon: Contact,
-    fields: ['Preferred contact method', 'Assigned agent info', 'Language fluency'],
-  },
-];
 
 function createForm(user) {
   return {

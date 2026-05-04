@@ -1845,6 +1845,63 @@ img.agent-inquiry-image {
   border-radius: var(--radius-pill);
 }
 
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--input-bg);
+}
+
+.admin-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+
+.admin-data-table th,
+.admin-data-table td {
+  padding: 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.admin-data-table th {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--input-bg);
+}
+
+.admin-data-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-data-table strong,
+.admin-data-table span {
+  display: block;
+}
+
+.admin-data-table strong {
+  color: var(--text-main);
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.admin-data-table span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.admin-data-table select {
+  min-width: 150px;
+  margin: 0;
+  padding: 0.6rem 2rem 0.6rem 0.9rem;
+}
+
 /* Dashboard Panel */
 .dashboard-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2435,6 +2492,54 @@ img.agent-inquiry-image {
   color: var(--brand-hover);
 }
 
+.forgot-password-block {
+  margin-top: 1rem;
+  text-align: right;
+}
+
+.forgot-password-link {
+  color: var(--brand-base);
+  letter-spacing: 0;
+}
+
+.forgot-password-link:hover {
+  color: var(--brand-hover);
+}
+
+.forgot-password-panel {
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.forgot-password-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.forgot-password-actions .ghost-button {
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.form-success {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  background: var(--status-success);
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-md);
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.compact-message {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  font-size: 0.9rem;
+}
+
 .form-error {
   color: #fff;
   font-size: 1rem;
@@ -2484,8 +2589,6 @@ img.agent-inquiry-image {
   box-shadow: var(--shadow-xl);
   z-index: 100;
   transform-origin: top right;
-  animation: scale-in var(--transition-fast);
-  backdrop-filter: blur(24px);
 }
 
 .notification-header {
@@ -2496,11 +2599,35 @@ img.agent-inquiry-image {
 }
 
 .notification-header h3 {
-  margin: 0;
+  margin: 0.15rem 0 0;
   font-size: 1.1rem;
   font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+}
+
+.notification-trigger-active {
+  border-color: var(--primary-base);
+  color: var(--primary-base);
+  background: var(--primary-light);
+}
+
+.notification-read-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--input-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+}
+
+.notification-read-all:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .notification-list {
@@ -2540,13 +2667,65 @@ img.agent-inquiry-image {
   font-weight: 300;
 }
 
+.notification-title-row,
+.notification-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.notification-title-row strong {
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.notification-unread-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--primary-base);
+}
+
+.notification-meta-row {
+  margin-top: 1rem;
+}
+
+.notification-type {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
 .notification-item-time {
   font-size: 0.8rem;
   color: var(--primary-base);
-  margin-top: 1rem;
   display: block;
-  letter-spacing: 0.05em;
   font-weight: 400;
+  white-space: nowrap;
+}
+
+.notification-empty,
+.notification-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.notification-error {
+  justify-content: flex-start;
+  color: var(--tone-danger-color);
+  background: var(--tone-danger-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
 }
 
 .notification-popup {
@@ -3222,6 +3401,7 @@ img.agent-inquiry-image {
   }
 
   .two-up,
+  .forgot-password-actions,
   .detail-grid {
     grid-template-columns: 1fr;
   }

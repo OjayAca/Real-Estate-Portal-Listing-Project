@@ -18,6 +18,7 @@ class AgentEcosystemService
 {
     public function __construct(
         private readonly InquiryService $inquiryService,
+        private readonly NotificationService $notifications,
     ) {}
 
     public function agentsIndex(Request $request): JsonResponse
@@ -113,7 +114,7 @@ class AgentEcosystemService
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $property->loadMissing('agent');
+        $property->loadMissing('agent.user');
         $agent = $property->agent;
 
         if (! $agent || ! $agent->isApproved()) {
@@ -131,6 +132,21 @@ class AgentEcosystemService
 
         if ($agent->email) {
             Mail::to($agent->email)->send(new ViewingRequestMail($property, $buyerData));
+        }
+
+        if ($agent->user) {
+            $this->notifications->pushNotification(
+                $agent->user,
+                'viewing_request_received',
+                'Viewing Request Received',
+                "{$buyerData['buyer_name']} requested a viewing for '{$property->title}'.",
+                [
+                    'property_id' => $property->property_id,
+                    'buyer_name' => $buyerData['buyer_name'],
+                    'scheduled_start' => $buyerData['scheduled_start'],
+                    'action_url' => '/dashboard',
+                ],
+            );
         }
 
         BuyerAgentInteraction::firstOrCreate([
@@ -174,6 +190,22 @@ class AgentEcosystemService
                 'review_text' => $validated['review_text'] ?? null,
             ],
         );
+
+        $agent->loadMissing('user');
+        if ($agent->user) {
+            $this->notifications->pushNotification(
+                $agent->user,
+                'agent_review_received',
+                'New Review Received',
+                "{$user->full_name} left you a {$validated['rating']}-star review.",
+                [
+                    'agent_id' => $agent->agent_id,
+                    'review_id' => $review->review_id,
+                    'rating' => $validated['rating'],
+                    'action_url' => "/agents/{$agent->agent_id}",
+                ],
+            );
+        }
 
         return response()->json([
             'message' => 'Agent review saved.',

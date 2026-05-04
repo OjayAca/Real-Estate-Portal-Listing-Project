@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Agent;
 use App\Models\Property;
 use App\Models\SavedSearch;
+use App\Models\SellerLead;
 use App\Models\User;
 use App\Services\AdminService;
 use App\Services\AuthService;
 use App\Services\InquiryService;
+use App\Services\NotificationService;
 use App\Services\PortalService;
 use App\Services\PropertyService;
 use App\Services\SavedSearchService;
@@ -28,6 +30,7 @@ class PortalController extends Controller
         private readonly AdminService $adminService,
         private readonly SellerLeadService $sellerLeadService,
         private readonly SavedSearchService $savedSearchService,
+        private readonly NotificationService $notificationService,
     ) {}
 
     public function amenitiesIndex(): JsonResponse
@@ -105,6 +108,21 @@ class PortalController extends Controller
         return $this->portalService->dashboard($request);
     }
 
+    public function notificationsIndex(Request $request): JsonResponse
+    {
+        return $this->notificationService->notificationsIndex($request);
+    }
+
+    public function notificationRead(Request $request, string $notification): JsonResponse
+    {
+        return $this->notificationService->notificationRead($request, $notification);
+    }
+
+    public function notificationsReadAll(Request $request): JsonResponse
+    {
+        return $this->notificationService->notificationsReadAll($request);
+    }
+
     public function savedPropertiesIndex(Request $request): JsonResponse
     {
         return $this->propertyService->savedPropertiesIndex($request);
@@ -155,6 +173,11 @@ class PortalController extends Controller
         return $this->adminService->adminUserUpdate($request, $user);
     }
 
+    public function adminUserDestroy(Request $request, User $user): JsonResponse
+    {
+        return $this->adminService->adminUserDestroy($request, $user);
+    }
+
     public function adminAgentUpdate(Request $request, Agent $agent): JsonResponse
     {
         return $this->adminService->adminAgentUpdate($request, $agent);
@@ -163,6 +186,11 @@ class PortalController extends Controller
     public function adminPropertyUpdate(Request $request, Property $property): JsonResponse
     {
         return $this->adminService->adminPropertyUpdate($request, $property);
+    }
+
+    public function adminSellerLeadUpdate(Request $request, SellerLead $sellerLead): JsonResponse
+    {
+        return $this->adminService->adminSellerLeadUpdate($request, $sellerLead);
     }
 
     public function savedSearchesIndex(Request $request): JsonResponse

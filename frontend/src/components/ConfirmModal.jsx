@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, LogOut, Trash2, X, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Trash2, X, CheckCircle } from 'lucide-react';
 
 const toneConfig = {
   danger: { color: 'var(--status-danger)', bg: 'var(--status-danger)15', border: 'var(--status-danger)', Icon: Trash2 },
@@ -17,7 +17,8 @@ export default function ConfirmModal({
   tone = 'danger',
   showInput = false,
   inputPlaceholder = 'Reason...',
-  inputLabel = 'Reason'
+  inputLabel = 'Reason',
+  requiredInputValue = ''
 }) {
   const confirmRef = useRef(null);
   const cancelRef = useRef(null);
@@ -26,13 +27,8 @@ export default function ConfirmModal({
   const [inputValue, setInputValue] = useState('');
   const config = toneConfig[tone] || toneConfig.warning;
   const ToneIcon = config.Icon;
-
-  // Reset input when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setInputValue('');
-    }
-  }, [isOpen]);
+  const hasRequiredInput = Boolean(requiredInputValue);
+  const canConfirm = !hasRequiredInput || inputValue === requiredInputValue;
 
   // Focus the correct element when opened
   useEffect(() => {
@@ -51,6 +47,7 @@ export default function ConfirmModal({
 
     const handleKey = (e) => {
       if (e.key === 'Escape') {
+        setInputValue('');
         onCancel();
       }
 
@@ -85,7 +82,10 @@ export default function ConfirmModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
-      onClick={onCancel}
+      onClick={() => {
+        setInputValue('');
+        onCancel();
+      }}
       style={{ alignItems: 'center', justifyContent: 'center', zIndex: 1000, display: 'flex' }}
     >
       <div
@@ -96,7 +96,10 @@ export default function ConfirmModal({
         <button
           ref={closeRef}
           className="icon-button"
-          onClick={onCancel}
+          onClick={() => {
+            setInputValue('');
+            onCancel();
+          }}
           style={{ position: 'absolute', top: '1rem', right: '1rem', width: '32px', height: '32px' }}
           aria-label="Close modal"
         >
@@ -116,26 +119,56 @@ export default function ConfirmModal({
               <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
                 {inputLabel}
               </label>
-              <textarea
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={inputPlaceholder}
-                rows={3}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--bg-subtle)' }}
-              />
+              {hasRequiredInput ? (
+                <>
+                  <input
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={inputPlaceholder}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--input-bg)' }}
+                  />
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', margin: '0.5rem 0 0' }}>
+                    Type <strong>{requiredInputValue}</strong> exactly to continue.
+                  </p>
+                </>
+              ) : (
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={inputPlaceholder}
+                  rows={3}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-subtle)', background: 'var(--input-bg)' }}
+                />
+              )}
             </div>
           )}
 
           <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-            <button ref={cancelRef} className="ghost-button" style={{ flex: 1, justifyContent: 'center' }} onClick={onCancel}>
+            <button
+              ref={cancelRef}
+              className="ghost-button"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={() => {
+                setInputValue('');
+                onCancel();
+              }}
+            >
               Cancel
             </button>
             <button
               ref={confirmRef}
               className="primary-button"
               style={{ flex: 1, justifyContent: 'center', backgroundColor: config.color, borderColor: config.color }}
-              onClick={() => onConfirm(inputValue)}
+              disabled={!canConfirm}
+              onClick={() => {
+                if (!canConfirm) return;
+
+                const confirmedValue = inputValue;
+                setInputValue('');
+                onConfirm(confirmedValue);
+              }}
             >
               {confirmText}
             </button>
