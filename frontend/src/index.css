@@ -36,6 +36,7 @@
   --text-light: #7A8B99;
 
   --border-subtle: rgba(197, 168, 128, 0.1);
+  --input-border: rgba(197, 168, 128, 0.2);
   --border-focus: #D7BB95;
 
   --primary-base: #C5A880;
@@ -89,6 +90,7 @@
   --text-light: #999999;
 
   --border-subtle: #eeeeee;
+  --input-border: #cccccc;
   --border-focus: #d92228;
 
   --primary-base: #d92228;
@@ -210,7 +212,7 @@ select,
 textarea {
   width: 100%;
   margin-top: 0.5rem;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
   background: var(--input-bg);
   padding: 0.8rem 1rem;
@@ -1358,7 +1360,7 @@ textarea {
   color: var(--text-main);
   font-weight: 400;
   font-size: 0.95rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: .5rem;
 }
 
 /* Off-Canvas Property Drawer */
@@ -1923,7 +1925,7 @@ img.agent-inquiry-image {
   grid-column: 1 / -1;
 }
 
-.dashboard-grid > .tab-panel {
+.dashboard-grid>.tab-panel {
   grid-column: 1 / -1;
   width: 100%;
 }
@@ -3824,17 +3826,32 @@ img.agent-inquiry-image {
 }
 
 @keyframes heart-beat {
-  0% { transform: scale(1); }
-  15% { transform: scale(1.2); }
-  30% { transform: scale(1); }
-  45% { transform: scale(1.15); }
-  60% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  15% {
+    transform: scale(1.2);
+  }
+
+  30% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(1.15);
+  }
+
+  60% {
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 768px) {
   .modal-actions {
     flex-direction: column;
   }
+
   .modal-actions button {
     width: 100%;
     flex: 1;
@@ -3891,8 +3908,15 @@ img.agent-inquiry-image {
 }
 
 @keyframes modal-enter {
-  from { opacity: 0; transform: translateY(20px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Viewing Request System */
@@ -3971,7 +3995,8 @@ img.agent-inquiry-image {
   padding-top: 1.5rem;
 }
 
-.buyer-message, .agent-notes {
+.buyer-message,
+.agent-notes {
   background: var(--input-bg);
   padding: 1rem;
   border-radius: var(--radius-sm);
@@ -4055,7 +4080,8 @@ img.agent-inquiry-image {
   font-size: 0.95rem;
 }
 
-.request-message, .agent-response {
+.request-message,
+.agent-response {
   padding: 1rem;
   border-radius: var(--radius-sm);
   background: var(--input-bg);

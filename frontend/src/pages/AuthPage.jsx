@@ -143,11 +143,13 @@ export default function AuthPage({ mode }) {
                   <input id="last_name" name="last_name" onChange={handleChange} required value={form.last_name} placeholder="e.g. Davis" autoComplete="family-name" />
                 </div>
               </div>
-              <label htmlFor="role">Account Type</label>
-              <select id="role" name="role" onChange={handleChange} value={form.role}>
-                <option value="user">Private Client / Buyer</option>
-                <option value="agent">Real Estate Professional</option>
-              </select>
+              <div style={{ marginTop: '1rem' }}>
+                <label htmlFor="role">Account Type</label>
+                <select id="role" name="role" onChange={handleChange} value={form.role}>
+                  <option value="user">Private Client / Buyer</option>
+                  <option value="agent">Real Estate Professional</option>
+                </select>
+              </div>
             </>
           ) : null}
 
@@ -174,8 +176,10 @@ export default function AuthPage({ mode }) {
                   <input id="agency_name" name="agency_name" onChange={handleChange} value={form.agency_name} placeholder="Independent if none" autoComplete="organization" />
                 </div>
               </div>
-              <label htmlFor="bio">Professional Biography</label>
-              <textarea id="bio" name="bio" onChange={handleChange} rows="3" value={form.bio} placeholder="Highlight your expertise and sales history." />
+              <div style={{ marginTop: '1rem' }}>
+                <label htmlFor="bio">Professional Biography</label>
+                <textarea id="bio" name="bio" onChange={handleChange} rows="3" value={form.bio} placeholder="Highlight your expertise and sales history." />
+              </div>
             </div>
           ) : null}
 
