@@ -24,7 +24,8 @@ class AdminService
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly PortalService $portal,
-    ) {}
+    ) {
+    }
 
     public function adminOverview(Request $request): JsonResponse
     {
@@ -42,22 +43,22 @@ class AdminService
         return response()->json([
             'stats' => $this->getGeneralStats(),
             'analytics' => $this->getAnalyticsData(),
-            'pending_property_approvals' => $pendingApprovals->map(fn (Property $p) => $this->portal->formatProperty($p)),
+            'pending_property_approvals' => $pendingApprovals->map(fn(Property $p) => $this->portal->formatProperty($p)),
             'assignable_agents' => $this->getAssignableAgents(),
             'seller_leads' => [
-                'data' => collect($sellerLeads->items())->map(fn (SellerLead $lead) => $this->portal->formatSellerLead($lead)),
+                'data' => collect($sellerLeads->items())->map(fn(SellerLead $lead) => $this->portal->formatSellerLead($lead)),
                 'meta' => $this->formatPaginationMeta($sellerLeads),
             ],
             'users' => [
-                'data' => collect($users->items())->map(fn (User $user) => $this->portal->formatUser($user)),
+                'data' => collect($users->items())->map(fn(User $user) => $this->portal->formatUser($user)),
                 'meta' => $this->formatPaginationMeta($users),
             ],
             'agents' => [
-                'data' => collect($agents->items())->map(fn (Agent $agent) => $this->portal->formatAgent($agent)),
+                'data' => collect($agents->items())->map(fn(Agent $agent) => $this->portal->formatAgent($agent)),
                 'meta' => $this->formatPaginationMeta($agents),
             ],
             'properties' => [
-                'data' => collect($properties->items())->map(fn (Property $property) => $this->portal->formatProperty($property)),
+                'data' => collect($properties->items())->map(fn(Property $property) => $this->portal->formatProperty($property)),
                 'meta' => $this->formatPaginationMeta($properties),
             ],
         ]);
@@ -123,7 +124,7 @@ class AdminService
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->map(fn (Agent $agent) => $this->portal->formatAgent($agent));
+            ->map(fn(Agent $agent) => $this->portal->formatAgent($agent));
     }
 
     private function getAnalyticsData(): array
@@ -137,7 +138,7 @@ class AdminService
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->map(fn ($item) => ['month' => $item->month, 'users' => $item->count]);
+            ->map(fn($item) => ['month' => $item->month, 'users' => $item->count]);
 
         $propertyDistribution = Property::query()
             ->select('status', DB::raw('count(*) as value'))
@@ -175,7 +176,7 @@ class AdminService
             return response()->json(['message' => 'Administrator accounts cannot be suspended.'], 403);
         }
 
-        if (($validated['role'] ?? null) === UserRole::AGENT->value && ! $user->agentProfile) {
+        if (($validated['role'] ?? null) === UserRole::AGENT->value && !$user->agentProfile) {
             return response()->json(['message' => 'Create an agent profile before promoting this user to agent.'], 422);
         }
 
@@ -212,7 +213,7 @@ class AdminService
         }
 
         $expectedConfirmation = "DELETE {$user->email}";
-        if (! hash_equals($expectedConfirmation, $validated['confirmation'])) {
+        if (!hash_equals($expectedConfirmation, $validated['confirmation'])) {
             return response()->json(['message' => "Type {$expectedConfirmation} to permanently delete this user."], 422);
         }
 
@@ -247,11 +248,11 @@ class AdminService
             'assigned_agent_id' => [
                 'sometimes',
                 'nullable',
-                Rule::exists('agents', 'agent_id')->where(fn ($query) => $query->where('approval_status', 'approved')),
+                Rule::exists('agents', 'agent_id')->where(fn($query) => $query->where('approval_status', 'approved')),
             ],
         ]);
 
-        if (! array_key_exists('status', $validated) && ! array_key_exists('assigned_agent_id', $validated)) {
+        if (!array_key_exists('status', $validated) && !array_key_exists('assigned_agent_id', $validated)) {
             return response()->json(['message' => 'Provide a status or assigned agent update.'], 422);
         }
 

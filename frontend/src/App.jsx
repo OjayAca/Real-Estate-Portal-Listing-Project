@@ -1,15 +1,18 @@
+import React, { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
-import AgentsPage from './pages/AgentsPage';
-import AuthPage from './pages/AuthPage';
-import DashboardPage from './pages/DashboardPage';
 import HomePage from './pages/HomePage';
-import PropertiesPage from './pages/PropertiesPage';
-import SavedPropertiesPage from './pages/SavedPropertiesPage';
-import AccountSettingsPage from './pages/AccountSettingsPage';
-import SavedSearchesPage from './pages/SavedSearchesPage';
-import SellPage from './pages/SellPage';
 import { useAuth } from './context/AuthContext';
+
+const AgentsPage = React.lazy(() => import('./pages/AgentsPage'));
+const AuthPage = React.lazy(() => import('./pages/AuthPage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const PropertiesPage = React.lazy(() => import('./pages/PropertiesPage'));
+const SavedPropertiesPage = React.lazy(() => import('./pages/SavedPropertiesPage'));
+const AccountSettingsPage = React.lazy(() => import('./pages/AccountSettingsPage'));
+const SavedSearchesPage = React.lazy(() => import('./pages/SavedSearchesPage'));
+const SellPage = React.lazy(() => import('./pages/SellPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 
 function DashboardRoute() {
   const { loading, user } = useAuth();
@@ -82,6 +85,7 @@ export default function App() {
           <Route element={<PropertiesRedirect />} path="/properties" />
           <Route element={<AuthPage mode="login" />} path="/login" />
           <Route element={<AuthPage mode="register" />} path="/register" />
+          <Route element={<ResetPasswordPage />} path="/reset-password" />
           <Route element={<DashboardRoute />} path="/dashboard" />
           <Route
             element={(

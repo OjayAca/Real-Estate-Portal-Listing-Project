@@ -4,6 +4,7 @@ import { apiRequest } from '../api/client';
 import AgentInquiryModal from '../components/AgentInquiryModal';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
+import ViewingRequestModal from '../components/ViewingRequestModal';
 import ConfirmModal from '../components/ConfirmModal';
 import InlineMessage from '../components/InlineMessage';
 import { useAuth } from '../context/AuthContext';
@@ -85,6 +86,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(() => location.state?.selectedProperty || null);
   const [contactProperty, setContactProperty] = useState(null);
+  const [bookingProperty, setBookingProperty] = useState(null);
   const [savedIds, setSavedIds] = useState([]);
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState('info');
@@ -272,6 +274,21 @@ export default function PropertiesPage({ mode = 'buy' }) {
     }
 
     setContactProperty(property);
+  };
+
+  const openBookingModal = (property) => {
+    if (!user) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+
+    if (user.role !== 'user') {
+      setMessage('Log in as a buyer to book a viewing.');
+      setMessageTone('warning');
+      return;
+    }
+
+    setBookingProperty(property);
   };
 
   const saveCurrentSearch = async () => {
@@ -501,6 +518,16 @@ export default function PropertiesPage({ mode = 'buy' }) {
         property={selected}
         onClose={() => setSelected(null)}
         onInquire={openAgentInquiry}
+        onBookViewing={openBookingModal}
+      />
+
+      <ViewingRequestModal
+        property={bookingProperty}
+        onClose={() => setBookingProperty(null)}
+        onSuccess={(msg) => {
+          setMessage(msg);
+          setMessageTone('success');
+        }}
       />
 
       <AgentInquiryModal

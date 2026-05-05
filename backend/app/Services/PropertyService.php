@@ -20,11 +20,11 @@ class PropertyService
 
     private const LISTING_PURPOSES = ['sale', 'rent'];
 
-    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
+    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented', 'Pending Review', 'Reserved'];
 
-    private const AGENT_CREATE_STATUSES = ['Draft', 'Available'];
+    private const AGENT_CREATE_STATUSES = ['Draft', 'Pending Review'];
 
-    private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Pending Sold', 'Pending Rented'];
+    private const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Pending Sold', 'Pending Rented', 'Inactive', 'Pending Review', 'Reserved'];
 
     private const FEATURED_IMAGE_MAX_SIZE_KB = 25600;
 
@@ -150,6 +150,7 @@ class PropertyService
 
         if (! $canViewPrivate) {
             $property->increment('views_count');
+            $property->refresh();
         }
 
         return response()->json([

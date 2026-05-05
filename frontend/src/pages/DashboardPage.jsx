@@ -465,6 +465,7 @@ export default function DashboardPage() {
           assignedSellerLeads={dashboard?.assigned_seller_leads || []}
           openEditForm={openEditForm}
           handleDeleteProperty={handleDeleteProperty}
+          authFetch={authFetch}
         />
       )}
 

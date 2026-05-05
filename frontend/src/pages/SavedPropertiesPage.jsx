@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AgentInquiryModal from '../components/AgentInquiryModal';
+import BuyerViewingRequests from '../components/BuyerViewingRequests';
 import ConfirmModal from '../components/ConfirmModal';
 import InlineMessage from '../components/InlineMessage';
 import PropertyCard from '../components/PropertyCard';
@@ -140,6 +141,8 @@ export default function SavedPropertiesPage() {
           </button>
         </div>
       )}
+
+      <BuyerViewingRequests authFetch={authFetch} />
 
       <PropertyDetailsDrawer
         property={selected}

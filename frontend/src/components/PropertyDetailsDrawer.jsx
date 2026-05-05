@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, X, ImageIcon } from 'lucide-react';
+import { Mail, X, ImageIcon, Calendar } from 'lucide-react';
 
 function formatPrice(property) {
   const amount = Number(property.price || 0).toLocaleString();
   return property.listing_purpose === 'rent' ? `PHP ${amount}/mo` : `PHP ${amount}`;
 }
 
-export default function PropertyDetailsDrawer({ property, onClose, onInquire }) {
+export default function PropertyDetailsDrawer({ property, onClose, onInquire, onBookViewing }) {
   // Handle Escape key to close the drawer
   useEffect(() => {
     if (!property) return;
@@ -53,6 +53,7 @@ export default function PropertyDetailsDrawer({ property, onClose, onInquire }) 
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'flex';
               }}
+              loading="lazy"
             />
           ) : null}
           <div className="empty-copy" style={{ display: property.featured_image ? 'none' : 'flex', height: '320px', marginBottom: '2.5rem', padding: 0 }}>
@@ -88,16 +89,31 @@ export default function PropertyDetailsDrawer({ property, onClose, onInquire }) 
             </div>
             <div><dt>Status</dt><dd style={{ color: property.status === 'Available' ? 'var(--status-success)' : 'var(--text-main)' }}>{property.status}</dd></div>
           </dl>
-          {onInquire && isAvailable ? (
-            <button
-              className="primary-button detail-submit"
-              onClick={() => onInquire(property)}
-              type="button"
-              aria-label={`Email agent for ${property.title}`}
-            >
-              <Mail size={18} aria-hidden="true" />
-              Email Agent
-            </button>
+          {isAvailable ? (
+            <div className="flex-row" style={{ gap: '1rem', marginTop: '1rem' }}>
+              {onInquire && (
+                <button
+                  className="ghost-button detail-submit"
+                  onClick={() => onInquire(property)}
+                  type="button"
+                  aria-label={`Email agent for ${property.title}`}
+                  style={{ flex: 1 }}
+                >
+                  <Mail size={18} aria-hidden="true" />
+                  Email Agent
+                </button>
+              )}
+              <button
+                className="primary-button detail-submit"
+                onClick={() => onBookViewing && onBookViewing(property)}
+                type="button"
+                aria-label={`Book viewing for ${property.title}`}
+                style={{ flex: 1.5 }}
+              >
+                <Calendar size={18} aria-hidden="true" />
+                Book Viewing
+              </button>
+            </div>
           ) : null}
         </div>
       </aside>

@@ -1,6 +1,7 @@
 import { UserCheck, CalendarDays, MessageSquare, Plus, Home, CheckCircle, AlertCircle, Building, MapPin, BedDouble, Bath, Layers3, Square, ImageIcon, Pencil, Trash2, Clock3, Phone, Mail, ClipboardList, CircleDollarSign } from 'lucide-react';
 import InlineMessage from '../InlineMessage';
 import AgentPropertyForm from './AgentPropertyForm';
+import ViewingRequestManager from '../ViewingRequestManager';
 
 const WEEKDAY_OPTIONS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -60,6 +61,7 @@ export default function AgentDashboard({
   assignedSellerLeads = [],
   openEditForm,
   handleDeleteProperty,
+  authFetch,
 }) {
   return (
     <>
@@ -75,10 +77,10 @@ export default function AgentDashboard({
               : agentProfile?.approval_status === 'suspended'
                 ? 'var(--status-danger)'
                 : 'var(--status-warning)',
-              textTransform: 'uppercase',
-              fontWeight: 500,
-              letterSpacing: '0.05em',
-            }}>
+            textTransform: 'uppercase',
+            fontWeight: 500,
+            letterSpacing: '0.05em',
+          }}>
             {agentProfile?.approval_status || 'Pending'}
           </span>
         </div>
@@ -139,6 +141,10 @@ export default function AgentDashboard({
           </p>
         )}
       </section>
+
+      {isApprovedAgent && (
+        <ViewingRequestManager authFetch={authFetch} />
+      )}
 
       <section className="section-panel agent-manager-panel animate-enter">
         <div className="agent-manager-header">

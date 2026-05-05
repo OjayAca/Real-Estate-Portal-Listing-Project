@@ -431,6 +431,7 @@ export default function AgentPropertyForm({
                 alt="Featured property preview"
                 src={imagePreviewUrl}
                 style={{ width: '100%', maxWidth: '320px', height: '200px', objectFit: 'cover', borderRadius: 'var(--radius-lg)', marginTop: '0.85rem', boxShadow: 'var(--shadow-sm)' }}
+                loading="lazy"
               />
             ) : null}
             {imageSelectionError ? <span className="field-error">{imageSelectionError}</span> : null}

@@ -41,10 +41,8 @@ const CustomTooltip = ({ active, payload, label, prefix = '' }) => {
 };
 
 export default function AdminAnalytics({ analytics }) {
-  if (!analytics) return null;
-
-  const user_growth = Array.isArray(analytics.user_growth) ? analytics.user_growth : [];
-  const property_distribution = Array.isArray(analytics.property_distribution) ? analytics.property_distribution : [];
+  const user_growth = Array.isArray(analytics?.user_growth) ? analytics.user_growth : [];
+  const property_distribution = Array.isArray(analytics?.property_distribution) ? analytics.property_distribution : [];
 
   const totalUsers = user_growth.reduce((sum, d) => sum + (Number(d?.users) || 0), 0);
   const totalProperties = property_distribution.reduce((sum, d) => sum + (Number(d?.value) || 0), 0);
@@ -96,6 +94,8 @@ export default function AdminAnalytics({ analytics }) {
       pieObserver.disconnect();
     };
   }, []);
+
+  if (!analytics) return null;
 
   const insights = [
     {

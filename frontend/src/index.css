@@ -3894,3 +3894,201 @@ img.agent-inquiry-image {
   from { opacity: 0; transform: translateY(20px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Viewing Request System */
+.viewing-manager {
+  margin-top: 2rem;
+}
+
+.viewing-requests-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.viewing-request-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.viewing-request-card:hover {
+  border-color: var(--primary-base);
+  box-shadow: var(--shadow-sm);
+}
+
+.viewing-request-card.is-expanded {
+  border-color: var(--brand-base);
+  box-shadow: var(--shadow-md);
+}
+
+.viewing-request-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+}
+
+.viewing-request-info {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.viewing-request-property,
+.viewing-request-buyer,
+.viewing-request-schedule {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.viewing-request-property strong {
+  color: var(--brand-base);
+  font-weight: 500;
+}
+
+.viewing-request-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.viewing-request-details {
+  padding: 0 1.5rem 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.details-content {
+  display: grid;
+  gap: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.buyer-message, .agent-notes {
+  background: var(--input-bg);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--brand-base);
+}
+
+.agent-notes {
+  border-left-color: var(--status-success);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+
+.mini-action-form {
+  background: var(--input-bg);
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  margin-top: 1rem;
+}
+
+.mini-action-form h4 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: var(--brand-base);
+}
+
+/* Buyer Side Request Card */
+.request-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: all var(--transition-fast);
+}
+
+.request-card:hover {
+  border-color: var(--primary-base);
+  box-shadow: var(--shadow-md);
+}
+
+.request-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.request-property-info {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.request-property-info h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.request-card-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.request-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.request-message, .agent-response {
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  font-size: 0.9rem;
+}
+
+.agent-response {
+  border-top: 1px solid var(--status-success);
+}
+
+.request-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.confirmation-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--status-success);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1024px) {
+  .viewing-request-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

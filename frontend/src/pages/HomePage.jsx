@@ -4,7 +4,7 @@ import { apiRequest } from '../api/client';
 import PropertyCard from '../components/PropertyCard';
 import { useAuth } from '../context/AuthContext';
 import { Search, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
-import heroImg from '../assets/homepage-hero.png';
+import heroImg from '../assets/homepage-hero.webp';
 
 const CARDS_PER_PAGE = 3;
 const HERO_TABS = ['Buy', 'Rent', 'Sell'];

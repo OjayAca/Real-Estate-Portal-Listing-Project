@@ -158,6 +158,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
             className="agent-inquiry-image"
             src={property.featured_image}
             alt={propertyLabel ? `View of ${propertyLabel}` : `View of ${property.title}`}
+            loading="lazy"
           />
         ) : (
           <div className="agent-inquiry-image agent-inquiry-image-empty">

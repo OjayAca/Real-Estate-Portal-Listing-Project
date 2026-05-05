@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Agent;
 use App\Models\Property;
+use App\Models\Inquiry;
 use App\Models\SavedSearch;
 use App\Models\SellerLead;
 use App\Models\User;
@@ -31,6 +32,7 @@ class PortalController extends Controller
         private readonly SellerLeadService $sellerLeadService,
         private readonly SavedSearchService $savedSearchService,
         private readonly NotificationService $notificationService,
+        private readonly \App\Services\ViewingRequestService $viewingRequestService,
     ) {}
 
     public function amenitiesIndex(): JsonResponse
@@ -216,5 +218,66 @@ class PortalController extends Controller
     public function savedSearchDestroy(Request $request, SavedSearch $savedSearch): JsonResponse
     {
         return $this->savedSearchService->destroy($request, $savedSearch);
+    }
+    public function userInquiriesIndex(Request $request): JsonResponse
+    {
+        return $this->inquiryService->userIndex($request);
+    }
+
+    public function agentInquiriesIndex(Request $request): JsonResponse
+    {
+        return $this->inquiryService->agentIndex($request);
+    }
+
+    public function adminInquiriesIndex(Request $request): JsonResponse
+    {
+        return $this->inquiryService->adminIndex($request);
+    }
+
+    public function agentInquiryUpdate(Request $request, Inquiry $inquiry): JsonResponse
+    {
+        return $this->inquiryService->agentUpdateStatus($request, $inquiry);
+    }
+
+    public function viewingRequestStore(Request $request, Property $property): JsonResponse
+    {
+        $viewingRequest = $this->viewingRequestService->createRequest($request, $property);
+        return response()->json([
+            'message' => 'Viewing request submitted successfully.',
+            'viewing_request' => $viewingRequest,
+        ], 201);
+    }
+
+    public function agentViewingRequestsIndex(Request $request): JsonResponse
+    {
+        return response()->json($this->viewingRequestService->listForAgent($request));
+    }
+
+    public function agentViewingRequestUpdate(Request $request, \App\Models\ViewingRequest $viewingRequest): JsonResponse
+    {
+        // Add authorization check inside the service or here
+        if ($viewingRequest->agent_id !== \Illuminate\Support\Facades\Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $updatedRequest = $this->viewingRequestService->updateStatus($request, $viewingRequest);
+        return response()->json([
+            'message' => 'Viewing request updated successfully.',
+            'viewing_request' => $updatedRequest,
+        ]);
+    }
+
+    public function userViewingRequestsIndex(Request $request): JsonResponse
+    {
+        return response()->json($this->viewingRequestService->listForBuyer($request));
+    }
+
+    public function userViewingRequestCancel(Request $request, \App\Models\ViewingRequest $viewingRequest): JsonResponse
+    {
+        $cancelledRequest = $this->viewingRequestService->cancelByBuyer($request, $viewingRequest);
+        return response()->json([
+            'message' => 'Viewing request cancelled successfully.',
+            'viewing_request' => $cancelledRequest,
+        ]);
     }
 }

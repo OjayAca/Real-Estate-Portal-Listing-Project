@@ -9,6 +9,6 @@ Global Missing Features
 8. 
 9. Add a similar or nearby listings section on property detail views. When a buyer is viewing a property, showing three or four similar listings by type, price range, or city helps them explore without going back to the search page. This is standard in real estate portals and increases the number of listings a buyer sees per session.
 10. 
-11. Fix the homepage search placeholder. It says "Address, School, City, Zip or Neighborhood" but the backend search does not support schools or zip codes. The placeholder should honestly reflect what the search supports, or the backend should be extended to match the promise.
+11. 
 12. Add sitemap generation and basic SEO metadata. Without individual property pages this is limited, but at minimum the portal should have title tags, meta descriptions, and Open Graph tags per page so shares on social media render correctly. Once dedicated property pages are built, each one should generate its own metadata from the listing title, city, price, and description.
 13. Replace the "Clearance Level" dashboard label with plain role language. The current phrasing is stylistically interesting but likely to confuse non-technical buyers or agents who just want to see their account type. Plain labels like "Your Role: Buyer" or "Account Type: Agent" are clearer and more professional.

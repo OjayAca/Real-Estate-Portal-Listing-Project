@@ -20,8 +20,10 @@ export default function AdminDashboard({
   openAdminConfirm,
   onPageChange
 }) {
-  if (!adminOverview) return null;
   const [activeTab, setActiveTab] = useState('overview');
+
+  if (!adminOverview) return null;
+
   const analyticsWithStats = { ...(adminOverview.analytics || {}), stats: adminOverview.stats };
 
   const pendingApprovals = Number(adminOverview.stats?.pending_approvals || 0);

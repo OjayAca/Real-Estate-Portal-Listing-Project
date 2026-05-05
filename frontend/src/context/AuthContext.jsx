@@ -53,7 +53,12 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const forgotPassword = useCallback((payload) => apiRequest('/forgot-password', {
+  const forgotPassword = useCallback((payload) => apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: payload,
+  }), []);
+
+  const resetPassword = useCallback((payload) => apiRequest('/auth/reset-password', {
     method: 'POST',
     body: payload,
   }), []);
@@ -73,6 +78,7 @@ export function AuthProvider({ children }) {
     () => ({
       authFetch,
       forgotPassword,
+      resetPassword,
       loading,
       login,
       logout,
@@ -80,7 +86,7 @@ export function AuthProvider({ children }) {
       user,
       setUser,
     }),
-    [authFetch, forgotPassword, loading, login, logout, register, user],
+    [authFetch, forgotPassword, resetPassword, loading, login, logout, register, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

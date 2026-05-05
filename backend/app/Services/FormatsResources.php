@@ -87,10 +87,10 @@ trait FormatsResources
                 ? $this->formatAgent($property->agent)
                 : null,
             'amenities' => $property->relationLoaded('amenities')
-                ? $property->amenities->map(fn (Amenity $amenity) => $this->formatAmenity($amenity))->values()
+                ? $property->amenities->map(fn(Amenity $amenity) => $this->formatAmenity($amenity))->values()
                 : [],
             'status_logs' => $property->relationLoaded('statusLogs')
-                ? $property->statusLogs->sortByDesc('created_at')->map(fn ($log) => [
+                ? $property->statusLogs->sortByDesc('created_at')->map(fn($log) => [
                     'status_log_id' => $log->status_log_id,
                     'old_status' => $log->old_status,
                     'new_status' => $log->new_status,

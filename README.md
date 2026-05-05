@@ -2,7 +2,7 @@
 
 Monorepo structure:
 
-- `backend/`: Laravel 12 API with Sanctum token auth.
+- `backend/`: Laravel 12 API with Sanctum session-based authentication.
 - `frontend/`: React + Vite client.
 - `PROJECT_ANALYSIS.md`: review of the original database and how it was extended.
 

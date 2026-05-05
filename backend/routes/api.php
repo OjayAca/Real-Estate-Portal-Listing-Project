@@ -35,6 +35,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/properties', [PortalController::class, 'agentPropertyStore'])->middleware('throttle:strict');
         Route::put('/properties/{property}', [PortalController::class, 'agentPropertyUpdate'])->middleware('throttle:strict');
         Route::delete('/properties/{property}', [PortalController::class, 'agentPropertyDestroy'])->middleware('throttle:strict');
+        Route::get('/viewing-requests', [PortalController::class, 'agentViewingRequestsIndex']);
+        Route::patch('/viewing-requests/{viewingRequest}', [PortalController::class, 'agentViewingRequestUpdate'])->middleware('throttle:strict');
+        Route::get('/inquiries', [PortalController::class, 'agentInquiriesIndex']);
+        Route::patch('/inquiries/{inquiry}', [PortalController::class, 'agentInquiryUpdate'])->middleware('throttle:strict');
     });
 
     Route::middleware(['auth:sanctum', 'role:admin', 'throttle:api'])->prefix('admin')->group(function (): void {
@@ -44,6 +48,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/agents/{agent}', [PortalController::class, 'adminAgentUpdate'])->middleware('throttle:strict');
         Route::patch('/properties/{property}', [PortalController::class, 'adminPropertyUpdate'])->middleware('throttle:strict');
         Route::patch('/seller-leads/{sellerLead}', [PortalController::class, 'adminSellerLeadUpdate'])->middleware('throttle:strict');
+        Route::get('/inquiries', [PortalController::class, 'adminInquiriesIndex']);
     });
 });
 
@@ -54,6 +59,10 @@ Route::middleware(['auth:sanctum', 'role:user', 'throttle:api'])->group(function
     Route::post('/properties/{property}/inquiries', [PortalController::class, 'createInquiry'])->middleware('throttle:strict');
     Route::post('/agents/{agent}/inquiries', [AgentEcosystemController::class, 'createAgentInquiry'])->middleware('throttle:strict');
     Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing'])->middleware('throttle:strict');
+    Route::post('/properties/{property}/viewing-requests', [PortalController::class, 'viewingRequestStore'])->middleware('throttle:strict');
+    Route::get('/viewing-requests', [PortalController::class, 'userViewingRequestsIndex']);
+    Route::patch('/viewing-requests/{viewingRequest}/cancel', [PortalController::class, 'userViewingRequestCancel'])->middleware('throttle:strict');
+    Route::get('/inquiries', [PortalController::class, 'userInquiriesIndex']);
 
     Route::get('/saved-searches', [PortalController::class, 'savedSearchesIndex']);
     Route::post('/saved-searches', [PortalController::class, 'savedSearchStore'])->middleware('throttle:strict');

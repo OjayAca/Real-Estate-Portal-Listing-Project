@@ -41,10 +41,8 @@ const CustomTooltip = ({ active, payload, label, prefix = '' }) => {
 };
 
 export default function AdminAnalytics({ analytics }) {
-  if (!analytics) return null;
-
-  const user_growth = Array.isArray(analytics.user_growth) ? analytics.user_growth : [];
-  const property_distribution = Array.isArray(analytics.property_distribution) ? analytics.property_distribution : [];
+  const user_growth = Array.isArray(analytics?.user_growth) ? analytics.user_growth : [];
+  const property_distribution = Array.isArray(analytics?.property_distribution) ? analytics.property_distribution : [];
 
   // Calculate high-level insights
   const totalUsers = user_growth.reduce((sum, d) => sum + (Number(d?.users) || 0), 0);
@@ -59,6 +57,8 @@ export default function AdminAnalytics({ analytics }) {
     const raf = requestAnimationFrame(() => setChartsMounted(true));
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  if (!analytics) return null;
 
   return (
     <div className="analytics-container animate-enter" style={{ marginBottom: '3rem' }}>

@@ -19,7 +19,8 @@ class PortalService
 
     public function __construct(
         private readonly NotificationService $notifications,
-    ) {}
+    ) {
+    }
 
     public function logStatusChange(Property $property, User $user, string $oldStatus, string $newStatus, ?string $reason = null): void
     {
@@ -38,7 +39,7 @@ class PortalService
                     $admin,
                     'property_status_change',
                     'Property Status Change Request',
-                    "Agent {$user->full_name} has requested to mark property '{$property->title}' as ".str_replace('Pending ', '', $newStatus).'.',
+                    "Agent {$user->full_name} has requested to mark property '{$property->title}' as " . str_replace('Pending ', '', $newStatus) . '.',
                     ['property_id' => $property->property_id]
                 );
             }
@@ -50,7 +51,7 @@ class PortalService
         $amenities = Amenity::query()->orderBy('amenity_category')->orderBy('amenity_name')->get();
 
         return response()->json([
-            'data' => $amenities->map(fn (Amenity $amenity) => $this->formatAmenity($amenity)),
+            'data' => $amenities->map(fn(Amenity $amenity) => $this->formatAmenity($amenity)),
         ]);
     }
 
@@ -66,19 +67,19 @@ class PortalService
                     'agents' => Agent::query()->count(),
                     'properties' => Property::query()->count(),
                 ],
-                'recent_users' => User::query()->with('agentProfile')->latest()->take(5)->get()->map(fn (User $entry) => $this->formatUser($entry)),
-                'recent_properties' => Property::query()->with(['agent.user', 'amenities'])->latest()->take(5)->get()->map(fn (Property $entry) => $this->formatProperty($entry)),
+                'recent_users' => User::query()->with('agentProfile')->latest()->take(5)->get()->map(fn(User $entry) => $this->formatUser($entry)),
+                'recent_properties' => Property::query()->with(['agent.user', 'amenities'])->latest()->take(5)->get()->map(fn(Property $entry) => $this->formatProperty($entry)),
             ]);
         }
 
         if ($user->isAgent()) {
             $agent = $user->agentProfile;
 
-            if (! $agent) {
+            if (!$agent) {
                 abort(404, 'No agent profile is linked to this account.');
             }
 
-            if (! $agent->isApproved()) {
+            if (!$agent->isApproved()) {
                 return response()->json([
                     'role' => $user->role->value,
                     'stats' => [
@@ -109,8 +110,8 @@ class PortalService
                     'new_seller_leads' => $sellerLeads->where('status', 'New')->count(),
                 ],
                 'profile' => $this->formatAgent($agent),
-                'properties' => $properties->map(fn (Property $entry) => $this->formatProperty($entry)),
-                'assigned_seller_leads' => $sellerLeads->map(fn (SellerLead $lead) => $this->formatSellerLead($lead)),
+                'properties' => $properties->map(fn(Property $entry) => $this->formatProperty($entry)),
+                'assigned_seller_leads' => $sellerLeads->map(fn(SellerLead $lead) => $this->formatSellerLead($lead)),
             ]);
         }
 
@@ -121,7 +122,7 @@ class PortalService
             'stats' => [
                 'saved_properties' => $user->savedProperties()->count(),
             ],
-            'saved_properties' => $saved->map(fn (Property $entry) => $this->formatProperty($entry)),
+            'saved_properties' => $saved->map(fn(Property $entry) => $this->formatProperty($entry)),
         ]);
     }
 
@@ -129,11 +130,11 @@ class PortalService
     {
         $agent = $user->agentProfile;
 
-        if (! $agent) {
+        if (!$agent) {
             abort(404, 'No agent profile is linked to this account.');
         }
 
-        if (! $agent->isApproved()) {
+        if (!$agent->isApproved()) {
             abort(403, 'Your agent profile is not approved yet.');
         }
 
