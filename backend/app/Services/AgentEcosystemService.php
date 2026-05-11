@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Mail\ViewingRequestMail;
 use App\Models\Agency;
 use App\Models\Agent;
 use App\Models\AgentReview;
@@ -11,7 +10,6 @@ use App\Models\Property;
 use App\Support\ImageUrlResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AgentEcosystemService
@@ -21,7 +19,7 @@ class AgentEcosystemService
         private readonly NotificationService $notifications,
     ) {}
 
-    public function agentsIndex(Request $request): JsonResponse
+    public function agentsIndex(?string $search = null): JsonResponse
     {
         $this->syncNamedAgencies();
 
@@ -37,7 +35,7 @@ class AgentEcosystemService
             ->orderByDesc('reviews_avg_rating')
             ->orderBy('last_name');
 
-        if ($search = trim((string) $request->query('search'))) {
+        if ($search = trim((string) $search)) {
             $query->where(function ($builder) use ($search): void {
                 $builder
                     ->where('first_name', 'like', "%{$search}%")
@@ -59,10 +57,9 @@ class AgentEcosystemService
         ]);
     }
 
-    public function agentShow(Request $request, Agent $agent): JsonResponse
+    public function agentShow(Agent $agent, ?\App\Models\User $viewer = null): JsonResponse
     {
-        $viewer = $request->user();
-        $canViewPrivate = $viewer && ($viewer->isAdmin() || ($viewer->isAgent() && $viewer->agentProfile?->agent_id === $agent->agent_id));
+        $canViewPrivate = $viewer && ($viewer->isAdmin() || ($viewer->isAgent() && $viewer->agent?->agent_id === $agent->agent_id));
 
         if (! $canViewPrivate && $agent->approval_status !== 'approved') {
             abort(404);
@@ -100,80 +97,13 @@ class AgentEcosystemService
         ]);
     }
 
-    public function bookViewing(Request $request, Property $property): JsonResponse
-    {
-        if ($property->status !== 'Available') {
-            return response()->json(['message' => 'This property is not accepting viewing requests right now.'], 422);
-        }
-
-        $validated = $request->validate([
-            'buyer_name' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'buyer_email' => ['sometimes', 'nullable', 'email', 'max:180'],
-            'buyer_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'scheduled_start' => ['sometimes', 'nullable', 'string'],
-            'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
-
-        $property->loadMissing('agent.user');
-        $agent = $property->agent;
-
-        if (! $agent || ! $agent->isApproved()) {
-            return response()->json(['message' => 'This property does not have an active agent to handle viewings.'], 422);
-        }
-
-        $user = $request->user();
-        $buyerData = [
-            'buyer_name' => trim((string) ($validated['buyer_name'] ?? '')) ?: $user->full_name,
-            'buyer_email' => trim((string) ($validated['buyer_email'] ?? '')) ?: $user->email,
-            'buyer_phone' => trim((string) ($validated['buyer_phone'] ?? '')) ?: $user->phone,
-            'scheduled_start' => $validated['scheduled_start'] ?? 'ASAP',
-            'notes' => $validated['notes'] ?? null,
-        ];
-
-        if ($agent->email) {
-            Mail::to($agent->email)->send(new ViewingRequestMail($property, $buyerData));
-        }
-
-        if ($agent->user) {
-            $this->notifications->pushNotification(
-                $agent->user,
-                'viewing_request_received',
-                'Viewing Request Received',
-                "{$buyerData['buyer_name']} requested a viewing for '{$property->title}'.",
-                [
-                    'property_id' => $property->property_id,
-                    'buyer_name' => $buyerData['buyer_name'],
-                    'scheduled_start' => $buyerData['scheduled_start'],
-                    'action_url' => '/dashboard',
-                ],
-            );
-        }
-
-        BuyerAgentInteraction::firstOrCreate([
-            'user_id' => $user->id,
-            'agent_id' => $agent->agent_id,
-            'interaction_type' => 'viewing_request',
-        ]);
-
-        return response()->json([
-            'message' => 'Viewing request sent to the agent via email.',
-        ], 201);
-    }
-
-    public function agentReviewStore(Request $request, Agent $agent): JsonResponse
+    public function agentReviewStore(array $data, Agent $agent, \App\Models\User $user): JsonResponse
     {
         if ($agent->approval_status !== 'approved') {
             abort(404);
         }
 
-        $validated = $request->validate([
-            'rating' => ['required', 'integer', 'between:1,5'],
-            'review_text' => ['nullable', 'string', 'max:1200'],
-        ]);
-
-        $user = $request->user();
-
-        if ($user->agentProfile?->agent_id === $agent->agent_id) {
+        if ($user->agent?->agent_id === $agent->agent_id) {
             return response()->json(['message' => 'You cannot review yourself.'], 403);
         }
 
@@ -186,8 +116,8 @@ class AgentEcosystemService
         $review = AgentReview::query()->updateOrCreate(
             ['agent_id' => $agent->agent_id, 'user_id' => $user->id],
             [
-                'rating' => $validated['rating'],
-                'review_text' => $validated['review_text'] ?? null,
+                'rating' => $data['rating'],
+                'review_text' => $data['review_text'] ?? null,
             ],
         );
 
@@ -197,11 +127,11 @@ class AgentEcosystemService
                 $agent->user,
                 'agent_review_received',
                 'New Review Received',
-                "{$user->full_name} left you a {$validated['rating']}-star review.",
+                "{$user->full_name} left you a {$data['rating']}-star review.",
                 [
                     'agent_id' => $agent->agent_id,
                     'review_id' => $review->review_id,
-                    'rating' => $validated['rating'],
+                    'rating' => $data['rating'],
                     'action_url' => "/agents/{$agent->agent_id}",
                 ],
             );
@@ -213,9 +143,9 @@ class AgentEcosystemService
         ]);
     }
 
-    public function createAgentInquiry(Request $request, Agent $agent): JsonResponse
+    public function createAgentInquiry(array $data, Agent $agent, \App\Models\User $user): JsonResponse
     {
-        return $this->inquiryService->createAgentInquiry($request, $agent);
+        return $this->inquiryService->createAgentInquiry($data, $agent, $user);
     }
 
     private function syncNamedAgencies(): void

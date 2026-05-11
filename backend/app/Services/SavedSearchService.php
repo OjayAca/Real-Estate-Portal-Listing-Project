@@ -26,9 +26,9 @@ class SavedSearchService
     /**
      * List all saved searches for the authenticated user.
      */
-    public function index(Request $request): JsonResponse
+    public function index(User $user): JsonResponse
     {
-        $searches = $request->user()
+        $searches = $user
             ->savedSearches()
             ->latest()
             ->get()
@@ -40,24 +40,15 @@ class SavedSearchService
     /**
      * Create a new saved search from the given filter combination.
      */
-    public function store(Request $request): JsonResponse
+    public function store(array $data, User $user): JsonResponse
     {
-        $user = $request->user();
-
         if ($user->savedSearches()->count() >= self::MAX_SAVED_SEARCHES) {
             return response()->json([
                 'message' => 'You can save up to '.self::MAX_SAVED_SEARCHES.' searches. Remove an existing one first.',
             ], 422);
         }
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'filters' => ['required', 'array'],
-            'listing_purpose' => ['required', Rule::in(['sale', 'rent'])],
-            'notify_email' => ['sometimes', 'boolean'],
-        ]);
-
-        $sanitizedFilters = $this->sanitizeFilters($validated['filters']);
+        $sanitizedFilters = $this->sanitizeFilters($data['filters']);
 
         if (empty($sanitizedFilters)) {
             return response()->json([
@@ -66,10 +57,10 @@ class SavedSearchService
         }
 
         $search = $user->savedSearches()->create([
-            'name' => $validated['name'],
+            'name' => $data['name'],
             'filters' => $sanitizedFilters,
-            'listing_purpose' => $validated['listing_purpose'],
-            'notify_email' => $validated['notify_email'] ?? false,
+            'listing_purpose' => $data['listing_purpose'],
+            'notify_email' => $data['notify_email'] ?? false,
         ]);
 
         return response()->json([
@@ -81,16 +72,11 @@ class SavedSearchService
     /**
      * Update an existing saved search (rename, toggle alerts).
      */
-    public function update(Request $request, SavedSearch $savedSearch): JsonResponse
+    public function update(array $data, SavedSearch $savedSearch, User $user): JsonResponse
     {
-        $this->guardOwnership($request, $savedSearch);
+        $this->guardOwnership($user, $savedSearch);
 
-        $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:100'],
-            'notify_email' => ['sometimes', 'boolean'],
-        ]);
-
-        $savedSearch->update($validated);
+        $savedSearch->update($data);
 
         return response()->json([
             'message' => 'Saved search updated.',
@@ -101,9 +87,9 @@ class SavedSearchService
     /**
      * Toggle email alerts for a saved search.
      */
-    public function toggleAlert(Request $request, SavedSearch $savedSearch): JsonResponse
+    public function toggleAlert(SavedSearch $savedSearch, User $user): JsonResponse
     {
-        $this->guardOwnership($request, $savedSearch);
+        $this->guardOwnership($user, $savedSearch);
 
         $savedSearch->update([
             'notify_email' => ! $savedSearch->notify_email,
@@ -118,9 +104,9 @@ class SavedSearchService
     /**
      * Delete a saved search.
      */
-    public function destroy(Request $request, SavedSearch $savedSearch): JsonResponse
+    public function destroy(SavedSearch $savedSearch, User $user): JsonResponse
     {
-        $this->guardOwnership($request, $savedSearch);
+        $this->guardOwnership($user, $savedSearch);
 
         $savedSearch->delete();
 
@@ -130,9 +116,9 @@ class SavedSearchService
     /**
      * Guard that the authenticated user owns the given saved search.
      */
-    private function guardOwnership(Request $request, SavedSearch $savedSearch): void
+    private function guardOwnership(User $user, SavedSearch $savedSearch): void
     {
-        if ($savedSearch->user_id !== $request->user()->id) {
+        if ($savedSearch->user_id !== $user->id) {
             abort(403, 'This saved search does not belong to you.');
         }
     }

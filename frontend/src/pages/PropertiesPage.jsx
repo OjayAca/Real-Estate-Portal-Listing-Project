@@ -42,6 +42,7 @@ const MODE_CONFIG = {
 const baseFilters = {
   search: '',
   property_type: '',
+  province: '',
   city: '',
   min_price: '',
   max_price: '',
@@ -365,16 +366,28 @@ export default function PropertiesPage({ mode = 'buy' }) {
               </select>
             </label>
 
-            <label>
-              <span className="flex-row filter-label">
-                <Map size={14} /> Location
-              </span>
-              <input
-                value={draftFilters.city}
-                onChange={(event) => updateDraftFilter('city', event.target.value)}
-                placeholder="Enter city or district..."
-              />
-            </label>
+            <div className="field-grid two-up location-filter-grid">
+              <label>
+                <span className="flex-row filter-label">
+                  <Map size={14} /> Province
+                </span>
+                <input
+                  value={draftFilters.province}
+                  onChange={(event) => updateDraftFilter('province', event.target.value)}
+                  placeholder="e.g. Metro Manila"
+                />
+              </label>
+              <label>
+                <span className="flex-row filter-label">
+                  City
+                </span>
+                <input
+                  value={draftFilters.city}
+                  onChange={(event) => updateDraftFilter('city', event.target.value)}
+                  placeholder="e.g. Makati"
+                />
+              </label>
+            </div>
 
             <div className="field-grid two-up">
               <label>
@@ -519,6 +532,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
         onClose={() => setSelected(null)}
         onInquire={openAgentInquiry}
         onBookViewing={openBookingModal}
+        onSelectProperty={setSelected}
       />
 
       <ViewingRequestModal

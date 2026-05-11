@@ -11,6 +11,8 @@ function formatFilterValue(key, value, amenities) {
   switch (key) {
     case 'property_type':
       return value;
+    case 'province':
+      return `in ${value}`;
     case 'city':
       return `in ${value}`;
     case 'min_price':

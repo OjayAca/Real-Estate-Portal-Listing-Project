@@ -13,6 +13,7 @@ const AccountSettingsPage = React.lazy(() => import('./pages/AccountSettingsPage
 const SavedSearchesPage = React.lazy(() => import('./pages/SavedSearchesPage'));
 const SellPage = React.lazy(() => import('./pages/SellPage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 
 function DashboardRoute() {
   const { loading, user } = useAuth();
@@ -111,6 +112,7 @@ export default function App() {
             )}
             path="/account/settings"
           />
+          <Route element={<NotFoundPage />} path="*" />
         </Route>
       </Routes>
     </BrowserRouter>

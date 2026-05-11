@@ -42,7 +42,7 @@ class ViewingRequestTest extends TestCase
 
         $viewingRequest = \App\Models\ViewingRequest::create([
             'buyer_id' => $user->id,
-            'agent_id' => $agentUser->id,
+            'agent_id' => $agent->agent_id,
             'property_id' => $property->property_id,
             'requested_date' => now()->addDays(2)->format('Y-m-d'),
             'requested_time' => '14:00',

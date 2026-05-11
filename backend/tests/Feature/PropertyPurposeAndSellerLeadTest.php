@@ -78,7 +78,7 @@ class PropertyPurposeAndSellerLeadTest extends TestCase
             'address_line' => '21 Lease Street',
             'city' => 'Taguig',
             'province' => 'Metro Manila',
-            'status' => 'Available',
+            'status' => 'Draft',
         ]);
 
         $createResponse->assertCreated()

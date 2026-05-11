@@ -9,7 +9,7 @@ Route::prefix('auth')->group(function (): void {
     Route::post('/login', [PortalController::class, 'login'])->middleware('throttle:auth');
     Route::post('/forgot-password', [PortalController::class, 'forgotPassword'])->middleware('throttle:auth');
     Route::post('/reset-password', [PortalController::class, 'resetPassword'])->middleware('throttle:auth');
-    Route::get('/me', [PortalController::class, 'me']);
+    Route::get('/me', [PortalController::class, 'me'])->middleware('throttle:auth');
     Route::get('/email/verify/{user}', [PortalController::class, 'verifyEmailUpdate'])->name('auth.email.verify');
 });
 
@@ -58,7 +58,6 @@ Route::middleware(['auth:sanctum', 'role:user', 'throttle:api'])->group(function
     Route::delete('/saved-properties/{property}', [PortalController::class, 'unsaveProperty'])->middleware('throttle:strict');
     Route::post('/properties/{property}/inquiries', [PortalController::class, 'createInquiry'])->middleware('throttle:strict');
     Route::post('/agents/{agent}/inquiries', [AgentEcosystemController::class, 'createAgentInquiry'])->middleware('throttle:strict');
-    Route::post('/properties/{property}/viewings', [AgentEcosystemController::class, 'bookViewing'])->middleware('throttle:strict');
     Route::post('/properties/{property}/viewing-requests', [PortalController::class, 'viewingRequestStore'])->middleware('throttle:strict');
     Route::get('/viewing-requests', [PortalController::class, 'userViewingRequestsIndex']);
     Route::patch('/viewing-requests/{viewingRequest}/cancel', [PortalController::class, 'userViewingRequestCancel'])->middleware('throttle:strict');

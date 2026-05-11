@@ -27,34 +27,22 @@ class AuthService
         private readonly PortalService $portal,
     ) {}
 
-    public function register(Request $request): JsonResponse
+    public function register(array $data, bool $hasSession = false): JsonResponse
     {
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:80'],
-            'last_name' => ['required', 'string', 'max:80'],
-            'email' => ['required', 'email', 'max:180', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'role' => ['required', Rule::in([UserRole::USER->value, UserRole::AGENT->value])],
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
-            'license_number' => ['nullable', 'required_if:role,agent', 'string', 'max:50', 'unique:agents,license_number'],
-            'agency_name' => ['nullable', 'string', 'max:150'],
-            'bio' => ['nullable', 'string'],
-        ]);
-
-        $user = DB::transaction(function () use ($validated): User {
+        $user = DB::transaction(function () use ($data): User {
             $user = User::query()->create([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'role' => $validated['role'],
-                'password' => $validated['password'],
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'] ?? null,
+                'role' => $data['role'],
+                'password' => $data['password'],
                 'is_active' => true,
             ]);
 
             if ($user->role === UserRole::AGENT) {
-                $agency = ! empty($validated['agency_name'])
-                    ? $this->portal->resolveAgency($validated['agency_name'])
+                $agency = ! empty($data['agency_name'])
+                    ? $this->portal->resolveAgency($data['agency_name'])
                     : null;
 
                 $agent = Agent::query()->create([
@@ -63,11 +51,11 @@ class AuthService
                     'last_name' => $user->last_name,
                     'email' => $user->email,
                     'phone' => $user->phone, // Now nullable in DB
-                    'license_number' => $validated['license_number'],
+                    'license_number' => $data['license_number'],
                     'agency_id' => $agency?->agency_id,
-                    'agency_name' => $validated['agency_name'] ?? null,
+                    'agency_name' => $data['agency_name'] ?? null,
                     'approval_status' => 'pending',
-                    'bio' => $validated['bio'] ?? null,
+                    'bio' => $data['bio'] ?? null,
                 ]);
 
                 foreach (User::query()->where('role', UserRole::ADMIN->value)->get() as $admin) {
@@ -81,12 +69,12 @@ class AuthService
                 }
             }
 
-            return $user->load('agentProfile.agency');
+            return $user->load('agent.agency');
         });
 
-        if ($request->hasSession()) {
+        if ($hasSession) {
             Auth::guard('web')->login($user);
-            $request->session()->regenerate();
+            request()->session()->regenerate();
         }
 
         return response()->json([
@@ -97,14 +85,9 @@ class AuthService
         ], 201);
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(array $credentials, bool $hasSession = false): JsonResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $user = User::query()->with('agentProfile.agency')->where('email', $credentials['email'])->first();
+        $user = User::query()->with('agent.agency')->where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             return response()->json(['message' => 'The provided credentials are incorrect.'], 422);
@@ -114,9 +97,9 @@ class AuthService
             return response()->json(['message' => 'This account has been deactivated by an administrator.'], 403);
         }
 
-        if ($request->hasSession()) {
+        if ($hasSession) {
             Auth::guard('web')->login($user);
-            $request->session()->regenerate();
+            request()->session()->regenerate();
         }
 
         return response()->json([
@@ -125,10 +108,8 @@ class AuthService
         ]);
     }
 
-    public function me(Request $request): JsonResponse
+    public function me(?User $user): JsonResponse
     {
-        $user = $request->user();
-
         if (! $user) {
             return response()->json([
                 'user' => null,
@@ -136,38 +117,32 @@ class AuthService
         }
 
         return response()->json([
-            'user' => $this->portal->formatUser($user->load('agentProfile.agency')),
+            'user' => $this->portal->formatUser($user->load('agent.agency')),
         ]);
     }
 
-    public function updateProfile(Request $request): JsonResponse
+    public function updateProfile(array $data, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:80'],
-            'last_name' => ['required', 'string', 'max:80'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'bio' => ['nullable', 'string'],
-        ]);
-        $validated['phone'] = filled($validated['phone'] ?? null) ? $validated['phone'] : null;
+        $data['phone'] = filled($data['phone'] ?? null) ? $data['phone'] : null;
 
-        $user = DB::transaction(function () use ($request, $validated): User {
-            $user = $request->user()->load('agentProfile.agency');
+        $user = DB::transaction(function () use ($user, $data): User {
+            $user->load('agent.agency');
             $user->update([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'phone' => $validated['phone'],
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'phone' => $data['phone'],
             ]);
 
-            if ($user->agentProfile) {
-                $user->agentProfile->update([
-                    'first_name' => $validated['first_name'],
-                    'last_name' => $validated['last_name'],
-                    'phone' => $validated['phone'],
-                    'bio' => $validated['bio'] ?? $user->agentProfile->bio,
+            if ($user->agent) {
+                $user->agent->update([
+                    'first_name' => $data['first_name'],
+                    'last_name' => $data['last_name'],
+                    'phone' => $data['phone'],
+                    'bio' => $data['bio'] ?? $user->agent->bio,
                 ]);
             }
 
-            return $user->fresh()->load('agentProfile.agency');
+            return $user->fresh()->load('agent.agency');
         });
 
         return response()->json([
@@ -176,15 +151,10 @@ class AuthService
         ]);
     }
 
-    public function updatePassword(Request $request): JsonResponse
+    public function updatePassword(array $data, User $user): JsonResponse
     {
-        $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
-        ]);
-
-        $request->user()->update([
-            'password' => $request->password,
+        $user->update([
+            'password' => $data['password'],
         ]);
 
         return response()->json([
@@ -192,14 +162,9 @@ class AuthService
         ]);
     }
 
-    public function requestEmailUpdate(Request $request): JsonResponse
+    public function requestEmailUpdate(array $data, User $user): JsonResponse
     {
-        $request->validate([
-            'email' => ['required', 'email', 'max:180', 'unique:users,email'],
-        ]);
-
-        $user = $request->user();
-        $newEmail = $request->email;
+        $newEmail = $data['email'];
 
         $verificationUrl = URL::temporarySignedRoute(
             'auth.email.verify',
@@ -214,27 +179,25 @@ class AuthService
         ]);
     }
 
-    public function verifyEmailUpdate(Request $request, User $user): RedirectResponse
+    public function verifyEmailUpdate(User $user, string $email, bool $hasValidSignature): RedirectResponse
     {
-        if (! $request->hasValidSignature()) {
+        if (! $hasValidSignature) {
             return redirect(config('app.frontend_url').'/account/settings?error=invalid_signature');
         }
 
-        $newEmail = $request->email;
-
-        DB::transaction(function () use ($user, $newEmail): void {
-            $user->update(['email' => $newEmail]);
-            if ($user->agentProfile) {
-                $user->agentProfile->update(['email' => $newEmail]);
+        DB::transaction(function () use ($user, $email): void {
+            $user->update(['email' => $email]);
+            if ($user->agent) {
+                $user->agent->update(['email' => $email]);
             }
         });
 
         return redirect(config('app.frontend_url').'/account/settings?verified=1');
     }
 
-    public function logout(Request $request): JsonResponse
+    public function logout(User $user, bool $hasSession = false): JsonResponse
     {
-        $currentAccessToken = $request->user()->currentAccessToken();
+        $currentAccessToken = $user->currentAccessToken();
 
         if ($currentAccessToken && method_exists($currentAccessToken, 'delete')) {
             $currentAccessToken->delete();
@@ -248,9 +211,9 @@ class AuthService
             $webGuard->logout();
         }
 
-        if ($request->hasSession()) {
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
+        if ($hasSession) {
+            request()->session()->invalidate();
+            request()->session()->regenerateToken();
         }
 
         Auth::forgetGuards();
@@ -258,13 +221,9 @@ class AuthService
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
-    public function forgotPassword(Request $request): JsonResponse
+    public function forgotPassword(array $data): JsonResponse
     {
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-        ]);
-
-        $status = PasswordBroker::sendResetLink($validated);
+        $status = PasswordBroker::sendResetLink($data);
 
         if ($status !== PasswordBroker::RESET_LINK_SENT) {
             return response()->json(['message' => __($status)], 422);
@@ -275,17 +234,11 @@ class AuthService
         ]);
     }
 
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(array $data, bool $hasSession = false): JsonResponse
     {
-        $validated = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', PasswordRule::defaults()],
-        ]);
-
         $status = PasswordBroker::reset(
-            $validated,
-            function (User $user, string $password) use ($request): void {
+            $data,
+            function (User $user, string $password) use ($hasSession): void {
                 $user->forceFill([
                     'password' => $password,
                     'remember_token' => Str::random(60),
@@ -293,9 +246,9 @@ class AuthService
 
                 event(new PasswordReset($user));
 
-                if ($request->hasSession()) {
+                if ($hasSession) {
                     Auth::guard('web')->login($user);
-                    $request->session()->regenerate();
+                    request()->session()->regenerate();
                 }
             }
         );
@@ -304,7 +257,7 @@ class AuthService
             return response()->json(['message' => __($status)], 422);
         }
 
-        $user = User::query()->with('agentProfile.agency')->where('email', $validated['email'])->firstOrFail();
+        $user = User::query()->with('agent.agency')->where('email', $data['email'])->firstOrFail();
 
         return response()->json([
             'message' => __($status),

@@ -139,7 +139,7 @@ class AdminDashboardSearchTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $agent = User::factory()->create(['role' => 'agent']);
-        $agentProfile = Agent::query()->create([
+        $agent = Agent::query()->create([
             'user_id' => $agent->id,
             'first_name' => 'Agent',
             'last_name' => 'One',
@@ -150,7 +150,7 @@ class AdminDashboardSearchTest extends TestCase
         ]);
 
         Property::query()->create([
-            'agent_id' => $agentProfile->agent_id,
+            'agent_id' => $agent->agent_id,
             'title' => 'Modern Villa',
             'slug' => 'modern-villa',
             'description' => 'A modern villa',
@@ -163,7 +163,7 @@ class AdminDashboardSearchTest extends TestCase
         ]);
 
         Property::query()->create([
-            'agent_id' => $agentProfile->agent_id,
+            'agent_id' => $agent->agent_id,
             'title' => 'Beach Condo',
             'slug' => 'beach-condo',
             'description' => 'A beach condo',

@@ -1,10 +1,9 @@
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  PieChart, Pie, Cell,
-  Legend
+  PieChart, Pie, Cell, Legend, BarChart, Bar, ComposedChart, Line, ResponsiveContainer
 } from 'recharts';
-import { useEffect, useRef, useState } from 'react';
-import { TrendingUp, PieChart as PieChartIcon, Users, Home, UserCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TrendingUp, PieChart as PieChartIcon, Users, Home, UserCheck, MessageSquare, Map, Award, Eye } from 'lucide-react';
 
 const PIE_COLORS = ['#D4AF37', '#808080', '#A9A9A9', '#C0C0C0', '#4B5320'];
 
@@ -43,74 +42,33 @@ const CustomTooltip = ({ active, payload, label, prefix = '' }) => {
 export default function AdminAnalytics({ analytics }) {
   const user_growth = Array.isArray(analytics?.user_growth) ? analytics.user_growth : [];
   const property_distribution = Array.isArray(analytics?.property_distribution) ? analytics.property_distribution : [];
-
-  const totalUsers = user_growth.reduce((sum, d) => sum + (Number(d?.users) || 0), 0);
-  const totalProperties = property_distribution.reduce((sum, d) => sum + (Number(d?.value) || 0), 0);
-
-  const lastGrowth = user_growth[user_growth.length - 1]?.users || 0;
-  const prevGrowth = user_growth[user_growth.length - 2]?.users || 0;
-  const growthRate = prevGrowth ? ((lastGrowth - prevGrowth) / prevGrowth * 100).toFixed(1) : 0;
+  const weekly_inquiries = Array.isArray(analytics?.weekly_inquiries) ? analytics.weekly_inquiries : [];
+  const market_insights = Array.isArray(analytics?.market_insights) ? analytics.market_insights : [];
+  const top_listings = Array.isArray(analytics?.top_listings) ? analytics.top_listings : [];
+  const active_agents = Array.isArray(analytics?.active_agents) ? analytics.active_agents : [];
 
   const [chartsMounted, setChartsMounted] = useState(false);
-  const [areaChartReady, setAreaChartReady] = useState(false);
-  const [pieChartReady, setPieChartReady] = useState(false);
-  const [areaChartWidth, setAreaChartWidth] = useState(0);
-  const [pieChartWidth, setPieChartWidth] = useState(0);
-  const areaChartRef = useRef(null);
-  const pieChartRef = useRef(null);
-
   useEffect(() => {
-    const raf = requestAnimationFrame(() => setChartsMounted(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  useEffect(() => {
-    const areaElement = areaChartRef.current;
-    const pieElement = pieChartRef.current;
-    if (!areaElement || !pieElement) return;
-
-    const updateAreaReady = () => {
-      const { width, height } = areaElement.getBoundingClientRect();
-      setAreaChartWidth(Math.max(0, Math.floor(width)));
-      setAreaChartReady(width > 0 && height > 0);
-    };
-
-    const updatePieReady = () => {
-      const { width, height } = pieElement.getBoundingClientRect();
-      setPieChartWidth(Math.max(0, Math.floor(width)));
-      setPieChartReady(width > 0 && height > 0);
-    };
-
-    updateAreaReady();
-    updatePieReady();
-
-    const areaObserver = new ResizeObserver(updateAreaReady);
-    const pieObserver = new ResizeObserver(updatePieReady);
-    areaObserver.observe(areaElement);
-    pieObserver.observe(pieElement);
-
-    return () => {
-      areaObserver.disconnect();
-      pieObserver.disconnect();
-    };
+    const timer = setTimeout(() => setChartsMounted(true), 150);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!analytics) return null;
 
   const insights = [
     {
-      label: 'Total Registrations',
-      value: totalUsers,
-      icon: <Users size={20} />,
-      trend: `+${growthRate}% vs prev month`,
+      label: 'Total Inquiries',
+      value: analytics.stats?.total_inquiries || 0,
+      icon: <MessageSquare size={20} />,
+      trend: 'Lead Pipeline',
       color: 'var(--primary-base)',
     },
     {
-      label: 'Active Inventory',
-      value: totalProperties,
-      icon: <Home size={20} />,
-      trend: 'Healthy Distribution',
-      color: 'var(--brand-base)',
+      label: 'Conversion Rate',
+      value: `${analytics.stats?.conversion_rate || 0}%`,
+      icon: <TrendingUp size={20} />,
+      trend: 'Viewing to Inquiry',
+      color: '#10B981',
     },
     {
       label: 'Pending Approvals',
@@ -122,7 +80,7 @@ export default function AdminAnalytics({ analytics }) {
     {
       label: 'Platform Reach',
       value: analytics.stats?.total_views || 0,
-      icon: <TrendingUp size={20} />,
+      icon: <Eye size={20} />,
       trend: 'Total Views',
       color: 'var(--status-success)',
     },
@@ -149,36 +107,36 @@ export default function AdminAnalytics({ analytics }) {
         <section className="section-panel admin-panel animate-enter">
           <div style={{ marginBottom: '1.5rem' }}>
             <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
-              <TrendingUp size={14} aria-hidden="true" /> Growth
+              <TrendingUp size={14} aria-hidden="true" /> Momentum
             </p>
-            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>User Registrations</h2>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Weekly Inquiries</h2>
           </div>
-          <div ref={areaChartRef} style={{ width: '100%', height: 260, minWidth: 0, minHeight: 260 }}>
-            {chartsMounted && areaChartReady && areaChartWidth > 0 ? (
-              <AreaChart width={areaChartWidth} height={260} data={user_growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary-base)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--primary-base)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                <RechartsTooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="users"
-                  name="Users"
-                  stroke="var(--primary-base)"
-                  strokeWidth={3}
-                  fillOpacity={1}
-                  fill="url(#colorUsers)"
-                  animationDuration={1500}
-                />
-              </AreaChart>
-            ) : (
-              <div style={{ height: 260 }} />
+          <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
+            {chartsMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <AreaChart data={weekly_inquiries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorInq" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--primary-base)" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="var(--primary-base)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                  <XAxis dataKey="week" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="inquiries"
+                    name="Inquiries"
+                    stroke="var(--primary-base)"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorInq)"
+                    animationDuration={1500}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             )}
           </div>
         </section>
@@ -186,37 +144,139 @@ export default function AdminAnalytics({ analytics }) {
         <section className="section-panel admin-panel animate-enter animate-delay-1">
           <div style={{ marginBottom: '1.5rem' }}>
             <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
+              <Map size={14} aria-hidden="true" /> Geographic Demand
+            </p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Market Interest vs Inventory</h2>
+          </div>
+          <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
+            {chartsMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <BarChart data={market_insights} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                  <XAxis dataKey="city" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Bar dataKey="listings" name="Listings" fill="#D4AF37" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="interest" name="Search Interest" fill="var(--primary-base)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="charts-grid" style={{ marginTop: '2rem' }}>
+        <section className="section-panel admin-panel animate-enter animate-delay-2">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
+              <Award size={14} aria-hidden="true" /> Performance
+            </p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Top Listings by Views</h2>
+          </div>
+          <div className="table-responsive">
+            <table className="admin-data-table mini-table" style={{ width: '100%', tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: '60%' }}>Property</th>
+                  <th style={{ width: '25%' }}>City</th>
+                  <th className="text-right" style={{ width: '15%' }}>Views</th>
+                </tr>
+              </thead>
+              <tbody>
+                {top_listings.map(p => (
+                  <tr key={p.property_id}>
+                    <td className="text-truncate" title={p.title}>{p.title}</td>
+                    <td className="text-truncate" title={p.city}>{p.city}</td>
+                    <td className="text-right font-bold">{p.views_count.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="section-panel admin-panel animate-enter animate-delay-3">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
+              <UserCheck size={14} aria-hidden="true" /> Productivity
+            </p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Most Active Agents</h2>
+          </div>
+          <div className="table-responsive">
+            <table className="admin-data-table mini-table" style={{ width: '100%', tableLayout: 'fixed' }}>
+              <thead>
+                <tr>
+                  <th style={{ width: '70%' }}>Agent</th>
+                  <th className="text-right" style={{ width: '30%' }}>Active Listings</th>
+                </tr>
+              </thead>
+              <tbody>
+                {active_agents.map((a, i) => (
+                  <tr key={i}>
+                    <td className="text-truncate" title={a.name}>{a.name}</td>
+                    <td className="text-right font-bold">{a.listings}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div className="charts-grid" style={{ marginTop: '2rem' }}>
+        <section className="section-panel admin-panel animate-enter animate-delay-4">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
+              <Users size={14} aria-hidden="true" /> User Base
+            </p>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Monthly Registration Trend</h2>
+          </div>
+          <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
+            {chartsMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <ComposedChart data={user_growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                  <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Bar dataKey="users" name="New Users" fill="rgba(var(--primary-base-rgb), 0.2)" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="users" name="Trend" stroke="var(--primary-base)" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
+
+        <section className="section-panel admin-panel animate-enter animate-delay-5">
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}>
               <PieChartIcon size={14} aria-hidden="true" /> Inventory
             </p>
-            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Property Status</h2>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Property Status Mix</h2>
           </div>
-          <div ref={pieChartRef} style={{ width: '100%', height: 260, minWidth: 0, minHeight: 260 }}>
-            {chartsMounted && pieChartReady && pieChartWidth > 0 ? (
-              <PieChart width={pieChartWidth} height={260}>
-                <Pie
-                  data={property_distribution}
-                  innerRadius={70}
-                  outerRadius={95}
-                  paddingAngle={6}
-                  dataKey="value"
-                  nameKey="status"
-                  stroke="none"
-                  animationBegin={200}
-                  animationDuration={1200}
-                >
-                  {property_distribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip content={<CustomTooltip />} />
-                <Legend
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  formatter={(value) => <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{value}</span>}
-                />
-              </PieChart>
-            ) : (
-              <div style={{ height: 260 }} />
+          <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
+            {chartsMounted && (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <PieChart>
+                  <Pie
+                    data={property_distribution}
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={6}
+                    dataKey="value"
+                    nameKey="status"
+                    stroke="none"
+                    animationDuration={1200}
+                  >
+                    {property_distribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
             )}
           </div>
         </section>

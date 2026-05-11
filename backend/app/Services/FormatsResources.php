@@ -24,8 +24,8 @@ trait FormatsResources
             'role' => $user->role->value,
             'is_active' => $user->is_active,
             'created_at' => optional($user->created_at)->toIso8601String(),
-            'agent_profile' => $user->relationLoaded('agentProfile') && $user->agentProfile
-                ? $this->formatAgent($user->agentProfile)
+            'agent_profile' => $user->relationLoaded('agent') && $user->agent
+                ? $this->formatAgent($user->agent)
                 : null,
         ];
     }

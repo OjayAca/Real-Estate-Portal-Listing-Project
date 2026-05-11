@@ -411,6 +411,7 @@ export default function AccountSettingsPage() {
                     <strong>{search.name}</strong>
                     <span className="saved-search-meta">
                       {search.listing_purpose === 'rent' ? 'Rentals' : 'For Sale'}
+                      {search.filters?.province ? ` · ${search.filters.province}` : ''}
                       {search.filters?.city ? ` · ${search.filters.city}` : ''}
                       {search.filters?.property_type ? ` · ${search.filters.property_type}` : ''}
                     </span>

@@ -4,9 +4,12 @@ namespace App\Services;
 
 use App\Enums\UserRole;
 use App\Models\Agent;
+use App\Models\Inquiry;
 use App\Models\Property;
+use App\Models\SavedSearch;
 use App\Models\SellerLead;
 use App\Models\User;
+use App\Models\ViewingRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +69,7 @@ class AdminService
 
     private function getPaginatedUsers(?string $search)
     {
-        $query = User::query()->with('agentProfile')->latest();
+        $query = User::query()->with('agent')->latest();
         if ($search) {
             $query->where(function ($q) use ($search): void {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -131,7 +134,9 @@ class AdminService
     {
         $isSqlite = DB::getDriverName() === 'sqlite';
         $monthFormat = $isSqlite ? 'strftime("%Y-%m", created_at)' : 'DATE_FORMAT(created_at, "%Y-%m")';
+        $weekFormat = $isSqlite ? 'strftime("%Y-%W", created_at)' : 'DATE_FORMAT(created_at, "%X-%V")';
 
+        // User Growth (Monthly)
         $userGrowth = User::query()
             ->select(DB::raw("$monthFormat as month"), DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
@@ -140,19 +145,95 @@ class AdminService
             ->get()
             ->map(fn($item) => ['month' => $item->month, 'users' => $item->count]);
 
+        // Seller Lead Growth (Monthly)
+        $sellerLeadGrowth = SellerLead::query()
+            ->select(DB::raw("$monthFormat as month"), DB::raw('count(*) as count'))
+            ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->map(fn($item) => ['month' => $item->month, 'leads' => $item->count]);
+
+        // Weekly Inquiries (Rolling 12 weeks)
+        $weeklyInquiries = Inquiry::query()
+            ->select(DB::raw("$weekFormat as week"), DB::raw('count(*) as count'))
+            ->where('created_at', '>=', now()->subWeeks(12)->startOfWeek())
+            ->groupBy('week')
+            ->orderBy('week')
+            ->get()
+            ->map(fn($item) => ['week' => $item->week, 'inquiries' => $item->count]);
+
+        // Property Status Distribution
         $propertyDistribution = Property::query()
             ->select('status', DB::raw('count(*) as value'))
             ->groupBy('status')
             ->get();
 
+        // Top Performing Listings (by views)
+        $topListings = Property::query()
+            ->select('property_id', 'title', 'views_count', 'city')
+            ->orderByDesc('views_count')
+            ->take(5)
+            ->get();
+
+        // Most Active Agents (by listing count)
+        $activeAgents = Agent::query()
+            ->withCount('properties')
+            ->orderByDesc('properties_count')
+            ->take(5)
+            ->get()
+            ->map(fn($agent) => [
+                'name' => "{$agent->first_name} {$agent->last_name}",
+                'listings' => $agent->properties_count,
+            ]);
+
+        // Geographic Market Insights (Listings vs search traffic)
+        $cityListings = Property::query()
+            ->select('city', DB::raw('count(*) as count'))
+            ->groupBy('city')
+            ->orderByDesc('count')
+            ->take(10)
+            ->get();
+
+        $citySearchInterest = SavedSearch::query()
+            ->get()
+            ->flatMap(function($search) {
+                $filters = $search->filters;
+                if (isset($filters['city'])) {
+                    return is_array($filters['city']) ? $filters['city'] : [$filters['city']];
+                }
+                return [];
+            })
+            ->countBy()
+            ->map(fn($count, $city) => ['city' => $city, 'interest' => $count])
+            ->values();
+
+        $marketInsights = $cityListings->map(function($item) use ($citySearchInterest) {
+            $interest = $citySearchInterest->firstWhere('city', $item->city)['interest'] ?? 0;
+            return [
+                'city' => $item->city,
+                'listings' => $item->count,
+                'interest' => $interest,
+            ];
+        });
+
         return [
             'user_growth' => $userGrowth,
+            'seller_lead_growth' => $sellerLeadGrowth,
+            'weekly_inquiries' => $weeklyInquiries,
             'property_distribution' => $propertyDistribution,
+            'top_listings' => $topListings,
+            'active_agents' => $activeAgents,
+            'market_insights' => $marketInsights,
         ];
     }
 
     private function getGeneralStats(): array
     {
+        $viewingRequests = ViewingRequest::query()->count();
+        $inquiries = Inquiry::query()->count();
+        $conversionRate = $viewingRequests > 0 ? round(($inquiries / $viewingRequests) * 100, 1) : 0;
+
         return [
             'users' => User::query()->count(),
             'agents' => Agent::query()->count(),
@@ -162,27 +243,24 @@ class AdminService
             'seller_leads' => SellerLead::query()->count(),
             'new_seller_leads' => SellerLead::query()->where('status', 'New')->count(),
             'total_views' => Property::query()->sum('views_count'),
+            'total_inquiries' => $inquiries,
+            'conversion_rate' => $conversionRate,
         ];
     }
 
-    public function adminUserUpdate(Request $request, User $user): JsonResponse
+    public function adminUserUpdate(array $data, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'is_active' => ['required', 'boolean'],
-            'role' => ['nullable', Rule::in(UserRole::values())],
-        ]);
-
-        if ($user->isAdmin() && $validated['is_active'] === false) {
+        if ($user->isAdmin() && $data['is_active'] === false) {
             return response()->json(['message' => 'Administrator accounts cannot be suspended.'], 403);
         }
 
-        if (($validated['role'] ?? null) === UserRole::AGENT->value && !$user->agentProfile) {
+        if (($data['role'] ?? null) === UserRole::AGENT->value && !$user->agent) {
             return response()->json(['message' => 'Create an agent profile before promoting this user to agent.'], 422);
         }
 
-        if ($user->isAgent() && ($validated['role'] ?? $user->role->value) !== UserRole::AGENT->value) {
+        if ($user->isAgent() && ($data['role'] ?? $user->role->value) !== UserRole::AGENT->value) {
             $activeListings = Property::query()
-                ->where('agent_id', $user->agentProfile?->agent_id)
+                ->where('agent_id', $user->agent?->agent_id)
                 ->whereIn('status', ['Available', 'Sold', 'Rented'])
                 ->count();
 
@@ -192,35 +270,31 @@ class AdminService
         }
 
         $user->update([
-            'is_active' => $validated['is_active'],
-            'role' => $validated['role'] ?? $user->role->value,
+            'is_active' => $data['is_active'],
+            'role' => $data['role'] ?? $user->role->value,
         ]);
 
         return response()->json([
             'message' => 'User updated.',
-            'data' => $this->portal->formatUser($user->fresh()->load('agentProfile')),
+            'data' => $this->portal->formatUser($user->fresh()->load('agent')),
         ]);
     }
 
-    public function adminUserDestroy(Request $request, User $user): JsonResponse
+    public function adminUserDestroy(array $data, User $user): JsonResponse
     {
-        $validated = $request->validate([
-            'confirmation' => ['required', 'string'],
-        ]);
-
         if ($user->isAdmin()) {
             return response()->json(['message' => 'Administrator accounts cannot be deleted.'], 403);
         }
 
         $expectedConfirmation = "DELETE {$user->email}";
-        if (!hash_equals($expectedConfirmation, $validated['confirmation'])) {
+        if (!hash_equals($expectedConfirmation, $data['confirmation'])) {
             return response()->json(['message' => "Type {$expectedConfirmation} to permanently delete this user."], 422);
         }
 
-        $user->load('agentProfile');
-        if ($user->agentProfile) {
+        $user->load('agent');
+        if ($user->agent) {
             $listingCount = Property::query()
-                ->where('agent_id', $user->agentProfile->agent_id)
+                ->where('agent_id', $user->agent->agent_id)
                 ->count();
 
             if ($listingCount > 0) {
@@ -241,28 +315,19 @@ class AdminService
         ]);
     }
 
-    public function adminSellerLeadUpdate(Request $request, SellerLead $sellerLead): JsonResponse
+    public function adminSellerLeadUpdate(array $data, SellerLead $sellerLead): JsonResponse
     {
-        $validated = $request->validate([
-            'status' => ['sometimes', 'required', Rule::in(self::SELLER_LEAD_STATUSES)],
-            'assigned_agent_id' => [
-                'sometimes',
-                'nullable',
-                Rule::exists('agents', 'agent_id')->where(fn($query) => $query->where('approval_status', 'approved')),
-            ],
-        ]);
-
-        if (!array_key_exists('status', $validated) && !array_key_exists('assigned_agent_id', $validated)) {
+        if (!array_key_exists('status', $data) && !array_key_exists('assigned_agent_id', $data)) {
             return response()->json(['message' => 'Provide a status or assigned agent update.'], 422);
         }
 
         $previousAssignedAgentId = $sellerLead->assigned_agent_id;
 
-        $sellerLead->update($validated);
+        $sellerLead->update($data);
 
-        $nextAssignedAgentId = $validated['assigned_agent_id'] ?? null;
+        $nextAssignedAgentId = $data['assigned_agent_id'] ?? null;
         if (
-            array_key_exists('assigned_agent_id', $validated)
+            array_key_exists('assigned_agent_id', $data)
             && $nextAssignedAgentId !== null
             && (int) $nextAssignedAgentId !== (int) $previousAssignedAgentId
         ) {
@@ -289,13 +354,9 @@ class AdminService
         ]);
     }
 
-    public function adminAgentUpdate(Request $request, Agent $agent): JsonResponse
+    public function adminAgentUpdate(array $data, Agent $agent): JsonResponse
     {
-        $validated = $request->validate([
-            'approval_status' => ['required', Rule::in(self::AGENT_STATUSES)],
-        ]);
-
-        $agent->update(['approval_status' => $validated['approval_status']]);
+        $agent->update(['approval_status' => $data['approval_status']]);
 
         return response()->json([
             'message' => 'Agent status updated.',
@@ -303,31 +364,27 @@ class AdminService
         ]);
     }
 
-    public function adminPropertyUpdate(Request $request, Property $property): JsonResponse
+    public function adminPropertyUpdate(array $data, Property $property, User $adminUser): JsonResponse
     {
-        $validated = $request->validate([
-            'status' => ['required', Rule::in(self::PROPERTY_STATUSES)],
-        ]);
-
         $property->loadMissing('agent.user', 'amenities');
 
-        DB::transaction(function () use ($property, $request, $validated): void {
+        DB::transaction(function () use ($property, $adminUser, $data): void {
             $oldStatus = $property->status;
-            $property->update(['status' => $validated['status']]);
+            $property->update(['status' => $data['status']]);
 
-            if ($validated['status'] !== $oldStatus) {
-                $this->portal->logStatusChange($property, $request->user(), $oldStatus, $validated['status'], $request->input('status_reason'));
+            if ($data['status'] !== $oldStatus) {
+                $this->portal->logStatusChange($property, $adminUser, $oldStatus, $data['status'], $data['status_reason'] ?? null);
 
                 if ($property->agent?->user) {
                     $this->notifications->pushNotification(
                         $property->agent->user,
                         'property_status_updated',
                         'Property Status Updated',
-                        "Your listing '{$property->title}' was changed from {$oldStatus} to {$validated['status']}.",
+                        "Your listing '{$property->title}' was changed from {$oldStatus} to {$data['status']}.",
                         [
                             'property_id' => $property->property_id,
                             'old_status' => $oldStatus,
-                            'new_status' => $validated['status'],
+                            'new_status' => $data['status'],
                             'action_url' => '/dashboard',
                         ],
                     );

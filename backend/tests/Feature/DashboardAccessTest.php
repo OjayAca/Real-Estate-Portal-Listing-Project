@@ -46,12 +46,12 @@ class DashboardAccessTest extends TestCase
             'approval_status' => 'pending',
         ]);
 
-        $this->actingAs($agentUser->fresh('agentProfile'), 'web')
+        $this->actingAs($agentUser->fresh('agent'), 'web')
             ->getJson('/api/dashboard')
             ->assertOk()
             ->assertJsonPath('profile.approval_status', 'pending');
 
-        $this->actingAs($agentUser->fresh('agentProfile'), 'web')
+        $this->actingAs($agentUser->fresh('agent'), 'web')
             ->getJson('/api/agent/properties')
             ->assertForbidden();
     }

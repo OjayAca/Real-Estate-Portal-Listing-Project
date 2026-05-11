@@ -59,7 +59,7 @@ class User extends Authenticatable
     /**
      * @return HasOne<Agent, $this>
      */
-    public function agentProfile(): HasOne
+    public function agent(): HasOne
     {
         return $this->hasOne(Agent::class);
     }

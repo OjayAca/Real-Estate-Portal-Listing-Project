@@ -23,24 +23,9 @@ class SellerLeadService
         'New Construction',
     ];
 
-    public function store(Request $request): JsonResponse
+    public function store(array $data): JsonResponse
     {
-        $validated = $request->validate([
-            'full_name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email:rfc', 'max:180'],
-            'phone' => ['required', 'string', 'max:30'],
-            'property_type' => ['required', Rule::in(self::PROPERTY_TYPES)],
-            'property_address' => ['required', 'string', 'max:255'],
-            'bedrooms' => ['required', 'integer', 'min:0', 'max:50'],
-            'bathrooms' => ['required', 'integer', 'min:0', 'max:50'],
-            'home_size' => ['nullable', 'numeric', 'min:1'],
-            'lot_size' => ['nullable', 'numeric', 'min:1'],
-            'condition_of_home' => ['required', Rule::in(self::HOME_CONDITIONS)],
-            'expected_price' => ['nullable', 'numeric', 'min:1'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-        ]);
-
-        $lead = SellerLead::query()->create($validated);
+        $lead = SellerLead::query()->create($data);
 
         // Notify admins via email
         $admins = User::query()->where('role', UserRole::ADMIN->value)->get();

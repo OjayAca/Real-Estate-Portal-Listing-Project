@@ -18,27 +18,19 @@ class InquiryService
         private readonly NotificationService $notifications,
     ) {}
 
-    public function createInquiry(Request $request, Property $property): JsonResponse
+    public function createInquiry(array $data, Property $property, User $user): JsonResponse
     {
         if ($property->status !== 'Available') {
             return response()->json(['message' => 'This property is not accepting inquiries right now.'], 422);
         }
 
-        $validated = $request->validate([
-            'buyer_name' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'buyer_email' => ['sometimes', 'nullable', 'email', 'max:180'],
-            'buyer_phone' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'message' => ['required', 'string', 'min:10'],
-        ]);
-
-        $user = $request->user();
         $property->loadMissing('agent.user');
 
         $buyerData = [
-            'buyer_name' => trim((string) ($validated['buyer_name'] ?? '')) ?: $user->full_name,
-            'buyer_email' => trim((string) ($validated['buyer_email'] ?? '')) ?: $user->email,
-            'buyer_phone' => trim((string) ($validated['buyer_phone'] ?? '')) ?: $user->phone,
-            'message' => $validated['message'],
+            'buyer_name' => trim((string) ($data['buyer_name'] ?? '')) ?: $user->full_name,
+            'buyer_email' => trim((string) ($data['buyer_email'] ?? '')) ?: $user->email,
+            'buyer_phone' => trim((string) ($data['buyer_phone'] ?? '')) ?: $user->phone,
+            'message' => $data['message'],
         ];
 
         $inquiry = Inquiry::create([
@@ -83,26 +75,17 @@ class InquiryService
         ], 201);
     }
 
-    public function createAgentInquiry(Request $request, Agent $agent): JsonResponse
+    public function createAgentInquiry(array $data, Agent $agent, User $user): JsonResponse
     {
         if (! $agent->isApproved()) {
             return response()->json(['message' => 'This agent is not currently accepting inquiries.'], 422);
         }
 
-        $validated = $request->validate([
-            'full_name' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'email' => ['sometimes', 'nullable', 'email', 'max:180'],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'message' => ['required', 'string', 'min:10'],
-        ]);
-
-        $user = $request->user();
-
         $buyerData = [
-            'buyer_name' => trim((string) ($validated['full_name'] ?? '')) ?: $user->full_name,
-            'buyer_email' => trim((string) ($validated['email'] ?? '')) ?: $user->email,
-            'buyer_phone' => trim((string) ($validated['phone'] ?? '')) ?: $user->phone,
-            'message' => $validated['message'],
+            'buyer_name' => trim((string) ($data['full_name'] ?? '')) ?: $user->full_name,
+            'buyer_email' => trim((string) ($data['email'] ?? '')) ?: $user->email,
+            'buyer_phone' => trim((string) ($data['phone'] ?? '')) ?: $user->phone,
+            'message' => $data['message'],
         ];
 
         $inquiry = Inquiry::create([
@@ -146,7 +129,7 @@ class InquiryService
         ], 201);
     }
 
-    public function adminIndex(Request $request): JsonResponse
+    public function adminIndex(): JsonResponse
     {
         $inquiries = Inquiry::with(['property', 'agent.user'])
             ->orderBy('created_at', 'desc')
@@ -163,9 +146,8 @@ class InquiryService
         ]);
     }
 
-    public function agentIndex(Request $request): JsonResponse
+    public function agentIndex(User $user): JsonResponse
     {
-        $user = $request->user();
         if (!$user->agent) {
             return response()->json(['message' => 'Agent profile not found.'], 404);
         }
@@ -186,9 +168,9 @@ class InquiryService
         ]);
     }
 
-    public function userIndex(Request $request): JsonResponse
+    public function userIndex(User $user): JsonResponse
     {
-        $inquiries = Inquiry::where('buyer_id', $request->user()->id)
+        $inquiries = Inquiry::where('buyer_id', $user->id)
             ->with(['property', 'agent.user'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
@@ -204,19 +186,14 @@ class InquiryService
         ]);
     }
 
-    public function agentUpdateStatus(Request $request, Inquiry $inquiry): JsonResponse
+    public function agentUpdateStatus(array $data, Inquiry $inquiry, User $user): JsonResponse
     {
-        $user = $request->user();
         if (!$user->agent || $inquiry->agent_id !== $user->agent->agent_id) {
             return response()->json(['message' => 'Unauthorized or agent profile not found.'], 403);
         }
 
-        $validated = $request->validate([
-            'status' => ['required', 'string', 'in:New,Contacted,Scheduled,Closed,Cancelled,Spam'],
-        ]);
-
         $inquiry->update([
-            'status' => $validated['status'],
+            'status' => $data['status'],
         ]);
 
         return response()->json([

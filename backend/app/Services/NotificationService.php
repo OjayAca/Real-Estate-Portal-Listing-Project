@@ -9,9 +9,8 @@ use Illuminate\Http\Request;
 
 class NotificationService
 {
-    public function notificationsIndex(Request $request): JsonResponse
+    public function notificationsIndex(User $user): JsonResponse
     {
-        $user = $request->user();
         $notifications = $user->notifications()->latest()->take(50)->get();
 
         return response()->json([
@@ -26,17 +25,17 @@ class NotificationService
         ]);
     }
 
-    public function notificationRead(Request $request, string $notificationId): JsonResponse
+    public function notificationRead(User $user, string $notificationId): JsonResponse
     {
-        $notification = $request->user()->notifications()->findOrFail($notificationId);
+        $notification = $user->notifications()->findOrFail($notificationId);
         $notification->markAsRead();
 
         return response()->json(['message' => 'Notification marked as read.']);
     }
 
-    public function notificationsReadAll(Request $request): JsonResponse
+    public function notificationsReadAll(User $user): JsonResponse
     {
-        $request->user()->unreadNotifications->markAsRead();
+        $user->unreadNotifications->markAsRead();
 
         return response()->json(['message' => 'All notifications marked as read.']);
     }

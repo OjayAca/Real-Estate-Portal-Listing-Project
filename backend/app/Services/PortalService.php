@@ -55,9 +55,9 @@ class PortalService
         ]);
     }
 
-    public function dashboard(Request $request): JsonResponse
+    public function dashboard(User $user): JsonResponse
     {
-        $user = $request->user()->load('agentProfile.agency');
+        $user->loadMissing('agent.agency');
 
         if ($user->isAdmin()) {
             return response()->json([
@@ -67,13 +67,13 @@ class PortalService
                     'agents' => Agent::query()->count(),
                     'properties' => Property::query()->count(),
                 ],
-                'recent_users' => User::query()->with('agentProfile')->latest()->take(5)->get()->map(fn(User $entry) => $this->formatUser($entry)),
+                'recent_users' => User::query()->with('agent')->latest()->take(5)->get()->map(fn(User $entry) => $this->formatUser($entry)),
                 'recent_properties' => Property::query()->with(['agent.user', 'amenities'])->latest()->take(5)->get()->map(fn(Property $entry) => $this->formatProperty($entry)),
             ]);
         }
 
         if ($user->isAgent()) {
-            $agent = $user->agentProfile;
+            $agent = $user->agent;
 
             if (!$agent) {
                 abort(404, 'No agent profile is linked to this account.');
@@ -128,7 +128,7 @@ class PortalService
 
     public function requireApprovedAgent(User $user): Agent
     {
-        $agent = $user->agentProfile;
+        $agent = $user->agent;
 
         if (!$agent) {
             abort(404, 'No agent profile is linked to this account.');

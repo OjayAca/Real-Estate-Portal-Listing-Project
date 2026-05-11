@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Agent;
 use App\Models\Property;
 use App\Models\User;
+use App\Support\ImageUrlResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,7 @@ class AgentPropertyImageUploadTest extends TestCase
 
     public function test_agent_can_create_property_with_uploaded_featured_image(): void
     {
-        Storage::fake('public');
+        Storage::fake();
         [$user, $agent] = $this->createApprovedAgent();
         Sanctum::actingAs($user);
 
@@ -36,7 +37,7 @@ class AgentPropertyImageUploadTest extends TestCase
                 'address_line' => '123 Sample Street',
                 'city' => 'Makati',
                 'province' => 'Metro Manila',
-                'status' => 'Available',
+                'status' => 'Draft',
                 'featured_image_upload' => $this->fixtureUpload('featured-image-1600x900.png'),
             ],
             ['Accept' => 'application/json']
@@ -45,17 +46,17 @@ class AgentPropertyImageUploadTest extends TestCase
         $response->assertCreated();
 
         $property = Property::query()->firstOrFail();
-        $expectedUrl = rtrim(config('app.url'), '/').'/storage/'.$property->featured_image;
+        $expectedUrl = ImageUrlResolver::resolve($property->featured_image);
 
         $this->assertNotNull($property->featured_image);
         $this->assertStringStartsWith("properties/agent-{$agent->agent_id}/", $property->featured_image);
-        Storage::disk('public')->assertExists($property->featured_image);
+        Storage::assertExists($property->featured_image);
         $response->assertJsonPath('data.featured_image', $expectedUrl);
     }
 
     public function test_uploaded_featured_images_are_resized_to_listing_target(): void
     {
-        Storage::fake('public');
+        Storage::fake();
         [$user] = $this->createApprovedAgent();
         Sanctum::actingAs($user);
 
@@ -69,7 +70,7 @@ class AgentPropertyImageUploadTest extends TestCase
                 'address_line' => '77 Optimization Drive',
                 'city' => 'Quezon City',
                 'province' => 'Metro Manila',
-                'status' => 'Available',
+                'status' => 'Draft',
                 'featured_image_upload' => UploadedFile::fake()->image('large.jpg', 3200, 1800),
             ],
             ['Accept' => 'application/json']
@@ -77,7 +78,7 @@ class AgentPropertyImageUploadTest extends TestCase
 
         $response->assertCreated();
 
-        $path = Storage::disk('public')->path(Property::query()->firstOrFail()->featured_image);
+        $path = Storage::path(Property::query()->firstOrFail()->featured_image);
         [$width, $height] = getimagesize($path);
 
         $this->assertSame(1600, $width);
@@ -86,7 +87,7 @@ class AgentPropertyImageUploadTest extends TestCase
 
     public function test_agent_property_upload_rejects_images_that_are_too_small(): void
     {
-        Storage::fake('public');
+        Storage::fake();
         [$user] = $this->createApprovedAgent();
         Sanctum::actingAs($user);
 
@@ -112,12 +113,12 @@ class AgentPropertyImageUploadTest extends TestCase
 
     public function test_agent_can_replace_an_existing_uploaded_featured_image(): void
     {
-        Storage::fake('public');
+        Storage::fake();
         [$user, $agent] = $this->createApprovedAgent();
         Sanctum::actingAs($user);
 
         $oldPath = $this->fixtureUpload('featured-image-1600x900.png')
-            ->store("properties/agent-{$agent->agent_id}", 'public');
+            ->store("properties/agent-{$agent->agent_id}");
 
         $property = Property::query()->create([
             'agent_id' => $agent->agent_id,
@@ -151,17 +152,17 @@ class AgentPropertyImageUploadTest extends TestCase
         $response->assertOk();
 
         $property->refresh();
-        $expectedUrl = rtrim(config('app.url'), '/').'/storage/'.$property->featured_image;
+        $expectedUrl = ImageUrlResolver::resolve($property->featured_image);
 
         $this->assertNotSame($oldPath, $property->featured_image);
-        Storage::disk('public')->assertMissing($oldPath);
-        Storage::disk('public')->assertExists($property->featured_image);
+        Storage::assertMissing($oldPath);
+        Storage::assertExists($property->featured_image);
         $response->assertJsonPath('data.featured_image', $expectedUrl);
     }
 
     public function test_agent_profile_summary_featured_images_are_resolved_to_public_urls(): void
     {
-        Storage::fake('public');
+        Storage::fake();
         [$user, $agent] = $this->createApprovedAgent();
         Sanctum::actingAs($user);
 
@@ -189,7 +190,7 @@ class AgentPropertyImageUploadTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath(
             'data.active_listings.0.featured_image',
-            rtrim(config('app.url'), '/').'/storage/'.$property->featured_image
+            ImageUrlResolver::resolve($property->featured_image)
         );
     }
 

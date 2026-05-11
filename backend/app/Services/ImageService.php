@@ -26,7 +26,7 @@ class ImageService
         $path = $this->optimizeAndStoreFeaturedImage($file, $agent);
 
         if ($existingProperty && ImageUrlResolver::isManaged($existingProperty->featured_image)) {
-            Storage::disk('public')->delete($existingProperty->featured_image);
+            Storage::delete($existingProperty->featured_image);
         }
 
         return $path;
@@ -38,13 +38,13 @@ class ImageService
         $mimeType = $file->getMimeType() ?: $file->getClientMimeType();
 
         if (! $sourcePath || ! $mimeType || ! function_exists('imagecreatetruecolor')) {
-            return $file->store("properties/agent-{$agent->agent_id}", 'public');
+            return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
         }
 
         $sourceImage = $this->createImageResource($sourcePath, $mimeType);
 
         if (! $sourceImage) {
-            return $file->store("properties/agent-{$agent->agent_id}", 'public');
+            return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
         }
 
         try {
@@ -54,7 +54,7 @@ class ImageService
             $sourceHeight = imagesy($sourceImage);
 
             if ($sourceWidth <= 0 || $sourceHeight <= 0) {
-                return $file->store("properties/agent-{$agent->agent_id}", 'public');
+                return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
             }
 
             $targetImage = $this->resizeImageResource(
@@ -67,14 +67,14 @@ class ImageService
             );
 
             if (! $targetImage) {
-                return $file->store("properties/agent-{$agent->agent_id}", 'public');
+                return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
             }
 
             $extension = $this->imageExtensionForMimeType($mimeType);
             $path = "properties/agent-{$agent->agent_id}/".Str::random(40).'.'.$extension;
             $binary = $this->encodeImageResource($targetImage, $mimeType);
 
-            Storage::disk('public')->put($path, $binary);
+            Storage::put($path, $binary, ['visibility' => 'public']);
 
             if ($targetImage !== $sourceImage) {
                 imagedestroy($targetImage);
@@ -82,7 +82,7 @@ class ImageService
 
             return $path;
         } catch (\Throwable $e) {
-            return $file->store("properties/agent-{$agent->agent_id}", 'public');
+            return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
         } finally {
             if (is_resource($sourceImage) || (PHP_VERSION_ID >= 80000 && $sourceImage instanceof \GdImage)) {
                 imagedestroy($sourceImage);

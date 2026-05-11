@@ -19,15 +19,15 @@ return new class extends Migration
             $table->string('email', 180);
             $table->string('phone', 30);
             $table->enum('property_type', ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial']);
-            $table->string('address_line', 255);
-            $table->string('city', 100);
-            $table->string('province', 100);
+            $table->string('property_address', 255);
+            $table->unsignedInteger('bedrooms')->default(0);
+            $table->unsignedInteger('bathrooms')->default(0);
+            $table->decimal('home_size', 10, 2)->nullable()->comment('in sqm');
+            $table->decimal('lot_size', 10, 2)->nullable()->comment('in sqm');
+            $table->string('condition_of_home', 100)->nullable();
             $table->decimal('expected_price', 15, 2)->nullable();
-            $table->enum('timeline', ['Immediately', '1-3 months', '3-6 months', 'Just exploring']);
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index('timeline');
-            $table->index(['city', 'province']);
         });
     }
 

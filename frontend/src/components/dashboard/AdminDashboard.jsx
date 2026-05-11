@@ -64,7 +64,7 @@ export default function AdminDashboard({
         aria-labelledby={`dashboard-tab-overview`}
         hidden={activeTab !== 'overview'}
       >
-        {adminOverview.analytics && <AdminAnalytics analytics={analyticsWithStats} />}
+        {activeTab === 'overview' && adminOverview.analytics && <AdminAnalytics analytics={analyticsWithStats} />}
       </div>
 
       <div

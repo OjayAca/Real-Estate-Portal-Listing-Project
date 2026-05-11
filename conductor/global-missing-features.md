@@ -4,10 +4,10 @@ Global Missing Features
 2. Add a map-based property browser. The Map icon is already imported in the filter panel but unused. A map view where buyers can visually browse listings by location is one of the most expected features of a real estate portal. Leaflet.js or Mapbox GL would work well here and can be integrated without a major backend change since coordinates can be derived from the address.
 3. Add a mortgage or affordability calculator. For-sale properties should include a calculator tool that lets buyers input a down payment percentage, loan term in years, and interest rate to see the estimated monthly payment. This is a conversion tool that keeps buyers engaged and helps them self-qualify before contacting an agent.
 4. Add a property comparison tool. Buyers should be able to select two or three listings and view them side-by-side in a comparison table showing price, size, bedrooms, bathrooms, amenities, and location. This is especially useful for buyers who have shortlisted a few options.
-6. Add a province filter to the properties page. The backend already supports filtering by province but the frontend filter form only has city. Province-level filtering is important for a Philippines-based portal where buyers may be searching broadly across a region before narrowing to a specific city.
+6. 
 7. Add a square meter range filter. Bed and bath counts are exposed as filters but property size in square meters is not, despite the backend supporting it. Many buyers have a minimum size requirement, particularly for condos and lots.
 8. 
-9. Add a similar or nearby listings section on property detail views. When a buyer is viewing a property, showing three or four similar listings by type, price range, or city helps them explore without going back to the search page. This is standard in real estate portals and increases the number of listings a buyer sees per session.
+9. 
 10. 
 11. 
 12. Add sitemap generation and basic SEO metadata. Without individual property pages this is limited, but at minimum the portal should have title tags, meta descriptions, and Open Graph tags per page so shares on social media render correctly. Once dedicated property pages are built, each one should generate its own metadata from the listing title, city, price, and description.

@@ -23,7 +23,7 @@ class ImageUrlResolver
             $normalized = Str::after($normalized, 'storage/');
         }
 
-        $url = Storage::disk('public')->url($normalized);
+        $url = Storage::url($normalized);
 
         // If the URL returned by Storage is already absolute and valid,
         // we check if it's a localhost/127.0.0.1 URL that might need port correction.

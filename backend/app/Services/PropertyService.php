@@ -43,15 +43,14 @@ class PropertyService
         private readonly PortalService $portal,
     ) {}
 
-    public function propertiesIndex(Request $request): JsonResponse
+    public function propertiesIndex(array $filters, ?\App\Models\User $user = null): JsonResponse
     {
         $query = Property::query()
             ->with(['agent.user', 'amenities'])
             ->orderByDesc('listed_at')
             ->orderByDesc('created_at');
 
-        $user = $request->user();
-        $requestedStatus = $request->query('status');
+        $requestedStatus = $filters['status'] ?? null;
 
         if ($requestedStatus && $user && ($user->isAdmin() || $user->isAgent())) {
             $query->where('status', $requestedStatus);
@@ -59,7 +58,7 @@ class PropertyService
             $query->where('status', 'Available');
         }
 
-        if ($search = $request->query('search')) {
+        if ($search = ($filters['search'] ?? null)) {
             $terms = array_filter(explode(' ', (string) $search));
 
             $query->where(function ($builder) use ($terms): void {
@@ -76,52 +75,52 @@ class PropertyService
             });
         }
 
-        if ($type = $request->query('property_type')) {
+        if ($type = ($filters['property_type'] ?? null)) {
             $query->where('property_type', $type);
         }
 
-        if ($purpose = $request->query('listing_purpose')) {
+        if ($purpose = ($filters['listing_purpose'] ?? null)) {
             $query->where('listing_purpose', $purpose);
         }
 
-        if ($city = $request->query('city')) {
+        if ($city = ($filters['city'] ?? null)) {
             $query->where(function ($builder) use ($city): void {
                 $builder->where('city', 'like', "%{$city}%")
                     ->orWhere('province', 'like', "%{$city}%");
             });
         }
 
-        if ($province = $request->query('province')) {
+        if ($province = ($filters['province'] ?? null)) {
             $query->where('province', 'like', "%{$province}%");
         }
 
-        if ($request->filled('min_price')) {
-            $query->where('price', '>=', $this->sanitizeNumeric($request->query('min_price'), true));
+        if (filled($filters['min_price'] ?? null)) {
+            $query->where('price', '>=', $this->sanitizeNumeric($filters['min_price'], true));
         }
 
-        if ($request->filled('max_price')) {
-            $query->where('price', '<=', $this->sanitizeNumeric($request->query('max_price'), true));
+        if (filled($filters['max_price'] ?? null)) {
+            $query->where('price', '<=', $this->sanitizeNumeric($filters['max_price'], true));
         }
 
-        if ($request->filled('bedrooms')) {
-            $query->where('bedrooms', '>=', $this->sanitizeNumeric($request->query('bedrooms')));
+        if (filled($filters['bedrooms'] ?? null)) {
+            $query->where('bedrooms', '>=', $this->sanitizeNumeric($filters['bedrooms']));
         }
 
-        if ($request->filled('bathrooms')) {
-            $query->where('bathrooms', '>=', $this->sanitizeNumeric($request->query('bathrooms')));
+        if (filled($filters['bathrooms'] ?? null)) {
+            $query->where('bathrooms', '>=', $this->sanitizeNumeric($filters['bathrooms']));
         }
 
-        if ($request->filled('parking_spaces')) {
-            $query->where('parking_spaces', '>=', $this->sanitizeNumeric($request->query('parking_spaces')));
+        if (filled($filters['parking_spaces'] ?? null)) {
+            $query->where('parking_spaces', '>=', $this->sanitizeNumeric($filters['parking_spaces']));
         }
 
-        if ($request->filled('amenity_ids') || $request->filled('amenity_id')) {
-            $ids = is_array($request->query('amenity_ids'))
-                ? $request->query('amenity_ids')
-                : explode(',', (string) $request->query('amenity_ids'));
+        if (filled($filters['amenity_ids'] ?? null) || filled($filters['amenity_id'] ?? null)) {
+            $ids = is_array($filters['amenity_ids'] ?? null)
+                ? $filters['amenity_ids']
+                : explode(',', (string) ($filters['amenity_ids'] ?? ''));
 
-            if ($request->filled('amenity_id')) {
-                $ids[] = $request->query('amenity_id');
+            if (filled($filters['amenity_id'] ?? null)) {
+                $ids[] = $filters['amenity_id'];
             }
 
             $ids = array_filter(array_unique(array_map('intval', $ids)));
@@ -131,18 +130,17 @@ class PropertyService
             }
         }
 
-        $perPage = max(1, min($request->integer('per_page', 9), self::MAX_PER_PAGE));
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 9), self::MAX_PER_PAGE));
         $properties = $query->paginate($perPage)->withQueryString();
 
         return response()->json($this->paginatedPropertiesResponse($properties));
     }
 
-    public function propertyShow(Request $request, Property $property): JsonResponse
+    public function propertyShow(Property $property, ?\App\Models\User $user = null): JsonResponse
     {
         $property->loadMissing(['agent.user', 'amenities']);
-        $user = $request->user();
 
-        $canViewPrivate = $user && ($user->isAdmin() || ($user->isAgent() && $user->agentProfile?->agent_id === $property->agent_id));
+        $canViewPrivate = $user && ($user->isAdmin() || ($user->isAgent() && $user->agent?->agent_id === $property->agent_id));
 
         if (! $canViewPrivate && $property->status !== 'Available') {
             abort(404);
@@ -155,12 +153,57 @@ class PropertyService
 
         return response()->json([
             'data' => $this->portal->formatProperty($property),
+            'similar_properties' => $this->getSimilarProperties($property),
         ]);
     }
 
-    public function agentPropertiesIndex(Request $request): JsonResponse
+    private function getSimilarProperties(Property $property): array
     {
-        $agent = $this->portal->requireApprovedAgent($request->user());
+        $query = Property::query()
+            ->with(['agent.user', 'amenities'])
+            ->where('property_id', '!=', $property->property_id)
+            ->where('status', 'Available')
+            ->where('listing_purpose', $property->listing_purpose);
+
+        // Try to match type first
+        $baseQuery = (clone $query)->where('property_type', $property->property_type);
+
+        // Try to match city and price range +/- 30%
+        $minPrice = $property->price * 0.7;
+        $maxPrice = $property->price * 1.3;
+
+        $cityAndPriceMatch = (clone $baseQuery)
+            ->where('city', $property->city)
+            ->whereBetween('price', [$minPrice, $maxPrice]);
+
+        $results = $cityAndPriceMatch->latest()->take(4)->get();
+
+        if ($results->count() < 4) {
+            // Fill with same type from anywhere if not enough in same city/price
+            $remaining = 4 - $results->count();
+            $others = $baseQuery->whereNotIn('property_id', $results->pluck('property_id'))
+                ->latest()
+                ->take($remaining)
+                ->get();
+            $results = $results->concat($others);
+        }
+
+        if ($results->count() < 4) {
+            // Last resort: any available property with same purpose
+            $remaining = 4 - $results->count();
+            $others = $query->whereNotIn('property_id', $results->pluck('property_id'))
+                ->latest()
+                ->take($remaining)
+                ->get();
+            $results = $results->concat($others);
+        }
+
+        return $results->map(fn(Property $p) => $this->portal->formatProperty($p))->toArray();
+    }
+
+    public function agentPropertiesIndex(\App\Models\User $user): JsonResponse
+    {
+        $agent = $this->portal->requireApprovedAgent($user);
         $properties = Property::query()->with(['agent.user', 'amenities'])->where('agent_id', $agent->agent_id)->latest()->get();
 
         return response()->json([
@@ -168,16 +211,23 @@ class PropertyService
         ]);
     }
 
-    public function agentPropertyStore(Request $request): JsonResponse
+    public function agentPropertyStore(array $data, \App\Models\User $user, ?\Illuminate\Http\UploadedFile $imageFile = null): JsonResponse
     {
-        $agent = $this->portal->requireApprovedAgent($request->user());
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, false, null, self::AGENT_CREATE_STATUSES);
-        $payload['agent_id'] = $agent->agent_id;
-        $payload['slug'] = $this->generateSlug($payload['title']);
-        $payload['listing_purpose'] ??= 'sale';
-        $payload['listed_at'] = ($payload['status'] ?? 'Available') === 'Available' ? now() : null;
+        $agent = $this->portal->requireApprovedAgent($user);
+        
+        if ($imageFile) {
+            $data['featured_image'] = $this->images->storeFeaturedImage($imageFile, $agent);
+        }
 
-        $property = Property::query()->create($payload);
+        $amenityIds = $data['amenity_ids'] ?? [];
+        unset($data['amenity_ids']);
+
+        $data['agent_id'] = $agent->agent_id;
+        $data['slug'] = $this->generateSlug($data['title']);
+        $data['listing_purpose'] ??= 'sale';
+        $data['listed_at'] = ($data['status'] ?? 'Available') === 'Available' ? now() : null;
+
+        $property = Property::query()->create($data);
         $property->amenities()->sync($amenityIds);
 
         return response()->json([
@@ -186,36 +236,36 @@ class PropertyService
         ], 201);
     }
 
-    public function agentPropertyUpdate(Request $request, Property $property): JsonResponse
+    public function agentPropertyUpdate(array $data, Property $property, \App\Models\User $user, ?\Illuminate\Http\UploadedFile $imageFile = null): JsonResponse
     {
-        $agent = $this->portal->requireApprovedAgent($request->user());
+        $agent = $this->portal->requireApprovedAgent($user);
         $this->portal->guardOwnProperty($agent, $property);
 
-        $allowedStatuses = self::AGENT_ALLOWED_STATUSES;
-        if ($property->status !== 'Draft') {
-            $allowedStatuses = array_values(array_diff($allowedStatuses, ['Draft']));
+        if ($imageFile) {
+            $data['featured_image'] = $this->images->storeFeaturedImage($imageFile, $agent, $property);
         }
 
-        [$payload, $amenityIds] = $this->validatePropertyPayload($request, $agent, true, $property, $allowedStatuses);
-
-        if (array_key_exists('title', $payload)) {
-            $payload['slug'] = $this->generateSlug($payload['title'], $property);
+        if (array_key_exists('title', $data)) {
+            $data['slug'] = $this->generateSlug($data['title'], $property);
         }
 
-        if (($payload['status'] ?? null) === 'Available' && ! $property->listed_at) {
-            $payload['listed_at'] = now();
+        if (($data['status'] ?? null) === 'Available' && ! $property->listed_at) {
+            $data['listed_at'] = now();
         }
 
-        DB::transaction(function () use ($amenityIds, $payload, $property, $request): void {
+        $amenityIds = $data['amenity_ids'] ?? null;
+        unset($data['amenity_ids']);
+
+        DB::transaction(function () use ($amenityIds, $data, $property, $user): void {
             $oldStatus = $property->status;
-            $property->update($payload);
+            $property->update($data);
 
             if ($amenityIds !== null) {
                 $property->amenities()->sync($amenityIds);
             }
 
-            if (isset($payload['status']) && $payload['status'] !== $oldStatus) {
-                $this->portal->logStatusChange($property, $request->user(), $oldStatus, $payload['status'], $request->input('status_reason'));
+            if (isset($data['status']) && $data['status'] !== $oldStatus) {
+                $this->portal->logStatusChange($property, $user, $oldStatus, $data['status'], $data['status_reason'] ?? null);
             }
         });
 
@@ -225,13 +275,13 @@ class PropertyService
         ]);
     }
 
-    public function agentPropertyDestroy(Request $request, Property $property): JsonResponse
+    public function agentPropertyDestroy(Property $property, \App\Models\User $user): JsonResponse
     {
-        $agent = $this->portal->requireApprovedAgent($request->user());
+        $agent = $this->portal->requireApprovedAgent($user);
         $this->portal->guardOwnProperty($agent, $property);
 
         if (ImageUrlResolver::isManaged($property->featured_image)) {
-            Storage::disk('public')->delete($property->featured_image);
+            Storage::delete($property->featured_image);
         }
 
         $property->delete();
@@ -239,11 +289,11 @@ class PropertyService
         return response()->json(['message' => 'Property listing deleted.']);
     }
 
-    public function savedPropertiesIndex(Request $request): JsonResponse
+    public function savedPropertiesIndex(\App\Models\User $user, array $params = []): JsonResponse
     {
-        $perPage = max(1, min($request->integer('per_page', 12), self::MAX_PER_PAGE));
+        $perPage = max(1, min((int) ($params['per_page'] ?? 12), self::MAX_PER_PAGE));
 
-        $properties = $request->user()
+        $properties = $user
             ->savedProperties()
             ->with(['agent.user', 'amenities'])
             ->latest()
@@ -253,72 +303,22 @@ class PropertyService
         return response()->json($this->paginatedPropertiesResponse($properties));
     }
 
-    public function saveProperty(Request $request, Property $property): JsonResponse
+    public function saveProperty(\App\Models\User $user, Property $property): JsonResponse
     {
         if ($property->status !== 'Available') {
             return response()->json(['message' => 'Only available properties can be saved.'], 422);
         }
 
-        $request->user()->savedProperties()->syncWithoutDetaching([$property->property_id]);
+        $user->savedProperties()->syncWithoutDetaching([$property->property_id]);
 
         return response()->json(['message' => 'Property saved.']);
     }
 
-    public function unsaveProperty(Request $request, Property $property): JsonResponse
+    public function unsaveProperty(\App\Models\User $user, Property $property): JsonResponse
     {
-        $request->user()->savedProperties()->detach($property->property_id);
+        $user->savedProperties()->detach($property->property_id);
 
         return response()->json(['message' => 'Property removed from saved listings.']);
-    }
-
-    /**
-     * @param  array<string>|null  $allowedStatuses
-     * @return array{0: array<string, mixed>, 1: array<int>|null}
-     */
-    private function validatePropertyPayload(Request $request, Agent $agent, bool $isUpdate = false, ?Property $property = null, ?array $allowedStatuses = null): array
-    {
-        $required = $isUpdate ? ['sometimes'] : ['required'];
-        $allowedStatuses ??= self::PROPERTY_STATUSES;
-
-        $validated = $request->validate([
-            'title' => array_merge($required, ['string', 'max:150']),
-            'description' => array_merge($required, ['string']),
-            'property_type' => array_merge($required, [Rule::in(self::PROPERTY_TYPES)]),
-            'listing_purpose' => ['sometimes', Rule::in(self::LISTING_PURPOSES)],
-            'price' => array_merge($required, ['numeric', 'min:1']),
-            'bedrooms' => ['nullable', 'integer', 'min:0', 'max:20'],
-            'bathrooms' => ['nullable', 'integer', 'min:0', 'max:20'],
-            'parking_spaces' => ['nullable', 'integer', 'min:0', 'max:20'],
-            'area_sqm' => ['nullable', 'integer', 'min:0'],
-            'address_line' => array_merge($required, ['string', 'max:255']),
-            'city' => array_merge($required, ['string', 'max:100']),
-            'province' => array_merge($required, ['string', 'max:100']),
-            'featured_image' => ['nullable', 'string', 'max:255'],
-            'featured_image_upload' => [
-                'nullable',
-                'file',
-                File::image()->types(['jpg', 'jpeg', 'png', 'webp'])->max(self::FEATURED_IMAGE_MAX_SIZE_KB),
-                Rule::dimensions()
-                    ->minWidth(self::FEATURED_IMAGE_MIN_WIDTH)
-                    ->minHeight(self::FEATURED_IMAGE_MIN_HEIGHT)
-                    ->maxWidth(self::FEATURED_IMAGE_MAX_WIDTH)
-                    ->maxHeight(self::FEATURED_IMAGE_MAX_HEIGHT),
-            ],
-            'status' => ['nullable', Rule::in($allowedStatuses)],
-            'status_reason' => ['nullable', 'string', 'max:255'],
-            'amenity_ids' => ['nullable', 'array'],
-            'amenity_ids.*' => ['integer', 'exists:amenities,amenity_id'],
-        ]);
-
-        if ($request->hasFile('featured_image_upload')) {
-            $validated['featured_image'] = $this->images->storeFeaturedImage($request->file('featured_image_upload'), $agent, $property);
-        }
-
-        $amenityIds = $validated['amenity_ids'] ?? ($isUpdate ? null : []);
-        unset($validated['amenity_ids']);
-        unset($validated['featured_image_upload']);
-
-        return [$validated, $amenityIds];
     }
 
     private function generateSlug(string $title, ?Property $existing = null): string

@@ -79,16 +79,17 @@ class InAppNotificationsTest extends TestCase
         $property = Property::factory()->create(['agent_id' => $agent->agent_id]);
 
         $this->actingAs($buyer)
-            ->postJson("/api/properties/{$property->property_id}/viewings", [
-                'scheduled_start' => 'May 8, 2026 10:00 AM',
-                'notes' => 'Please confirm if this slot is available.',
+            ->postJson("/api/properties/{$property->property_id}/viewing-requests", [
+                'requested_date' => now()->addDays(2)->format('Y-m-d'),
+                'requested_time' => '10:00',
+                'buyer_message' => 'Please confirm if this slot is available.',
             ])
             ->assertCreated();
 
         $notification = $agentUser->notifications()->firstOrFail();
 
-        $this->assertSame('viewing_request_received', $notification->data['notification_type']);
-        $this->assertSame('May 8, 2026 10:00 AM', $notification->data['scheduled_start']);
+        $this->assertSame('viewing_request_created', $notification->data['notification_type']);
+        $this->assertArrayHasKey('viewing_request_id', $notification->data);
     }
 
     public function test_admin_property_status_change_notifies_listing_agent(): void
