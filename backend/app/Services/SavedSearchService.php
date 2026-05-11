@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SavedSearch;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;

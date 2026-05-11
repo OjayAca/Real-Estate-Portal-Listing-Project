@@ -8,6 +8,7 @@ use App\Models\Agent;
 use App\Models\BuyerAgentInteraction;
 use App\Models\Inquiry;
 use App\Models\Property;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;

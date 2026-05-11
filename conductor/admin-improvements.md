@@ -1,8 +1,0 @@
-Admin Account
-
-
-3. Add amenity management for admins. There is no interface to add, rename, or archive amenity types. If a new amenity category becomes relevant, it currently requires a direct database change. A simple CRUD panel for amenities is low-effort and gives the admin real control over the property data taxonomy.
-4. Add filters and prioritization to the admin property panel. The property status review section shows all properties with no way to filter by status. The admin should be able to quickly surface only Draft listings, only Available listings, or only flagged content. Sorting by date added would also help.
-5. Add admin ability to edit agent profiles. Currently admins can only change an agent's approval status. If an agent has incorrect information — a wrong license number, outdated agency name, or invalid contact details — the admin has no way to fix it. A basic edit form accessible from the agent row in the admin panel is needed.
-6. Add review moderation to the admin panel. Agent reviews have no moderation path. If a review is abusive, fake, or violates platform rules, there is no way to remove it from the admin side. The admin panel should list recent reviews and allow hiding or deleting individual ones.
-7.  
