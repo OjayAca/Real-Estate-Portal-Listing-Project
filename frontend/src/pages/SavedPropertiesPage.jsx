@@ -6,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import InlineMessage from '../components/InlineMessage';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetailsDrawer from '../components/PropertyDetailsDrawer';
+import ViewingRequestModal from '../components/ViewingRequestModal';
 import { useAuth } from '../context/AuthContext';
 import { ChevronLeft, ChevronRight, Heart, Search } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export default function SavedPropertiesPage() {
   const [messageTone, setMessageTone] = useState('info');
   const [selected, setSelected] = useState(null);
   const [contactProperty, setContactProperty] = useState(null);
+  const [bookingProperty, setBookingProperty] = useState(null);
   const [confirmState, setConfirmState] = useState(null);
 
   useEffect(() => {
@@ -77,6 +79,10 @@ export default function SavedPropertiesPage() {
         }
       },
     });
+  };
+
+  const openBookingModal = (property) => {
+    setBookingProperty(property);
   };
 
   return (
@@ -148,6 +154,16 @@ export default function SavedPropertiesPage() {
         property={selected}
         onClose={() => setSelected(null)}
         onInquire={setContactProperty}
+        onBookViewing={openBookingModal}
+      />
+
+      <ViewingRequestModal
+        property={bookingProperty}
+        onClose={() => setBookingProperty(null)}
+        onSuccess={(msg) => {
+          setMessage(msg);
+          setMessageTone('success');
+        }}
       />
 
       <AgentInquiryModal
