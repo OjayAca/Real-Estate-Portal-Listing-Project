@@ -1,9 +1,31 @@
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  PieChart, Pie, Cell, Legend, BarChart, Bar, ComposedChart, Line, ResponsiveContainer
+  PieChart, Pie, Cell, Legend, BarChart, Bar, ComposedChart, Line
 } from 'recharts';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { TrendingUp, PieChart as PieChartIcon, Users, Home, UserCheck, MessageSquare, Map, Award, Eye } from 'lucide-react';
+
+function ChartWrapper({ children }) {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new ResizeObserver((entries) => {
+      if (!entries || !entries.length) return;
+      const { width, height } = entries[0].contentRect;
+      setSize({ width, height });
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={{ width: '100%', height: '100%', minWidth: 0, minHeight: 0 }}>
+      {size.width > 0 && size.height > 0 ? children(size.width, size.height) : null}
+    </div>
+  );
+}
 
 const PIE_COLORS = ['#D4AF37', '#808080', '#A9A9A9', '#C0C0C0', '#4B5320'];
 
@@ -113,30 +135,32 @@ export default function AdminAnalytics({ analytics }) {
           </div>
           <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
             {chartsMounted && (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <AreaChart data={weekly_inquiries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorInq" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--primary-base)" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="var(--primary-base)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis dataKey="week" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="inquiries"
-                    name="Inquiries"
-                    stroke="var(--primary-base)"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorInq)"
-                    animationDuration={1500}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <ChartWrapper>
+                {(w, h) => (
+                  <AreaChart width={w} height={h} data={weekly_inquiries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorInq" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--primary-base)" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="var(--primary-base)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                    <XAxis dataKey="week" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="inquiries"
+                      name="Inquiries"
+                      stroke="var(--primary-base)"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorInq)"
+                      animationDuration={1500}
+                    />
+                  </AreaChart>
+                )}
+              </ChartWrapper>
             )}
           </div>
         </section>
@@ -150,17 +174,19 @@ export default function AdminAnalytics({ analytics }) {
           </div>
           <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
             {chartsMounted && (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <BarChart data={market_insights} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis dataKey="city" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                  <Bar dataKey="listings" name="Listings" fill="#D4AF37" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="interest" name="Search Interest" fill="var(--primary-base)" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <ChartWrapper>
+                {(w, h) => (
+                  <BarChart width={w} height={h} data={market_insights} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                    <XAxis dataKey="city" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                    <Bar dataKey="listings" name="Listings" fill="#D4AF37" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="interest" name="Search Interest" fill="var(--primary-base)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                )}
+              </ChartWrapper>
             )}
           </div>
         </section>
@@ -234,16 +260,18 @@ export default function AdminAnalytics({ analytics }) {
           </div>
           <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
             {chartsMounted && (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <ComposedChart data={user_growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Bar dataKey="users" name="New Users" fill="rgba(var(--primary-base-rgb), 0.2)" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="users" name="Trend" stroke="var(--primary-base)" strokeWidth={2} dot={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <ChartWrapper>
+                {(w, h) => (
+                  <ComposedChart width={w} height={h} data={user_growth} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                    <XAxis dataKey="month" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Bar dataKey="users" name="New Users" fill="rgba(var(--primary-base-rgb), 0.2)" radius={[4, 4, 0, 0]} />
+                    <Line type="monotone" dataKey="users" name="Trend" stroke="var(--primary-base)" strokeWidth={2} dot={false} />
+                  </ComposedChart>
+                )}
+              </ChartWrapper>
             )}
           </div>
         </section>
@@ -257,26 +285,28 @@ export default function AdminAnalytics({ analytics }) {
           </div>
           <div style={{ width: '100%', height: 260, minWidth: 0, position: 'relative' }}>
             {chartsMounted && (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <PieChart>
-                  <Pie
-                    data={property_distribution}
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={6}
-                    dataKey="value"
-                    nameKey="status"
-                    stroke="none"
-                    animationDuration={1200}
-                  >
-                    {property_distribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip content={<CustomTooltip />} />
-                  <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <ChartWrapper>
+                {(w, h) => (
+                  <PieChart width={w} height={h}>
+                    <Pie
+                      data={property_distribution}
+                      innerRadius={60}
+                      outerRadius={85}
+                      paddingAngle={6}
+                      dataKey="value"
+                      nameKey="status"
+                      stroke="none"
+                      animationDuration={1200}
+                    >
+                      {property_distribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                  </PieChart>
+                )}
+              </ChartWrapper>
             )}
           </div>
         </section>

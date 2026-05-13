@@ -64,6 +64,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   padding-bottom: 1px; /* keep underline visible */
+  padding-right: 1.5rem; /* Ensure last tab is not cut off */
 }
 
 .dashboard-tabs::-webkit-scrollbar {
@@ -114,6 +115,7 @@
 .tab-label {
   font-size: 0.95rem;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ */
