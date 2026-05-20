@@ -17,6 +17,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -69,19 +71,47 @@ export default function ResetPasswordPage() {
           <div className="field-grid two-up">
             <div>
               <label htmlFor="password">New Password</label>
-              <input id="password" name="password" onChange={handleChange} required type="password" value={form.password} autoComplete="new-password" />
+              <div className="auth-password-field">
+                <input
+                  id="password"
+                  name="password"
+                  onChange={handleChange}
+                  required
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  autoComplete="new-password"
+                />
+                <button
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="auth-password-toggle"
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
             <div>
               <label htmlFor="password_confirmation">Confirm Password</label>
-              <input
-                id="password_confirmation"
-                name="password_confirmation"
-                onChange={handleChange}
-                required
-                type="password"
-                value={form.password_confirmation}
-                autoComplete="new-password"
-              />
+              <div className="auth-password-field">
+                <input
+                  id="password_confirmation"
+                  name="password_confirmation"
+                  onChange={handleChange}
+                  required
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={form.password_confirmation}
+                  autoComplete="new-password"
+                />
+                <button
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  className="auth-password-toggle"
+                  onClick={() => setShowConfirmPassword((current) => !current)}
+                  type="button"
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
           </div>
 

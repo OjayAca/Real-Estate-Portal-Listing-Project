@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Property extends Model
 {
@@ -16,6 +17,7 @@ class Property extends Model
 
     protected $fillable = [
         'agent_id',
+        'owner_id',
         'title',
         'slug',
         'description',
@@ -53,6 +55,14 @@ class Property extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id', 'id');
+    }
+
+    /**
      * @return BelongsToMany<Amenity, $this>
      */
     public function amenities(): BelongsToMany
@@ -66,5 +76,13 @@ class Property extends Model
     public function statusLogs(): HasMany
     {
         return $this->hasMany(PropertyStatusLog::class, 'property_id', 'property_id');
+    }
+
+    /**
+     * @return HasOne<PropertyVerification, $this>
+     */
+    public function verification(): HasOne
+    {
+        return $this->hasOne(PropertyVerification::class, 'property_id', 'property_id');
     }
 }

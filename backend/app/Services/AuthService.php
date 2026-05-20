@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Enums\UserRole;
 use App\Mail\VerifyEmailChangeMail;
 use App\Models\Agent;
+use App\Models\MobileOtpChallenge;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,11 +27,12 @@ class AuthService
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly PortalService $portal,
+        private readonly ImageService $images,
     ) {}
 
-    public function register(array $data, bool $hasSession = false): JsonResponse
+    public function register(array $data, bool $hasSession = false, ?UploadedFile $profilePicture = null): JsonResponse
     {
-        $user = DB::transaction(function () use ($data): User {
+        $user = DB::transaction(function () use ($data, $profilePicture): User {
             $user = User::query()->create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
@@ -52,11 +55,18 @@ class AuthService
                     'email' => $user->email,
                     'phone' => $user->phone, // Now nullable in DB
                     'license_number' => $data['license_number'],
+                    'dhsud_registration_number' => $data['dhsud_registration_number'] ?? null,
                     'agency_id' => $agency?->agency_id,
                     'agency_name' => $data['agency_name'] ?? null,
                     'approval_status' => 'pending',
                     'bio' => $data['bio'] ?? null,
                 ]);
+
+                if ($profilePicture) {
+                    $agent->update([
+                        'profile_picture' => $this->images->storeAgentProfilePicture($profilePicture, $agent),
+                    ]);
+                }
 
                 foreach (User::query()->where('role', UserRole::ADMIN->value)->get() as $admin) {
                     $this->notifications->pushNotification(
@@ -127,10 +137,14 @@ class AuthService
 
         $user = DB::transaction(function () use ($user, $data): User {
             $user->load('agent.agency');
+            $phoneChanged = $this->normalizePhone($user->phone) !== $this->normalizePhone($data['phone']);
+
             $user->update([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'phone' => $data['phone'],
+                'phone_verified_at' => $phoneChanged ? null : $user->phone_verified_at,
+                'phone_verified_phone' => $phoneChanged ? null : $user->phone_verified_phone,
             ]);
 
             if ($user->agent) {
@@ -221,6 +235,73 @@ class AuthService
         return response()->json(['message' => 'Logged out successfully.']);
     }
 
+    public function requestMobileOtp(User $user): JsonResponse
+    {
+        if (! $user->phone) {
+            return response()->json(['message' => 'Add a mobile number before requesting an OTP.'], 422);
+        }
+
+        $code = (string) random_int(100000, 999999);
+        $phone = $this->normalizePhone($user->phone);
+
+        $challenge = MobileOtpChallenge::query()->create([
+            'user_id' => $user->id,
+            'phone' => $phone,
+            'code_hash' => Hash::make($code),
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $payload = [
+            'message' => 'Demo OTP generated. Use the code shown in this environment to verify your mobile number.',
+            'expires_at' => $challenge->expires_at->toIso8601String(),
+        ];
+
+        if (! app()->environment('production')) {
+            $payload['demo_code'] = $code;
+        }
+
+        return response()->json($payload);
+    }
+
+    public function verifyMobileOtp(array $data, User $user): JsonResponse
+    {
+        $phone = $this->normalizePhone($user->phone);
+
+        $challenge = MobileOtpChallenge::query()
+            ->where('user_id', $user->id)
+            ->where('phone', $phone)
+            ->whereNull('verified_at')
+            ->latest()
+            ->first();
+
+        if (! $challenge || $challenge->expires_at->isPast()) {
+            return response()->json(['message' => 'The OTP code is invalid or has expired.'], 422);
+        }
+
+        if ($challenge->attempts >= 5) {
+            return response()->json(['message' => 'Too many OTP attempts. Request a new code.'], 422);
+        }
+
+        $challenge->increment('attempts');
+
+        if (! Hash::check($data['code'], $challenge->code_hash)) {
+            return response()->json(['message' => 'The OTP code is incorrect.'], 422);
+        }
+
+        DB::transaction(function () use ($challenge, $user, $phone): void {
+            $challenge->update(['verified_at' => now()]);
+            $user->update([
+                'phone_verified_at' => now(),
+                'phone_verified_phone' => $phone,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Mobile number verified.',
+            'user' => $this->portal->formatUser($user->fresh()->load('agent.agency')),
+        ]);
+    }
+
     public function forgotPassword(array $data): JsonResponse
     {
         $status = PasswordBroker::sendResetLink($data);
@@ -263,5 +344,10 @@ class AuthService
             'message' => __($status),
             'user' => $this->portal->formatUser($user),
         ]);
+    }
+
+    private function normalizePhone(?string $phone): string
+    {
+        return preg_replace('/\D+/', '', (string) $phone) ?: '';
     }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
-import { User, Settings, LogOut, ChevronDown, UserCircle, Bookmark } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, UserCircle, Bookmark, Home } from 'lucide-react';
 
 function getDashboardLabel(role) {
   if (role === 'admin') {
@@ -63,6 +63,12 @@ export default function UserDropdown({ user, onLogout, userStatusLabel }) {
             <Settings size={16} />
             <span>Account Settings</span>
           </NavLink>
+          {user.role === 'user' && (
+            <NavLink to="/my-listings" className="dropdown-item" onClick={() => setIsOpen(false)}>
+              <Home size={16} />
+              <span>My Listings</span>
+            </NavLink>
+          )}
           {user.role === 'user' && (
             <NavLink to="/saved-searches" className="dropdown-item" onClick={() => setIsOpen(false)}>
               <Bookmark size={16} />

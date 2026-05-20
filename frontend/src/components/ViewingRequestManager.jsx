@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import InlineMessage from './InlineMessage';
 
-export default function ViewingRequestManager({ authFetch }) {
+export default function ViewingRequestManager({ authFetch, endpoint = '/agent/viewing-requests', updateBasePath = '/agent/viewing-requests', ownerMode = false }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,7 +25,7 @@ export default function ViewingRequestManager({ authFetch }) {
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await authFetch('/agent/viewing-requests');
+      const data = await authFetch(endpoint);
       setRequests(data.data || []);
       setError('');
     } catch (err) {
@@ -33,7 +33,7 @@ export default function ViewingRequestManager({ authFetch }) {
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, endpoint]);
 
   useEffect(() => {
     fetchRequests();
@@ -47,7 +47,7 @@ export default function ViewingRequestManager({ authFetch }) {
       if (confirmedTime) body.confirmed_time = confirmedTime;
       if (agentNotes) body.agent_notes = agentNotes;
 
-      const response = await authFetch(`/agent/viewing-requests/${requestId}`, {
+      const response = await authFetch(`${updateBasePath}/${requestId}`, {
         method: 'PATCH',
         body,
       });
@@ -98,10 +98,12 @@ export default function ViewingRequestManager({ authFetch }) {
           </p>
           <h2>Viewing Requests</h2>
           <p className="agent-manager-copy">
-            Manage viewing requests from prospective buyers for your listings.
+            {ownerMode
+              ? 'Coordinate viewing requests for your owner-posted listings.'
+              : 'Manage viewing requests from prospective buyers for your listings.'}
           </p>
         </div>
-        <span className="property-status status-new">{requests.filter(r => r.status === 'pending').length} pending</span>
+        <span className="property-status status-new">{requests.filter(r => String(r.status).toLowerCase() === 'pending').length} pending</span>
       </div>
 
       <InlineMessage message={error} tone="error" onDismiss={() => setError('')} />

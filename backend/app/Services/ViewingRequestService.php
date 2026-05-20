@@ -16,9 +16,16 @@ class ViewingRequestService
 
     public function createRequest(array $data, Property $property, User $user)
     {
+        $property->loadMissing(['agent.user', 'owner']);
+
+        if (! $property->agent && ! $property->owner) {
+            abort(422, 'This property does not have an available contact.');
+        }
+
         $viewingRequest = ViewingRequest::create([
             'buyer_id' => $user->id,
             'agent_id' => $property->agent_id,
+            'owner_id' => $property->owner_id,
             'property_id' => $property->property_id,
             'requested_date' => $data['requested_date'],
             'requested_time' => $data['requested_time'],
@@ -26,11 +33,10 @@ class ViewingRequestService
             'status' => 'Pending',
         ]);
 
-        // Notify Agent
-        $agentUser = $property->agent->user;
-        if ($agentUser) {
+        $recipientUser = $property->agent?->user ?: $property->owner;
+        if ($recipientUser) {
             $this->notificationService->pushNotification(
-                $agentUser,
+                $recipientUser,
                 'viewing_request_created',
                 'New Viewing Request',
                 $user->full_name . " requested to view " . $property->title . " on " . $data['requested_date'],
@@ -52,10 +58,19 @@ class ViewingRequestService
 
     public function listForBuyer(User $user)
     {
-        return ViewingRequest::with(['agent.user', 'property'])
+        return ViewingRequest::with(['agent.user', 'owner', 'property'])
             ->where('buyer_id', $user->id)
             ->orderBy('requested_date', 'desc')
             ->orderBy('requested_time', 'desc')
+            ->paginate(15);
+    }
+
+    public function listForOwner(User $user)
+    {
+        return ViewingRequest::with(['buyer', 'property'])
+            ->where('owner_id', $user->id)
+            ->orderBy('requested_date', 'asc')
+            ->orderBy('requested_time', 'asc')
             ->paginate(15);
     }
 
@@ -67,7 +82,7 @@ class ViewingRequestService
         $buyerUser = $viewingRequest->buyer;
         if ($buyerUser) {
             $title = "Viewing Request " . $data['status'];
-            $message = "Your viewing request for " . $viewingRequest->property->title . " has been " . strtolower($data['status']) . " by the agent.";
+            $message = "Your viewing request for " . $viewingRequest->property->title . " has been " . strtolower($data['status']) . ".";
             
             if ($data['status'] === 'Rescheduled') {
                 $message .= " New suggested time: " . ($data['confirmed_date'] ?? 'N/A') . " at " . ($data['confirmed_time'] ?? 'N/A');
@@ -94,11 +109,10 @@ class ViewingRequestService
 
         $viewingRequest->update(['status' => 'Cancelled']);
 
-        // Notify Agent
-        $agentUser = $viewingRequest->agent->user;
-        if ($agentUser) {
+        $recipientUser = $viewingRequest->agent?->user ?: $viewingRequest->owner;
+        if ($recipientUser) {
             $this->notificationService->pushNotification(
-                $agentUser,
+                $recipientUser,
                 'viewing_request_cancelled',
                 'Viewing Request Cancelled',
                 $user->full_name . " has cancelled their viewing request for " . $viewingRequest->property->title,

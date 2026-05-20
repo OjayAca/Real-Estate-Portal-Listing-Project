@@ -7,7 +7,7 @@ use Illuminate\Validation\Rule;
 
 class AdminUpdatePropertyStatusRequest extends FormRequest
 {
-    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
+    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented', 'Pending Review'];
 
     public function authorize(): bool
     {

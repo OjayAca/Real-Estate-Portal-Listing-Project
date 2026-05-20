@@ -20,13 +20,14 @@ class AdminService
 {
     private const AGENT_STATUSES = ['pending', 'approved', 'suspended'];
 
-    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'];
+    private const PROPERTY_STATUSES = ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented', 'Pending Review'];
 
     private const SELLER_LEAD_STATUSES = ['New', 'Contacted', 'Converted'];
 
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly PortalService $portal,
+        private readonly ListingVerificationService $listingVerification,
     ) {
     }
 
@@ -39,8 +40,8 @@ class AdminService
 
         // Fetch properties awaiting status approval
         $pendingApprovals = Property::query()
-            ->with(['agent.user', 'statusLogs.user'])
-            ->whereIn('status', ['Pending Sold', 'Pending Rented'])
+            ->with(['agent.user', 'owner', 'statusLogs.user', 'verification'])
+            ->whereIn('status', ['Pending Sold', 'Pending Rented', 'Pending Review'])
             ->get();
 
         return response()->json([
@@ -98,7 +99,7 @@ class AdminService
 
     private function getPaginatedProperties(?string $search)
     {
-        $query = Property::query()->with(['agent.user', 'amenities'])->latest();
+        $query = Property::query()->with(['agent.user', 'owner', 'amenities', 'verification'])->latest();
         if ($search) {
             $query->where(function ($q) use ($search): void {
                 $q->where('title', 'like', "%{$search}%")
@@ -239,7 +240,7 @@ class AdminService
             'agents' => Agent::query()->count(),
             'available_properties' => Property::query()->where('status', 'Available')->count(),
             'pending_agents' => Agent::query()->where('approval_status', 'pending')->count(),
-            'pending_approvals' => Property::query()->whereIn('status', ['Pending Sold', 'Pending Rented'])->count(),
+            'pending_approvals' => Property::query()->whereIn('status', ['Pending Sold', 'Pending Rented', 'Pending Review'])->count(),
             'seller_leads' => SellerLead::query()->count(),
             'new_seller_leads' => SellerLead::query()->where('status', 'New')->count(),
             'total_views' => Property::query()->sum('views_count'),
@@ -366,18 +367,36 @@ class AdminService
 
     public function adminPropertyUpdate(array $data, Property $property, User $adminUser): JsonResponse
     {
-        $property->loadMissing('agent.user', 'amenities');
+        $property->loadMissing('agent.user', 'owner', 'amenities', 'verification');
+
+        if ($data['status'] === 'Available') {
+            $blockers = $this->listingVerification->approvalBlockers($property);
+            if ($blockers !== []) {
+                return response()->json([
+                    'message' => 'Complete listing verification before approving this property.',
+                    'errors' => [
+                        'verification' => $blockers,
+                    ],
+                ], 422);
+            }
+        }
 
         DB::transaction(function () use ($property, $adminUser, $data): void {
             $oldStatus = $property->status;
-            $property->update(['status' => $data['status']]);
+            $updates = ['status' => $data['status']];
+            if ($data['status'] === 'Available' && ! $property->listed_at) {
+                $updates['listed_at'] = now();
+            }
+            $property->update($updates);
 
             if ($data['status'] !== $oldStatus) {
                 $this->portal->logStatusChange($property, $adminUser, $oldStatus, $data['status'], $data['status_reason'] ?? null);
 
-                if ($property->agent?->user) {
+                $recipientUser = $property->agent?->user ?: $property->owner;
+
+                if ($recipientUser) {
                     $this->notifications->pushNotification(
-                        $property->agent->user,
+                        $recipientUser,
                         'property_status_updated',
                         'Property Status Updated',
                         "Your listing '{$property->title}' was changed from {$oldStatus} to {$data['status']}.",
@@ -385,7 +404,7 @@ class AdminService
                             'property_id' => $property->property_id,
                             'old_status' => $oldStatus,
                             'new_status' => $data['status'],
-                            'action_url' => '/dashboard',
+                            'action_url' => $property->owner_id ? '/my-listings' : '/dashboard',
                         ],
                     );
                 }
@@ -394,7 +413,17 @@ class AdminService
 
         return response()->json([
             'message' => 'Property status updated.',
-            'data' => $this->portal->formatProperty($property->fresh()->load(['agent.user', 'amenities'])),
+            'data' => $this->portal->formatProperty($property->fresh()->load(['agent.user', 'owner', 'amenities', 'verification'])),
+        ]);
+    }
+
+    public function adminPropertyVerificationUpdate(array $data, Property $property, User $adminUser): JsonResponse
+    {
+        $verification = $this->listingVerification->updateAdminReview($property, $adminUser, $data);
+
+        return response()->json([
+            'message' => 'Listing verification updated.',
+            'data' => $this->listingVerification->formatVerification($verification, $property->fresh()->load('verification')),
         ]);
     }
 

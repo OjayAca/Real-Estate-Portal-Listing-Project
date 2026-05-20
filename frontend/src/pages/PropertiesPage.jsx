@@ -269,7 +269,7 @@ export default function PropertiesPage({ mode = 'buy' }) {
     }
 
     if (user.role !== 'user') {
-      setMessage('Log in as a buyer to email an agent.');
+      setMessage(property.contact_type === 'owner' ? 'Log in as a buyer to contact the owner.' : 'Log in as a buyer to email an agent.');
       setMessageTone('warning');
       return;
     }

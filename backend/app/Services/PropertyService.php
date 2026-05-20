@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Agent;
 use App\Models\Property;
+use App\Models\User;
 use App\Support\ImageUrlResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,12 +42,13 @@ class PropertyService
     public function __construct(
         private readonly ImageService $images,
         private readonly PortalService $portal,
+        private readonly ListingVerificationService $listingVerification,
     ) {}
 
     public function propertiesIndex(array $filters, ?\App\Models\User $user = null): JsonResponse
     {
         $query = Property::query()
-            ->with(['agent.user', 'amenities'])
+            ->with(['agent.user', 'owner', 'amenities', 'verification'])
             ->orderByDesc('listed_at')
             ->orderByDesc('created_at');
 
@@ -138,9 +140,13 @@ class PropertyService
 
     public function propertyShow(Property $property, ?\App\Models\User $user = null): JsonResponse
     {
-        $property->loadMissing(['agent.user', 'amenities']);
+        $property->loadMissing(['agent.user', 'owner', 'amenities', 'verification']);
 
-        $canViewPrivate = $user && ($user->isAdmin() || ($user->isAgent() && $user->agent?->agent_id === $property->agent_id));
+        $canViewPrivate = $user && (
+            $user->isAdmin()
+            || ($user->isAgent() && $user->agent?->agent_id === $property->agent_id)
+            || ($user->isBuyer() && $property->owner_id === $user->id)
+        );
 
         if (! $canViewPrivate && $property->status !== 'Available') {
             abort(404);
@@ -160,7 +166,7 @@ class PropertyService
     private function getSimilarProperties(Property $property): array
     {
         $query = Property::query()
-            ->with(['agent.user', 'amenities'])
+            ->with(['agent.user', 'owner', 'amenities', 'verification'])
             ->where('property_id', '!=', $property->property_id)
             ->where('status', 'Available')
             ->where('listing_purpose', $property->listing_purpose);
@@ -204,7 +210,20 @@ class PropertyService
     public function agentPropertiesIndex(\App\Models\User $user): JsonResponse
     {
         $agent = $this->portal->requireApprovedAgent($user);
-        $properties = Property::query()->with(['agent.user', 'amenities'])->where('agent_id', $agent->agent_id)->latest()->get();
+        $properties = Property::query()->with(['agent.user', 'owner', 'amenities', 'verification'])->where('agent_id', $agent->agent_id)->latest()->get();
+
+        return response()->json([
+            'data' => $properties->map(fn (Property $property) => $this->portal->formatProperty($property)),
+        ]);
+    }
+
+    public function ownerPropertiesIndex(User $user): JsonResponse
+    {
+        $properties = Property::query()
+            ->with(['agent.user', 'owner', 'amenities', 'verification'])
+            ->where('owner_id', $user->id)
+            ->latest()
+            ->get();
 
         return response()->json([
             'data' => $properties->map(fn (Property $property) => $this->portal->formatProperty($property)),
@@ -214,6 +233,7 @@ class PropertyService
     public function agentPropertyStore(array $data, \App\Models\User $user, ?\Illuminate\Http\UploadedFile $imageFile = null): JsonResponse
     {
         $agent = $this->portal->requireApprovedAgent($user);
+        $this->listingVerification->assertCanSubmit($data, $user, false);
         
         if ($imageFile) {
             $data['featured_image'] = $this->images->storeFeaturedImage($imageFile, $agent);
@@ -229,17 +249,49 @@ class PropertyService
 
         $property = Property::query()->create($data);
         $property->amenities()->sync($amenityIds);
+        $this->listingVerification->syncForProperty($property, $data, $user, false);
 
         return response()->json([
             'message' => 'Property listing created.',
-            'data' => $this->portal->formatProperty($property->load(['agent.user', 'amenities'])),
+            'data' => $this->portal->formatProperty($property->load(['agent.user', 'owner', 'amenities', 'verification'])),
+        ], 201);
+    }
+
+    public function ownerPropertyStore(array $data, User $user, ?\Illuminate\Http\UploadedFile $imageFile = null, ?\Illuminate\Http\UploadedFile $ownerProofFile = null): JsonResponse
+    {
+        if ($imageFile) {
+            $data['featured_image'] = $this->images->storeFeaturedImage($imageFile, $user);
+        }
+
+        $amenityIds = $data['amenity_ids'] ?? [];
+        unset($data['amenity_ids']);
+
+        $data['owner_id'] = $user->id;
+        $data['agent_id'] = null;
+        $data['slug'] = $this->generateSlug($data['title']);
+        $data['listing_purpose'] ??= 'sale';
+        $data['status'] = ($data['status'] ?? 'Pending Review') === 'Draft' ? 'Draft' : 'Pending Review';
+        $data['listed_at'] = null;
+        $this->listingVerification->assertCanSubmit($data, $user, true, null, $ownerProofFile);
+
+        $property = Property::query()->create($data);
+        $property->amenities()->sync($amenityIds);
+        $this->listingVerification->syncForProperty($property, $data, $user, true, $ownerProofFile);
+
+        return response()->json([
+            'message' => $property->status === 'Draft'
+                ? 'Owner listing saved as a draft.'
+                : 'Owner listing submitted for review.',
+            'data' => $this->portal->formatProperty($property->load(['owner', 'amenities', 'verification'])),
         ], 201);
     }
 
     public function agentPropertyUpdate(array $data, Property $property, \App\Models\User $user, ?\Illuminate\Http\UploadedFile $imageFile = null): JsonResponse
     {
         $agent = $this->portal->requireApprovedAgent($user);
+        $property->loadMissing('verification');
         $this->portal->guardOwnProperty($agent, $property);
+        $this->listingVerification->assertCanSubmit($data, $user, false, $property);
 
         if ($imageFile) {
             $data['featured_image'] = $this->images->storeFeaturedImage($imageFile, $agent, $property);
@@ -268,10 +320,64 @@ class PropertyService
                 $this->portal->logStatusChange($property, $user, $oldStatus, $data['status'], $data['status_reason'] ?? null);
             }
         });
+        $this->listingVerification->syncForProperty($property->fresh(), $data, $user, false);
 
         return response()->json([
             'message' => 'Property listing updated.',
-            'data' => $this->portal->formatProperty($property->fresh()->load(['agent.user', 'amenities'])),
+            'data' => $this->portal->formatProperty($property->fresh()->load(['agent.user', 'owner', 'amenities', 'verification'])),
+        ]);
+    }
+
+    public function ownerPropertyUpdate(array $data, Property $property, User $user, ?\Illuminate\Http\UploadedFile $imageFile = null, ?\Illuminate\Http\UploadedFile $ownerProofFile = null): JsonResponse
+    {
+        $property->loadMissing('verification');
+        $this->portal->guardOwnerProperty($user, $property);
+
+        if (isset($data['status']) && ! in_array($data['status'], ['Draft', 'Pending Review', 'Inactive'], true)) {
+            return response()->json(['message' => 'Owner listings can only be saved as Draft, Inactive, or submitted for review.'], 422);
+        }
+
+        if ($imageFile) {
+            $data['featured_image'] = $this->images->storeFeaturedImage($imageFile, $user, $property);
+        }
+
+        if (array_key_exists('title', $data)) {
+            $data['slug'] = $this->generateSlug($data['title'], $property);
+        }
+
+        $reviewFields = ['title', 'description', 'property_type', 'listing_purpose', 'price', 'bedrooms', 'bathrooms', 'parking_spaces', 'area_sqm', 'address_line', 'city', 'province', 'featured_image'];
+        $changedReviewFields = collect($reviewFields)->contains(fn (string $field) => array_key_exists($field, $data));
+
+        if ($property->status === 'Available' && $changedReviewFields) {
+            $data['status'] = 'Pending Review';
+            $data['listed_at'] = null;
+        } elseif (($data['status'] ?? null) === 'Pending Review') {
+            $data['listed_at'] = null;
+        }
+        $this->listingVerification->assertCanSubmit($data, $user, true, $property, $ownerProofFile);
+
+        $amenityIds = $data['amenity_ids'] ?? null;
+        unset($data['amenity_ids']);
+
+        DB::transaction(function () use ($amenityIds, $data, $property, $user): void {
+            $oldStatus = $property->status;
+            $property->update($data);
+
+            if ($amenityIds !== null) {
+                $property->amenities()->sync($amenityIds);
+            }
+
+            if (isset($data['status']) && $data['status'] !== $oldStatus) {
+                $this->portal->logStatusChange($property, $user, $oldStatus, $data['status'], $data['status_reason'] ?? null);
+            }
+        });
+        $this->listingVerification->syncForProperty($property->fresh(), $data, $user, true, $ownerProofFile);
+
+        return response()->json([
+            'message' => ($data['status'] ?? null) === 'Pending Review'
+                ? 'Owner listing submitted for review.'
+                : 'Owner listing updated.',
+            'data' => $this->portal->formatProperty($property->fresh()->load(['owner', 'amenities', 'verification'])),
         ]);
     }
 
@@ -289,13 +395,26 @@ class PropertyService
         return response()->json(['message' => 'Property listing deleted.']);
     }
 
+    public function ownerPropertyDestroy(Property $property, User $user): JsonResponse
+    {
+        $this->portal->guardOwnerProperty($user, $property);
+
+        if (ImageUrlResolver::isManaged($property->featured_image)) {
+            Storage::delete($property->featured_image);
+        }
+
+        $property->delete();
+
+        return response()->json(['message' => 'Owner listing deleted.']);
+    }
+
     public function savedPropertiesIndex(\App\Models\User $user, array $params = []): JsonResponse
     {
         $perPage = max(1, min((int) ($params['per_page'] ?? 12), self::MAX_PER_PAGE));
 
         $properties = $user
             ->savedProperties()
-            ->with(['agent.user', 'amenities'])
+            ->with(['agent.user', 'owner', 'amenities', 'verification'])
             ->latest()
             ->paginate($perPage)
             ->withQueryString();

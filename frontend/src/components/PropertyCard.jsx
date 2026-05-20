@@ -7,6 +7,8 @@ function formatPrice(property) {
 
 export default function PropertyCard({ property, onInquire, onSave, onView, saved }) {
   const isAvailable = property.status.toLowerCase() === 'available';
+  const isOwnerPosted = property.contact_type === 'owner';
+  const contactLabel = isOwnerPosted ? 'Contact Owner' : 'Email Agent';
 
   const handleCardClick = (e) => {
     // If the click is on a button (like Save or Email Agent), don't trigger the whole card view
@@ -98,11 +100,11 @@ export default function PropertyCard({ property, onInquire, onSave, onView, save
             <button 
               className="primary-button" 
               onClick={(e) => { e.stopPropagation(); onInquire(property); }}
-              aria-label={`Email agent for ${property.title}`}
+              aria-label={`${contactLabel} for ${property.title}`}
               style={{ width: '100%' }}
             >
               <Mail size={18} aria-hidden="true" />
-              Email Agent
+              {contactLabel}
             </button>
           </div>
         )}

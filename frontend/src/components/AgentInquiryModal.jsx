@@ -35,6 +35,8 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
 
   const propertyLabel = useMemo(() => getPropertyLabel(property), [property]);
   const canSubmit = user?.role === 'user';
+  const isOwnerPosted = property?.contact_type === 'owner';
+  const contactNoun = isOwnerPosted ? 'owner' : 'agent';
 
   useEffect(() => {
     if (!property) return;
@@ -95,7 +97,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
     setError('');
 
     if (!canSubmit) {
-      setError('Log in as a buyer to email an agent.');
+      setError(`Log in as a buyer to contact the ${contactNoun}.`);
       return;
     }
 
@@ -120,7 +122,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
           message: form.message,
         },
       });
-      if (onMessage) onMessage('Your inquiry has been sent to the agent.');
+      if (onMessage) onMessage(`Your inquiry has been sent to the ${contactNoun}.`);
       onClose();
     } catch (requestError) {
       setError(requestError.message || 'Unable to send inquiry right now.');
@@ -206,7 +208,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
           </label>
 
           <label className="agent-inquiry-field">
-            <span>How can an agent help?</span>
+            <span>{isOwnerPosted ? 'What would you like to ask the owner?' : 'How can an agent help?'}</span>
             <textarea
               data-inquiry-modal-focus
               name="message"
@@ -220,7 +222,7 @@ export default function AgentInquiryModal({ property, onClose, onMessage }) {
         {error ? <p className="agent-inquiry-error">{error}</p> : null}
 
         <button className="agent-inquiry-submit" data-inquiry-modal-focus type="submit" disabled={busy}>
-          {busy ? 'Sending...' : 'Email agent'}
+          {busy ? 'Sending...' : isOwnerPosted ? 'Contact Owner' : 'Email agent'}
         </button>
       </form>
     </div>

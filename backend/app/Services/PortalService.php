@@ -39,7 +39,7 @@ class PortalService
                     $admin,
                     'property_status_change',
                     'Property Status Change Request',
-                    "Agent {$user->full_name} has requested to mark property '{$property->title}' as " . str_replace('Pending ', '', $newStatus) . '.',
+                    "{$user->full_name} has requested a property status change for '{$property->title}' to " . str_replace('Pending ', '', $newStatus) . '.',
                     ['property_id' => $property->property_id]
                 );
             }
@@ -68,7 +68,7 @@ class PortalService
                     'properties' => Property::query()->count(),
                 ],
                 'recent_users' => User::query()->with('agent')->latest()->take(5)->get()->map(fn(User $entry) => $this->formatUser($entry)),
-                'recent_properties' => Property::query()->with(['agent.user', 'amenities'])->latest()->take(5)->get()->map(fn(Property $entry) => $this->formatProperty($entry)),
+                'recent_properties' => Property::query()->with(['agent.user', 'owner', 'amenities', 'verification'])->latest()->take(5)->get()->map(fn(Property $entry) => $this->formatProperty($entry)),
             ]);
         }
 
@@ -94,7 +94,7 @@ class PortalService
                 ]);
             }
 
-            $properties = Property::query()->with(['agent.user', 'amenities'])->where('agent_id', $agent->agent_id)->latest()->take(5)->get();
+            $properties = Property::query()->with(['agent.user', 'owner', 'amenities', 'verification'])->where('agent_id', $agent->agent_id)->latest()->take(5)->get();
             $sellerLeads = SellerLead::query()
                 ->with('assignedAgent')
                 ->where('assigned_agent_id', $agent->agent_id)
@@ -115,7 +115,7 @@ class PortalService
             ]);
         }
 
-        $saved = $user->savedProperties()->with(['agent.user', 'amenities'])->latest()->take(6)->get();
+        $saved = $user->savedProperties()->with(['agent.user', 'owner', 'amenities'])->latest()->take(6)->get();
 
         return response()->json([
             'role' => $user->role->value,
@@ -145,6 +145,13 @@ class PortalService
     {
         if ($property->agent_id !== $agent->agent_id) {
             abort(403, 'This property does not belong to the authenticated agent.');
+        }
+    }
+
+    public function guardOwnerProperty(User $owner, Property $property): void
+    {
+        if ($property->owner_id !== $owner->id) {
+            abort(403, 'This property does not belong to the authenticated owner.');
         }
     }
 

@@ -8,10 +8,6 @@ const initialState = {
   last_name: '',
   email: '',
   phone: '',
-  role: 'user',
-  license_number: '',
-  agency_name: '',
-  bio: '',
   password: '',
   password_confirmation: '',
 };
@@ -28,8 +24,14 @@ export default function AuthPage({ mode }) {
   const [forgotError, setForgotError] = useState('');
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotBusy, setForgotBusy] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
 
   const fromLocation = location.state?.from;
+  const passwordsMismatch = mode === 'register'
+    && form.password_confirmation.length > 0
+    && form.password !== form.password_confirmation;
 
   const resolvePostAuthPath = (authUser) => {
     const requestedPath = fromLocation
@@ -102,7 +104,7 @@ export default function AuthPage({ mode }) {
       if (mode === 'login') {
         response = await login({ email: form.email, password: form.password });
       } else {
-        response = await register(form);
+        response = await register({ ...form, role: 'user' });
       }
       navigate(resolvePostAuthPath(response.user), { replace: true });
     } catch (submissionError) {
@@ -116,18 +118,18 @@ export default function AuthPage({ mode }) {
     <div className="page-shell auth-layout animate-enter">
       <section className="section-panel auth-panel">
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
-           <div style={{ backgroundColor: 'rgba(197, 168, 128, 0.08)', padding: '1.25rem', borderRadius: '50%', marginBottom: '1rem', color: 'var(--brand-base)', border: '1px solid rgba(197, 168, 128, 0.2)', boxShadow: 'var(--glow-gold)' }}>
-             {mode === 'login' ? <KeyRound size={32} aria-hidden="true" /> : <UserPlus size={32} aria-hidden="true" />}
-           </div>
-           <p className="eyebrow flex-row" style={{ gap: '0.4rem', justifyContent: 'center' }}>
-             <ShieldCheck size={14} aria-hidden="true" /> Secure Access Portal
-           </p>
-           <h2 style={{ textAlign: 'center', margin: '0.5rem 0', fontWeight: 300 }}>{title}</h2>
-           <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 300, fontSize: '1rem', lineHeight: '1.6' }}>
-             {mode === 'login' 
-               ? 'Enter your credentials to access the administrative and client tools.' 
-               : 'Create a client profile or submit your agent credentials for review.'}
-           </p>
+          <div style={{ backgroundColor: 'rgba(197, 168, 128, 0.08)', padding: '1.25rem', borderRadius: '50%', marginBottom: '1rem', color: 'var(--brand-base)', border: '1px solid rgba(197, 168, 128, 0.2)', boxShadow: 'var(--glow-gold)' }}>
+            {mode === 'login' ? <KeyRound size={32} aria-hidden="true" /> : <UserPlus size={32} aria-hidden="true" />}
+          </div>
+          <p className="eyebrow flex-row" style={{ gap: '0.4rem', justifyContent: 'center' }}>
+            <ShieldCheck size={14} aria-hidden="true" /> Secure Access Portal
+          </p>
+          <h2 style={{ textAlign: 'center', margin: '0.5rem 0', fontWeight: 300 }}>{title}</h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontWeight: 300, fontSize: '1rem', lineHeight: '1.6' }}>
+            {mode === 'login'
+              ? 'Enter your credentials to access the administrative and client tools.'
+              : 'Create a client profile to save properties, inquiries, and viewing requests.'}
+          </p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit} aria-label={`${title} form`}>
@@ -143,17 +145,10 @@ export default function AuthPage({ mode }) {
                   <input id="last_name" name="last_name" onChange={handleChange} required value={form.last_name} placeholder="e.g. Davis" autoComplete="family-name" />
                 </div>
               </div>
-              <div style={{ marginTop: '1rem' }}>
-                <label htmlFor="role">Account Type</label>
-                <select id="role" name="role" onChange={handleChange} value={form.role}>
-                  <option value="user">Private Client / Buyer</option>
-                  <option value="agent">Real Estate Professional</option>
-                </select>
-              </div>
             </>
           ) : null}
 
-          <div className="field-grid two-up" style={{ marginTop: mode === 'register' ? '1rem' : 0 }}>
+          <div className={mode === 'register' ? 'field-grid two-up' : 'auth-single-field'} style={{ marginTop: mode === 'register' ? '1rem' : 0 }}>
             <div>
               <label htmlFor="email">Email Address</label>
               <input id="email" name="email" onChange={handleChange} required type="email" value={form.email} placeholder="name@domain.com" autoComplete="email" />
@@ -164,45 +159,81 @@ export default function AuthPage({ mode }) {
             </div>
           </div>
 
-          {mode === 'register' && form.role === 'agent' ? (
-            <div className="animate-enter">
-              <div className="field-grid two-up">
-                <div>
-                  <label htmlFor="license_number">License Number</label>
-                  <input id="license_number" name="license_number" onChange={handleChange} required value={form.license_number} autoComplete="off" />
-                </div>
-                <div>
-                  <label htmlFor="agency_name">Firm/Agency Name</label>
-                  <input id="agency_name" name="agency_name" onChange={handleChange} value={form.agency_name} placeholder="Independent if none" autoComplete="organization" />
-                </div>
-              </div>
-              <div style={{ marginTop: '1rem' }}>
-                <label htmlFor="bio">Professional Biography</label>
-                <textarea id="bio" name="bio" onChange={handleChange} rows="3" value={form.bio} placeholder="Highlight your expertise and sales history." />
-              </div>
-            </div>
-          ) : null}
-
-          <div className="field-grid two-up" style={{ marginTop: '1rem' }}>
+          <div className={mode === 'register' ? 'field-grid two-up' : 'auth-single-field'} style={{ marginTop: '1rem' }}>
             <div>
-              <label htmlFor="password">Secure Password</label>
-              <input id="password" name="password" onChange={handleChange} required type="password" value={form.password} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+              <label htmlFor="password">Password</label>
+              <div className="auth-password-field">
+                <input
+                  className={passwordsMismatch ? 'auth-input-mismatch' : undefined}
+                  id="password"
+                  name="password"
+                  onChange={handleChange}
+                  required
+                  type={mode === 'login' ? (showLoginPassword ? 'text' : 'password') : (showRegisterPassword ? 'text' : 'password')}
+                  value={form.password}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  aria-invalid={passwordsMismatch || undefined}
+                  aria-describedby={passwordsMismatch ? 'password-match-error' : undefined}
+                />
+                <button
+                  aria-label={
+                    mode === 'login'
+                      ? (showLoginPassword ? 'Hide password' : 'Show password')
+                      : (showRegisterPassword ? 'Hide password' : 'Show password')
+                  }
+                  className="auth-password-toggle"
+                  onClick={() => {
+                    if (mode === 'login') {
+                      setShowLoginPassword((current) => !current);
+                    } else {
+                      setShowRegisterPassword((current) => !current);
+                    }
+                  }}
+                  type="button"
+                >
+                  {mode === 'login'
+                    ? (showLoginPassword ? 'Hide' : 'Show')
+                    : (showRegisterPassword ? 'Hide' : 'Show')}
+                </button>
+              </div>
             </div>
             {mode === 'register' ? (
               <div>
                 <label htmlFor="password_confirmation">Confirm Password</label>
-                <input
-                  id="password_confirmation"
-                  name="password_confirmation"
-                  onChange={handleChange}
-                  required
-                  type="password"
-                  value={form.password_confirmation}
-                  autoComplete="new-password"
-                />
+                <div className="auth-password-field">
+                  <input
+                    className={passwordsMismatch ? 'auth-input-mismatch' : undefined}
+                    id="password_confirmation"
+                    name="password_confirmation"
+                    onChange={handleChange}
+                    required
+                    type={showRegisterConfirmPassword ? 'text' : 'password'}
+                    value={form.password_confirmation}
+                    autoComplete="new-password"
+                    aria-invalid={passwordsMismatch || undefined}
+                    aria-describedby={passwordsMismatch ? 'password-match-error' : undefined}
+                  />
+                  <button
+                    aria-label={showRegisterConfirmPassword ? 'Hide password' : 'Show password'}
+                    className="auth-password-toggle"
+                    onClick={() => setShowRegisterConfirmPassword((current) => !current)}
+                    type="button"
+                  >
+                    {showRegisterConfirmPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
+          {mode === 'register' ? (
+            <>
+              {passwordsMismatch ? (
+                <p className="field-error auth-password-match-error" id="password-match-error" role="alert">
+                  Passwords do not match.
+                </p>
+              ) : null}
+            </>
+          ) : null}
 
           {mode === 'login' ? (
             <div className="forgot-password-block">
@@ -243,8 +274,8 @@ export default function AuthPage({ mode }) {
 
           {error ? <p className="form-error animate-enter" role="alert" aria-live="assertive">{error}</p> : null}
 
-          <button className="primary-button auth-submit flex-row" disabled={busy} type="submit" style={{ gap: '0.75rem', marginTop: '2rem' }} aria-label={mode === 'login' ? 'Authenticate Access' : 'Submit Application'}>
-            {busy ? 'Verifying...' : mode === 'login' ? 'Authenticate Access' : 'Submit Application'}
+          <button className="primary-button auth-submit flex-row" disabled={busy} type="submit" style={{ gap: '0.75rem', marginTop: '2rem' }} aria-label={mode === 'login' ? 'Login' : 'Submit Application'}>
+            {busy ? 'Verifying...' : mode === 'login' ? 'Login' : 'Submit Application'}
             <ArrowRight size={18} aria-hidden="true" />
           </button>
         </form>
@@ -254,6 +285,12 @@ export default function AuthPage({ mode }) {
           <Link to={mode === 'login' ? '/register' : '/login'} className="text-link">
             {mode === 'login' ? 'Register Now' : 'Sign In'}
           </Link>
+          {mode === 'register' ? (
+            <>
+              {' '}or{' '}
+              <Link to="/agent-signup" className="text-link">Register as an agent</Link>
+            </>
+          ) : null}
         </p>
       </section>
     </div>

@@ -301,6 +301,12 @@ export default function DashboardPage() {
       appendValue('province', values.province.trim());
       appendValue('status', values.status || null);
       appendValue('status_reason', values.status_reason || null);
+      appendValue('authority_to_sell_confirmed', values.authority_to_sell_confirmed ? '1' : null);
+      appendValue('prc_license_number', values.prc_license_number?.trim());
+      appendValue('prc_license_expires_at', values.prc_license_expires_at);
+      appendValue('legal_accuracy_certified', values.legal_accuracy_certified ? '1' : null);
+      appendValue('legal_no_duplicate', values.legal_no_duplicate ? '1' : null);
+      appendValue('legal_data_privacy_consent', values.legal_data_privacy_consent ? '1' : null);
 
       if (values.amenity_ids.length > 0) {
         values.amenity_ids.forEach((amenityId) => {
@@ -466,6 +472,7 @@ export default function DashboardPage() {
           openEditForm={openEditForm}
           handleDeleteProperty={handleDeleteProperty}
           authFetch={authFetch}
+          currentUser={user}
         />
       )}
 

@@ -55,7 +55,7 @@ export default function AdminPendingActions({ adminOverview, openAdminConfirm })
                   <span className="chip status-pending">{property.status}</span>
                 </div>
                 <span>
-                  Requested by <strong style={{ display: 'inline', fontWeight: 600 }}>{property.agent?.full_name || 'Unknown Agent'}</strong>
+                  Requested by <strong style={{ display: 'inline', fontWeight: 600 }}>{property.agent?.full_name || property.owner?.full_name || 'Unknown Owner'}</strong>
                 </span>
                 {property.status_logs?.length > 0 && property.status_logs[0].reason && (
                   <p
@@ -79,9 +79,11 @@ export default function AdminPendingActions({ adminOverview, openAdminConfirm })
                   style={{ padding: '6px 14px', fontSize: '0.85rem' }}
                   onClick={() => openAdminConfirm({
                     title: 'Approve Status Change',
-                    message: `Approve marking "${property.title}" as ${property.status.replace('Pending ', '')}?`,
+                    message: property.status === 'Pending Review'
+                      ? `Approve "${property.title}" for public listing?`
+                      : `Approve marking "${property.title}" as ${property.status.replace('Pending ', '')}?`,
                     path: `/admin/properties/${property.property_id}`,
-                    body: { status: property.status.replace('Pending ', '') },
+                    body: { status: property.status === 'Pending Review' ? 'Available' : property.status.replace('Pending ', '') },
                     tone: 'success',
                     showInput: true,
                     inputLabel: 'Approval Note (Optional)',
@@ -95,9 +97,11 @@ export default function AdminPendingActions({ adminOverview, openAdminConfirm })
                   style={{ padding: '6px 14px', fontSize: '0.85rem' }}
                   onClick={() => openAdminConfirm({
                     title: 'Reject Status Change',
-                    message: `Reject status change for "${property.title}"? It will revert to "Available".`,
+                    message: property.status === 'Pending Review'
+                      ? `Reject "${property.title}"? It will move to "Inactive".`
+                      : `Reject status change for "${property.title}"? It will revert to "Available".`,
                     path: `/admin/properties/${property.property_id}`,
-                    body: { status: 'Available' },
+                    body: { status: property.status === 'Pending Review' ? 'Inactive' : 'Available' },
                     tone: 'danger',
                     showInput: true,
                     inputLabel: 'Rejection Reason',

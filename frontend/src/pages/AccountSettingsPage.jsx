@@ -41,6 +41,9 @@ export default function AccountSettingsPage() {
   const [busy, setBusy] = useState(false);
   const [savedSearches, setSavedSearches] = useState([]);
   const [savedSearchesBusy, setSavedSearchesBusy] = useState(true);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     setForm(createForm(user));
@@ -315,17 +318,47 @@ export default function AccountSettingsPage() {
           <div className="field-grid three-up">
             <label>
               Current Password
-              <input name="current_password" type="password" value={passwordForm.current_password} onChange={updatePasswordFields} required />
+              <div className="auth-password-field">
+                <input name="current_password" type={showCurrentPassword ? 'text' : 'password'} value={passwordForm.current_password} onChange={updatePasswordFields} required />
+                <button
+                  aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                  className="auth-password-toggle"
+                  onClick={() => setShowCurrentPassword((current) => !current)}
+                  type="button"
+                >
+                  {showCurrentPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               {errors.current_password ? <span className="field-error">{errors.current_password[0]}</span> : null}
             </label>
             <label>
               New Password
-              <input name="password" type="password" value={passwordForm.password} onChange={updatePasswordFields} required />
+              <div className="auth-password-field">
+                <input name="password" type={showNewPassword ? 'text' : 'password'} value={passwordForm.password} onChange={updatePasswordFields} required />
+                <button
+                  aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  className="auth-password-toggle"
+                  onClick={() => setShowNewPassword((current) => !current)}
+                  type="button"
+                >
+                  {showNewPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
               {errors.password ? <span className="field-error">{errors.password[0]}</span> : null}
             </label>
             <label>
               Confirm Password
-              <input name="password_confirmation" type="password" value={passwordForm.password_confirmation} onChange={updatePasswordFields} required />
+              <div className="auth-password-field">
+                <input name="password_confirmation" type={showConfirmPassword ? 'text' : 'password'} value={passwordForm.password_confirmation} onChange={updatePasswordFields} required />
+                <button
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  className="auth-password-toggle"
+                  onClick={() => setShowConfirmPassword((current) => !current)}
+                  type="button"
+                >
+                  {showConfirmPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </label>
           </div>
 

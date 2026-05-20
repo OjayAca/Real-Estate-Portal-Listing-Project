@@ -99,7 +99,6 @@ class DatabaseSeeder extends Seeder
             ['amenity_name' => 'Security', 'amenity_category' => 'Safety'],
             ['amenity_name' => 'Parking', 'amenity_category' => 'Convenience'],
             ['amenity_name' => 'Garden', 'amenity_category' => 'Outdoor'],
-            ['amenity_name' => 'Elevator', 'amenity_category' => 'Convenience'],
             ['amenity_name' => 'Pet Area', 'amenity_category' => 'Lifestyle'],
             ['amenity_name' => 'Clubhouse', 'amenity_category' => 'Lifestyle'],
         ])->map(fn (array $entry) => Amenity::query()->create($entry));
@@ -123,7 +122,7 @@ class DatabaseSeeder extends Seeder
                 'featured_image' => 'https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&w=1200&q=80',
                 'status' => 'Available',
                 'listed_at' => now()->subDays(8),
-                'amenities' => ['Pool', 'Gym', 'Security', 'Elevator'],
+                'amenities' => ['Pool', 'Gym', 'Security'],
             ],
             [
                 'agent_id' => $agentUsers[0]->agent_id,
@@ -203,7 +202,7 @@ class DatabaseSeeder extends Seeder
                 'featured_image' => 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80',
                 'status' => 'Available',
                 'listed_at' => now()->subDays(4),
-                'amenities' => ['Pool', 'Gym', 'Security', 'Elevator'],
+                'amenities' => ['Pool', 'Gym', 'Security'],
             ],
             [
                 'agent_id' => $agentUsers[1]->agent_id,

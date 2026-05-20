@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminDeleteUserRequest;
+use App\Http\Requests\AdminUpdatePropertyVerificationRequest;
 use App\Http\Requests\AdminUpdateAgentStatusRequest;
 use App\Http\Requests\AdminUpdatePropertyStatusRequest;
 use App\Http\Requests\AdminUpdateSellerLeadRequest;
@@ -24,6 +25,7 @@ use App\Http\Requests\UpdateProfileRequest;
 use App\Http\Requests\UpdatePropertyRequest;
 use App\Http\Requests\UpdateSavedSearchRequest;
 use App\Http\Requests\UpdateViewingRequestStatusRequest;
+use App\Http\Requests\VerifyMobileOtpRequest;
 use App\Models\Agent;
 use App\Models\Property;
 use App\Models\Inquiry;
@@ -41,6 +43,7 @@ use App\Services\SellerLeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PortalController extends Controller
 {
@@ -63,7 +66,11 @@ class PortalController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        return $this->authService->register($request->validated(), $request->hasSession());
+        return $this->authService->register(
+            $request->validated(),
+            $request->hasSession(),
+            $request->file('profile_picture_upload')
+        );
     }
 
     public function login(LoginRequest $request): JsonResponse
@@ -99,6 +106,16 @@ class PortalController extends Controller
     public function logout(Request $request): JsonResponse
     {
         return $this->authService->logout($request->user(), $request->hasSession());
+    }
+
+    public function requestMobileOtp(Request $request): JsonResponse
+    {
+        return $this->authService->requestMobileOtp($request->user());
+    }
+
+    public function verifyMobileOtp(VerifyMobileOtpRequest $request): JsonResponse
+    {
+        return $this->authService->verifyMobileOtp($request->validated(), $request->user());
     }
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
@@ -180,6 +197,37 @@ class PortalController extends Controller
         );
     }
 
+    public function ownerPropertiesIndex(Request $request): JsonResponse
+    {
+        return $this->propertyService->ownerPropertiesIndex($request->user());
+    }
+
+    public function ownerPropertyStore(StorePropertyRequest $request): JsonResponse
+    {
+        return $this->propertyService->ownerPropertyStore(
+            $request->validated(),
+            $request->user(),
+            $request->file('featured_image_upload'),
+            $request->file('owner_proof_upload')
+        );
+    }
+
+    public function ownerPropertyUpdate(UpdatePropertyRequest $request, Property $property): JsonResponse
+    {
+        return $this->propertyService->ownerPropertyUpdate(
+            $request->validated(),
+            $property,
+            $request->user(),
+            $request->file('featured_image_upload'),
+            $request->file('owner_proof_upload')
+        );
+    }
+
+    public function ownerPropertyDestroy(Request $request, Property $property): JsonResponse
+    {
+        return $this->propertyService->ownerPropertyDestroy($property, $request->user());
+    }
+
     public function agentPropertyUpdate(UpdatePropertyRequest $request, Property $property): JsonResponse
     {
         return $this->propertyService->agentPropertyUpdate(
@@ -218,6 +266,23 @@ class PortalController extends Controller
     public function adminPropertyUpdate(AdminUpdatePropertyStatusRequest $request, Property $property): JsonResponse
     {
         return $this->adminService->adminPropertyUpdate($request->validated(), $property, $request->user());
+    }
+
+    public function adminPropertyVerificationUpdate(AdminUpdatePropertyVerificationRequest $request, Property $property): JsonResponse
+    {
+        return $this->adminService->adminPropertyVerificationUpdate($request->validated(), $property, $request->user());
+    }
+
+    public function adminPropertyVerificationDownload(Request $request, Property $property)
+    {
+        $property->loadMissing('verification');
+        $path = $property->verification?->owner_proof_path;
+
+        if (! $path || ! Storage::disk('local')->exists($path)) {
+            abort(404, 'Ownership proof document not found.');
+        }
+
+        return Storage::disk('local')->download($path, $property->verification->owner_proof_original_name ?: 'owner-proof');
     }
 
     public function adminSellerLeadUpdate(AdminUpdateSellerLeadRequest $request, SellerLead $sellerLead): JsonResponse
@@ -259,6 +324,11 @@ class PortalController extends Controller
         return $this->inquiryService->agentIndex($request->user());
     }
 
+    public function ownerInquiriesIndex(Request $request): JsonResponse
+    {
+        return $this->inquiryService->ownerIndex($request->user());
+    }
+
     public function adminInquiriesIndex(Request $request): JsonResponse
     {
         return $this->inquiryService->adminIndex();
@@ -267,6 +337,11 @@ class PortalController extends Controller
     public function agentInquiryUpdate(UpdateInquiryStatusRequest $request, Inquiry $inquiry): JsonResponse
     {
         return $this->inquiryService->agentUpdateStatus($request->validated(), $inquiry, $request->user());
+    }
+
+    public function ownerInquiryUpdate(UpdateInquiryStatusRequest $request, Inquiry $inquiry): JsonResponse
+    {
+        return $this->inquiryService->ownerUpdateStatus($request->validated(), $inquiry, $request->user());
     }
 
     public function viewingRequestStore(StoreViewingRequest $request, Property $property): JsonResponse
@@ -283,10 +358,28 @@ class PortalController extends Controller
         return response()->json($this->viewingRequestService->listForAgent($request->user()));
     }
 
+    public function ownerViewingRequestsIndex(Request $request): JsonResponse
+    {
+        return response()->json($this->viewingRequestService->listForOwner($request->user()));
+    }
+
     public function agentViewingRequestUpdate(UpdateViewingRequestStatusRequest $request, \App\Models\ViewingRequest $viewingRequest): JsonResponse
     {
         // Add authorization check inside the service or here
         if ($viewingRequest->agent_id !== $request->user()->agent?->agent_id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $updatedRequest = $this->viewingRequestService->updateStatus($request->validated(), $viewingRequest);
+        return response()->json([
+            'message' => 'Viewing request updated successfully.',
+            'viewing_request' => $updatedRequest,
+        ]);
+    }
+
+    public function ownerViewingRequestUpdate(UpdateViewingRequestStatusRequest $request, \App\Models\ViewingRequest $viewingRequest): JsonResponse
+    {
+        if ($viewingRequest->owner_id !== $request->user()->id) {
             abort(403, 'Unauthorized action.');
         }
 

@@ -28,6 +28,8 @@ class User extends Authenticatable
         'last_name',
         'email',
         'phone',
+        'phone_verified_at',
+        'phone_verified_phone',
         'role',
         'is_active',
         'password',
@@ -50,6 +52,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
             'role' => UserRole::class,
@@ -95,6 +98,14 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Property::class, 'saved_properties', 'user_id', 'property_id')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Property, $this>
+     */
+    public function ownedProperties(): HasMany
+    {
+        return $this->hasMany(Property::class, 'owner_id', 'id');
     }
 
     /**

@@ -21,6 +21,8 @@ class Agent extends Model
         'email',
         'phone',
         'license_number',
+        'dhsud_registration_number',
+        'profile_picture',
         'agency_id',
         'agency_name',
         'approval_status',

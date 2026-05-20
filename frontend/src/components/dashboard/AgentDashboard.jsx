@@ -1,4 +1,4 @@
-import { UserCheck, CalendarDays, MessageSquare, Plus, Home, CheckCircle, AlertCircle, Building, MapPin, BedDouble, Bath, Layers3, Square, ImageIcon, Pencil, Trash2, Clock3, Phone, Mail, ClipboardList, CircleDollarSign } from 'lucide-react';
+import { UserCheck, CalendarDays, MessageSquare, Plus, Home, CheckCircle, AlertCircle, Building, MapPin, BedDouble, Bath, Layers3, Square, ImageIcon, Pencil, Trash2, Clock3, Phone, Mail, ClipboardList, CircleDollarSign, UserRound, BadgeCheck, FileText } from 'lucide-react';
 import InlineMessage from '../InlineMessage';
 import AgentPropertyForm from './AgentPropertyForm';
 import ViewingRequestManager from '../ViewingRequestManager';
@@ -39,6 +39,10 @@ function formatLeadValue(value, fallback = 'Not provided') {
   return value === null || value === undefined || value === '' ? fallback : value;
 }
 
+function formatCredential(value) {
+  return value || 'Not provided';
+}
+
 export default function AgentDashboard({
   agentProfile,
   isApprovedAgent,
@@ -62,13 +66,29 @@ export default function AgentDashboard({
   openEditForm,
   handleDeleteProperty,
   authFetch,
+  currentUser,
 }) {
   return (
     <>
       <section className="section-panel animate-enter animate-delay-2">
-        <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><UserCheck size={14} aria-hidden="true" /> Agent Profile</p>
-        <h2>{agentProfile?.agency_name || 'Independent Agent'}</h2>
-        <p className="property-copy" style={{ fontSize: '1rem', fontStyle: 'italic', marginBottom: '1.5rem' }}>{agentProfile?.bio || 'No biography provided.'}</p>
+        <div className="agent-dashboard-profile-header">
+          <div className="agent-dashboard-avatar">
+            {agentProfile?.profile_picture ? (
+              <img src={agentProfile.profile_picture} alt={`${agentProfile.full_name || 'Agent'} profile`} />
+            ) : (
+              <UserRound size={34} aria-hidden="true" />
+            )}
+          </div>
+          <div>
+            <p className="eyebrow flex-row" style={{ gap: '0.4rem' }}><UserCheck size={14} aria-hidden="true" /> Agent Profile</p>
+            <h2>{agentProfile?.agency_name || 'Independent Agent'}</h2>
+            <p className="property-copy" style={{ fontSize: '1rem', fontStyle: 'italic', marginBottom: 0 }}>{agentProfile?.bio || 'No biography provided.'}</p>
+          </div>
+        </div>
+        <div className="agent-dashboard-credentials">
+          <span><BadgeCheck size={15} aria-hidden="true" /> PRC: {formatCredential(agentProfile?.license_number)}</span>
+          <span><FileText size={15} aria-hidden="true" /> DHSUD: {formatCredential(agentProfile?.dhsud_registration_number)}</span>
+        </div>
         <div className="flex-row" style={{ color: 'var(--text-muted)' }}>
           <span>Authorization Status:</span>
           <span style={{
@@ -198,6 +218,7 @@ export default function AgentDashboard({
             mode={agentFormMode}
             onCancel={closeAgentForm}
             onSubmit={handlePropertySubmit}
+            currentUser={currentUser}
           />
         ) : null}
 

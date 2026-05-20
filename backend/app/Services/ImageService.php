@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Agent;
 use App\Models\Property;
+use App\Models\User;
 use App\Support\ImageUrlResolver;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -21,9 +22,9 @@ class ImageService
 
     private const FEATURED_IMAGE_PNG_COMPRESSION = 8;
 
-    public function storeFeaturedImage(UploadedFile $file, Agent $agent, ?Property $existingProperty = null): string
+    public function storeFeaturedImage(UploadedFile $file, Agent|User $uploader, ?Property $existingProperty = null): string
     {
-        $path = $this->optimizeAndStoreFeaturedImage($file, $agent);
+        $path = $this->optimizeAndStoreFeaturedImage($file, $uploader);
 
         if ($existingProperty && ImageUrlResolver::isManaged($existingProperty->featured_image)) {
             Storage::delete($existingProperty->featured_image);
@@ -32,19 +33,27 @@ class ImageService
         return $path;
     }
 
-    private function optimizeAndStoreFeaturedImage(UploadedFile $file, Agent $agent): string
+    public function storeAgentProfilePicture(UploadedFile $file, Agent $agent): string
     {
+        return $file->store("agents/agent-{$agent->agent_id}/profile", ['visibility' => 'public']);
+    }
+
+    private function optimizeAndStoreFeaturedImage(UploadedFile $file, Agent|User $uploader): string
+    {
+        $directory = $uploader instanceof Agent
+            ? "properties/agent-{$uploader->agent_id}"
+            : "properties/owner-{$uploader->id}";
         $sourcePath = $file->getRealPath();
         $mimeType = $file->getMimeType() ?: $file->getClientMimeType();
 
         if (! $sourcePath || ! $mimeType || ! function_exists('imagecreatetruecolor')) {
-            return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
+            return $file->store($directory, ['visibility' => 'public']);
         }
 
         $sourceImage = $this->createImageResource($sourcePath, $mimeType);
 
         if (! $sourceImage) {
-            return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
+            return $file->store($directory, ['visibility' => 'public']);
         }
 
         try {
@@ -54,7 +63,7 @@ class ImageService
             $sourceHeight = imagesy($sourceImage);
 
             if ($sourceWidth <= 0 || $sourceHeight <= 0) {
-                return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
+                return $file->store($directory, ['visibility' => 'public']);
             }
 
             $targetImage = $this->resizeImageResource(
@@ -67,11 +76,11 @@ class ImageService
             );
 
             if (! $targetImage) {
-                return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
+                return $file->store($directory, ['visibility' => 'public']);
             }
 
             $extension = $this->imageExtensionForMimeType($mimeType);
-            $path = "properties/agent-{$agent->agent_id}/".Str::random(40).'.'.$extension;
+            $path = $directory.'/'.Str::random(40).'.'.$extension;
             $binary = $this->encodeImageResource($targetImage, $mimeType);
 
             Storage::put($path, $binary, ['visibility' => 'public']);
@@ -82,7 +91,7 @@ class ImageService
 
             return $path;
         } catch (\Throwable $e) {
-            return $file->store("properties/agent-{$agent->agent_id}", ['visibility' => 'public']);
+            return $file->store($directory, ['visibility' => 'public']);
         } finally {
             if (is_resource($sourceImage) || (PHP_VERSION_ID >= 80000 && $sourceImage instanceof \GdImage)) {
                 imagedestroy($sourceImage);

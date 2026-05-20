@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ShieldCheck } from 'lucide-react';
 import InlineMessage from '../InlineMessage';
 
 const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
@@ -8,10 +8,12 @@ const LISTING_PURPOSES = [
   { label: 'For Rent', value: 'rent' },
 ];
 const AGENT_ALLOWED_STATUSES = ['Draft', 'Available', 'Pending Sold', 'Pending Rented'];
+const OWNER_ALLOWED_STATUSES = ['Draft', 'Pending Review', 'Inactive'];
 const FEATURED_IMAGE_MAX_SIZE_BYTES = 25 * 1024 * 1024;
 const FEATURED_IMAGE_MIN_WIDTH = 1200;
 const FEATURED_IMAGE_MIN_HEIGHT = 675;
 const FEATURED_IMAGE_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const OWNER_PROOF_ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 
 const emptyPropertyForm = {
   title: '',
@@ -31,6 +33,14 @@ const emptyPropertyForm = {
   status: 'Draft',
   status_reason: '',
   amenity_ids: [],
+  owner_proof_type: '',
+  owner_proof_file: null,
+  authority_to_sell_confirmed: false,
+  prc_license_number: '',
+  prc_license_expires_at: '',
+  legal_accuracy_certified: false,
+  legal_no_duplicate: false,
+  legal_data_privacy_consent: false,
 };
 
 function mapPropertyToFormValues(property) {
@@ -55,7 +65,23 @@ function mapPropertyToFormValues(property) {
     featured_image_file: null,
     status: property.status || 'Draft',
     amenity_ids: (property.amenities || []).map((amenity) => amenity.amenity_id),
+    owner_proof_type: property.verification?.owner_proof_type || '',
+    owner_proof_file: null,
+    authority_to_sell_confirmed: Boolean(property.verification?.authority_to_sell_confirmed),
+    prc_license_number: property.verification?.prc_license_number || property.agent?.license_number || '',
+    prc_license_expires_at: property.verification?.prc_license_expires_at || '',
+    legal_accuracy_certified: Boolean(property.verification?.legal_accuracy_accepted),
+    legal_no_duplicate: Boolean(property.verification?.legal_no_duplicate_accepted),
+    legal_data_privacy_consent: Boolean(property.verification?.legal_data_privacy_accepted),
   };
+}
+
+function createInitialValues(property, defaultStatus) {
+  const values = mapPropertyToFormValues(property);
+  if (!property && defaultStatus) {
+    return { ...values, status: defaultStatus };
+  }
+  return values;
 }
 
 function readImageDimensions(file) {
@@ -111,10 +137,19 @@ export default function AgentPropertyForm({
   onCancel,
   onMessageDismiss,
   onSubmit,
+  ownerMode = false,
+  defaultStatus,
+  authFetch,
+  currentUser,
 }) {
-  const [values, setValues] = useState(() => mapPropertyToFormValues(initialProperty));
+  const [values, setValues] = useState(() => createInitialValues(initialProperty, defaultStatus));
   const [imageSelectionError, setImageSelectionError] = useState('');
+  const [ownerProofError, setOwnerProofError] = useState('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState(() => initialProperty?.featured_image || '');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [phoneVerifiedOverride, setPhoneVerifiedOverride] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -188,13 +223,73 @@ export default function AgentPropertyForm({
     }));
   };
 
+  const handleOwnerProofChange = (event) => {
+    const [file] = event.target.files || [];
+    updateValue('owner_proof_file', null);
+    setOwnerProofError('');
+
+    if (!file) {
+      return;
+    }
+
+    if (!OWNER_PROOF_ACCEPTED_TYPES.includes(file.type)) {
+      event.target.value = '';
+      setOwnerProofError('Upload a PDF, JPG, PNG, or WebP document.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      event.target.value = '';
+      setOwnerProofError('Ownership proof must be 10 MB or smaller.');
+      return;
+    }
+
+    updateValue('owner_proof_file', file);
+  };
+
+  const requestOtp = async () => {
+    if (!authFetch) return;
+    setOtpBusy(true);
+    setOtpMessage('');
+    try {
+      const response = await authFetch('/auth/mobile-otp/request', { method: 'POST' });
+      setOtpMessage(response.demo_code ? `Demo OTP: ${response.demo_code}` : response.message);
+    } catch (error) {
+      setOtpMessage(error.message || 'Unable to request OTP.');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const verifyOtp = async () => {
+    if (!authFetch) return;
+    setOtpBusy(true);
+    setOtpMessage('');
+    try {
+      const response = await authFetch('/auth/mobile-otp/verify', {
+        method: 'POST',
+        body: { code: otpCode.trim() },
+      });
+      setOtpMessage(response.message);
+      setPhoneVerifiedOverride(true);
+      setOtpCode('');
+    } catch (error) {
+      setOtpMessage(error.message || 'Unable to verify OTP.');
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const submissionNeedsVerification = values.status !== 'Draft';
+  const phoneVerified = phoneVerifiedOverride || Boolean(currentUser?.phone_verified_at);
+
   return (
       <form
         className="agent-property-form animate-enter"
         onSubmit={(event) => {
           event.preventDefault();
 
-          if (imageSelectionError) {
+          if (imageSelectionError || ownerProofError) {
             return;
           }
 
@@ -204,9 +299,11 @@ export default function AgentPropertyForm({
       <div className="agent-property-form-header">
         <div>
           <p className="eyebrow">{mode === 'edit' ? 'Update Listing' : 'Create Listing'}</p>
-          <h3>{mode === 'edit' ? `Editing ${initialProperty?.title || 'Listing'}` : 'Add A New Property'}</h3>
+          <h3>{mode === 'edit' ? `Editing ${initialProperty?.title || 'Listing'}` : ownerMode ? 'Submit An Owner Listing' : 'Add A New Property'}</h3>
           <p className="agent-property-form-copy">
-            Keep listing details accurate so dashboard totals, inquiry context, and the public catalog stay in sync.
+            {ownerMode
+              ? 'Owner-posted listings are reviewed before they appear in the public catalog.'
+              : 'Keep listing details accurate so dashboard totals, inquiry context, and the public catalog stay in sync.'}
           </p>
         </div>
         <button className="ghost-button" type="button" onClick={onCancel}>
@@ -267,6 +364,138 @@ export default function AgentPropertyForm({
           />
           {getFieldError(fieldErrors, 'description') ? <span className="field-error">{getFieldError(fieldErrors, 'description')}</span> : null}
         </label>
+      </div>
+
+      <div className="agent-form-section">
+        <p className="eyebrow">Verification Guardrails</p>
+
+        {ownerMode ? (
+          <div className="two-up agent-form-grid">
+            <label>
+              Proof of Ownership
+              <select
+                value={values.owner_proof_type}
+                onChange={(event) => updateValue('owner_proof_type', event.target.value)}
+                required={submissionNeedsVerification}
+              >
+                <option value="">Select document type</option>
+                <option value="tax_declaration">Tax Declaration</option>
+                <option value="tct_front_page">TCT Front Page</option>
+              </select>
+              {getFieldError(fieldErrors, 'owner_proof_type') ? <span className="field-error">{getFieldError(fieldErrors, 'owner_proof_type')}</span> : null}
+            </label>
+
+            <label>
+              Private Ownership Document
+              <input
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                onChange={handleOwnerProofChange}
+                required={submissionNeedsVerification && !initialProperty?.verification?.owner_proof_uploaded}
+                type="file"
+              />
+              <span className="field-hint">
+                Stored privately for admin review. Existing proof: {initialProperty?.verification?.owner_proof_uploaded ? 'uploaded' : 'none'}.
+              </span>
+              {values.owner_proof_file ? <span className="field-hint">Selected file: {values.owner_proof_file.name}</span> : null}
+              {ownerProofError ? <span className="field-error">{ownerProofError}</span> : null}
+              {getFieldError(fieldErrors, 'owner_proof_upload') ? <span className="field-error">{getFieldError(fieldErrors, 'owner_proof_upload')}</span> : null}
+            </label>
+
+            <div className="verification-status-box">
+              <strong><ShieldCheck size={15} aria-hidden="true" /> Mobile OTP</strong>
+              <span>{phoneVerified ? 'Phone verified' : 'Phone not verified'}</span>
+              <div className="agent-form-actions compact-actions">
+                <button className="ghost-button" disabled={otpBusy || phoneVerified} onClick={requestOtp} type="button">
+                  {otpBusy ? 'Sending...' : 'Request OTP'}
+                </button>
+                <input
+                  aria-label="OTP code"
+                  disabled={phoneVerified}
+                  maxLength={6}
+                  onChange={(event) => setOtpCode(event.target.value)}
+                  placeholder="6-digit code"
+                  value={otpCode}
+                />
+                <button className="primary-button" disabled={otpBusy || phoneVerified || otpCode.trim().length !== 6} onClick={verifyOtp} type="button">
+                  Verify
+                </button>
+              </div>
+              {otpMessage ? <span className="field-hint">{otpMessage}</span> : null}
+              {getFieldError(fieldErrors, 'mobile_phone') ? <span className="field-error">{getFieldError(fieldErrors, 'mobile_phone')}</span> : null}
+            </div>
+          </div>
+        ) : (
+          <div className="two-up agent-form-grid">
+            <label className="agent-amenity-option verification-checkbox">
+              <input
+                checked={values.authority_to_sell_confirmed}
+                onChange={(event) => updateValue('authority_to_sell_confirmed', event.target.checked)}
+                required={submissionNeedsVerification}
+                type="checkbox"
+              />
+              <span>I hold a valid signed Authority to Sell from the property owner.</span>
+            </label>
+            {getFieldError(fieldErrors, 'authority_to_sell_confirmed') ? <span className="field-error">{getFieldError(fieldErrors, 'authority_to_sell_confirmed')}</span> : null}
+
+            <label>
+              PRC License Number
+              <input
+                value={values.prc_license_number}
+                onChange={(event) => updateValue('prc_license_number', event.target.value)}
+                required={submissionNeedsVerification}
+                placeholder="PRC license number"
+              />
+              {getFieldError(fieldErrors, 'prc_license_number') ? <span className="field-error">{getFieldError(fieldErrors, 'prc_license_number')}</span> : null}
+            </label>
+
+            <label>
+              PRC Expiration Date
+              <input
+                type="date"
+                value={values.prc_license_expires_at}
+                onChange={(event) => updateValue('prc_license_expires_at', event.target.value)}
+                required={submissionNeedsVerification}
+              />
+              {getFieldError(fieldErrors, 'prc_license_expires_at') ? <span className="field-error">{getFieldError(fieldErrors, 'prc_license_expires_at')}</span> : null}
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div className="agent-form-section">
+        <p className="eyebrow">Legal Terms</p>
+        <div className="agent-amenity-options legal-checkboxes">
+          <label className="agent-amenity-option">
+            <input
+              checked={values.legal_accuracy_certified}
+              onChange={(event) => updateValue('legal_accuracy_certified', event.target.checked)}
+              required={submissionNeedsVerification}
+              type="checkbox"
+            />
+            <span>Accuracy Penalty - I certify all information is true and understand fake listings can result in a permanent ban.</span>
+          </label>
+          <label className="agent-amenity-option">
+            <input
+              checked={values.legal_no_duplicate}
+              onChange={(event) => updateValue('legal_no_duplicate', event.target.checked)}
+              required={submissionNeedsVerification}
+              type="checkbox"
+            />
+            <span>Anti-Spamming - I will not post duplicate listings for the same property.</span>
+          </label>
+          <label className="agent-amenity-option">
+            <input
+              checked={values.legal_data_privacy_consent}
+              onChange={(event) => updateValue('legal_data_privacy_consent', event.target.checked)}
+              required={submissionNeedsVerification}
+              type="checkbox"
+            />
+            <span>Data Privacy Consent - I consent to processing under the Data Privacy Act (RA 10173).</span>
+          </label>
+        </div>
+        {['legal_accuracy_certified', 'legal_no_duplicate', 'legal_data_privacy_consent'].map((field) => (
+          getFieldError(fieldErrors, field) ? <span className="field-error" key={field}>{getFieldError(fieldErrors, field)}</span> : null
+        ))}
       </div>
 
       <div className="agent-form-section">
@@ -342,9 +571,9 @@ export default function AgentPropertyForm({
             <select value={values.status} onChange={(event) => updateValue('status', event.target.value)}>
               {(() => {
                 const isDraft = initialProperty?.status === 'Draft' || mode === 'create';
-                let options = [...AGENT_ALLOWED_STATUSES];
+                let options = ownerMode ? [...OWNER_ALLOWED_STATUSES] : [...AGENT_ALLOWED_STATUSES];
 
-                if (!isDraft) {
+                if (!ownerMode && !isDraft) {
                   options = options.filter((s) => s !== 'Draft');
                 }
 

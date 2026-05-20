@@ -21,6 +21,8 @@ trait FormatsResources
             'email' => $user->email,
             'email_verified_at' => optional($user->email_verified_at)->toIso8601String(),
             'phone' => $user->phone,
+            'phone_verified_at' => optional($user->phone_verified_at)->toIso8601String(),
+            'phone_verified_phone' => $user->phone_verified_phone,
             'role' => $user->role->value,
             'is_active' => $user->is_active,
             'created_at' => optional($user->created_at)->toIso8601String(),
@@ -39,6 +41,8 @@ trait FormatsResources
             'email' => $agent->email,
             'phone' => $agent->phone,
             'license_number' => $agent->license_number,
+            'dhsud_registration_number' => $agent->dhsud_registration_number,
+            'profile_picture' => ImageUrlResolver::resolve($agent->profile_picture),
             'agency_id' => $agent->agency_id,
             'agency_name' => $agent->agency_name,
             'agency' => $agent->relationLoaded('agency') && $agent->agency ? [
@@ -65,6 +69,8 @@ trait FormatsResources
     {
         return [
             'property_id' => $property->property_id,
+            'owner_id' => $property->owner_id,
+            'contact_type' => $property->owner_id ? 'owner' : 'agent',
             'title' => $property->title,
             'slug' => $property->slug,
             'description' => $property->description,
@@ -86,6 +92,14 @@ trait FormatsResources
             'agent' => $property->relationLoaded('agent') && $property->agent
                 ? $this->formatAgent($property->agent)
                 : null,
+            'owner' => $property->relationLoaded('owner') && $property->owner
+                ? [
+                    'id' => $property->owner->id,
+                    'full_name' => $property->owner->full_name,
+                    'email' => $property->owner->email,
+                    'phone' => $property->owner->phone,
+                ]
+                : null,
             'amenities' => $property->relationLoaded('amenities')
                 ? $property->amenities->map(fn(Amenity $amenity) => $this->formatAmenity($amenity))->values()
                 : [],
@@ -99,6 +113,9 @@ trait FormatsResources
                     'user_name' => $log->user?->full_name,
                 ])->values()
                 : [],
+            'verification' => $property->relationLoaded('verification')
+                ? app(ListingVerificationService::class)->formatVerification($property->verification, $property)
+                : null,
         ];
     }
 

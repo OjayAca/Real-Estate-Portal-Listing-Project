@@ -15,6 +15,7 @@ class Inquiry extends Model
     protected $fillable = [
         'buyer_id',
         'agent_id',
+        'owner_id',
         'property_id',
         'buyer_name',
         'buyer_email',
@@ -31,6 +32,11 @@ class Inquiry extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'agent_id', 'agent_id');
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id', 'id');
     }
 
     public function property(): BelongsTo

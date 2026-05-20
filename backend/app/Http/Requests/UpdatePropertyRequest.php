@@ -47,6 +47,14 @@ class UpdatePropertyRequest extends FormRequest
             'status_reason' => ['nullable', 'string', 'max:255'],
             'amenity_ids' => ['nullable', 'array'],
             'amenity_ids.*' => ['integer', 'exists:amenities,amenity_id'],
+            'owner_proof_type' => ['nullable', Rule::in(['tax_declaration', 'tct_front_page'])],
+            'owner_proof_upload' => ['nullable', 'file', File::types(['pdf', 'jpg', 'jpeg', 'png', 'webp'])->max(10240)],
+            'authority_to_sell_confirmed' => ['nullable', 'boolean'],
+            'prc_license_number' => ['nullable', 'string', 'max:80'],
+            'prc_license_expires_at' => ['nullable', 'date'],
+            'legal_accuracy_certified' => ['nullable', 'boolean'],
+            'legal_no_duplicate' => ['nullable', 'boolean'],
+            'legal_data_privacy_consent' => ['nullable', 'boolean'],
         ];
     }
 }

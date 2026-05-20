@@ -56,6 +56,8 @@ export default function PropertyDetailsDrawer({ property, onClose, onInquire, on
 
   const displayProperty = fullProperty || property;
   const isAvailable = displayProperty.status?.toLowerCase() === 'available';
+  const isOwnerPosted = displayProperty.contact_type === 'owner';
+  const contactLabel = isOwnerPosted ? 'Contact Owner' : 'Email Agent';
 
   return (
     <div
@@ -115,11 +117,21 @@ export default function PropertyDetailsDrawer({ property, onClose, onInquire, on
             <div><dt>Parking</dt><dd>{displayProperty.parking_spaces ?? 0}</dd></div>
             <div><dt>Listing Type</dt><dd>{displayProperty.listing_purpose === 'rent' ? 'For Rent' : 'For Sale'}</dd></div>
             <div>
-              <dt>Represented By</dt>
+              <dt>{isOwnerPosted ? 'Owner' : 'Represented By'}</dt>
               <dd>
-                <Link className="text-link" to="/agents">{displayProperty.agent?.full_name}</Link>
+                {isOwnerPosted ? (
+                  <span>{displayProperty.owner?.full_name || 'Owner'}</span>
+                ) : (
+                  <Link className="text-link" to="/agents">{displayProperty.agent?.full_name}</Link>
+                )}
               </dd>
             </div>
+            {isOwnerPosted ? (
+              <>
+                <div><dt>Owner Email</dt><dd>{displayProperty.owner?.email || 'Not provided'}</dd></div>
+                <div><dt>Owner Phone</dt><dd>{displayProperty.owner?.phone || 'Not provided'}</dd></div>
+              </>
+            ) : null}
             <div><dt>Status</dt><dd style={{ color: displayProperty.status === 'Available' ? 'var(--status-success)' : 'var(--text-main)' }}>{displayProperty.status}</dd></div>
           </dl>
           
@@ -130,11 +142,11 @@ export default function PropertyDetailsDrawer({ property, onClose, onInquire, on
                   className="ghost-button detail-submit"
                   onClick={() => onInquire(displayProperty)}
                   type="button"
-                  aria-label={`Email agent for ${displayProperty.title}`}
+                  aria-label={`${contactLabel} for ${displayProperty.title}`}
                   style={{ flex: 1 }}
                 >
                   <Mail size={18} aria-hidden="true" />
-                  Email Agent
+                  {contactLabel}
                 </button>
               )}
               <button

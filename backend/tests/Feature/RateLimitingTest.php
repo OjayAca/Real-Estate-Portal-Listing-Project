@@ -9,14 +9,27 @@ class RateLimitingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_auth_me_endpoint_is_rate_limited(): void
+    public function test_auth_me_endpoint_allows_normal_session_checks(): void
     {
-        // Hit the endpoint 5 times (the limit)
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 60; $i++) {
             $this->getJson('/api/auth/me')->assertStatus(200);
         }
 
-        // The 6th attempt should be throttled (429 Too Many Requests)
         $this->getJson('/api/auth/me')->assertStatus(429);
+    }
+
+    public function test_login_endpoint_keeps_strict_auth_rate_limit(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/auth/login', [
+                'email' => 'missing@example.com',
+                'password' => 'password',
+            ])->assertStatus(422);
+        }
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'missing@example.com',
+            'password' => 'password',
+        ])->assertStatus(429);
     }
 }

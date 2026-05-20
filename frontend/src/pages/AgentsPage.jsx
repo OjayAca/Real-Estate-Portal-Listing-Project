@@ -152,7 +152,11 @@ export default function AgentsPage() {
               <article className="agent-directory-card" key={agent.agent_id} onClick={() => setSelected(agent)}>
                 <div className="agent-directory-card-top">
                   <div className="agent-avatar">
-                    <UserRound size={24} aria-hidden="true" />
+                    {agent.profile_picture ? (
+                      <img src={agent.profile_picture} alt={`${agent.full_name} profile`} />
+                    ) : (
+                      <UserRound size={24} aria-hidden="true" />
+                    )}
                   </div>
                   <div>
                     <h3>{agent.full_name}</h3>
@@ -227,7 +231,11 @@ export default function AgentsPage() {
                 <>
                   <div className="agent-profile-hero">
                     <div className="agent-avatar agent-avatar-large">
-                      <UserRound size={34} aria-hidden="true" />
+                      {selectedDetail.agent.profile_picture ? (
+                        <img src={selectedDetail.agent.profile_picture} alt={`${selectedDetail.agent.full_name} profile`} />
+                      ) : (
+                        <UserRound size={34} aria-hidden="true" />
+                      )}
                     </div>
                     <div>
                       <h2 style={{ margin: 0 }}>{selectedDetail.agent.full_name}</h2>

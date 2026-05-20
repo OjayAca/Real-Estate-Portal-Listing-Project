@@ -34,7 +34,8 @@ return new class extends Migration
 
         Schema::create('properties', function (Blueprint $table): void {
             $table->id('property_id');
-            $table->foreignId('agent_id')->constrained('agents', 'agent_id')->restrictOnDelete()->cascadeOnUpdate();
+            $table->foreignId('agent_id')->nullable()->constrained('agents', 'agent_id')->restrictOnDelete()->cascadeOnUpdate();
+            $table->foreignId('owner_id')->nullable()->constrained('users', 'id')->restrictOnDelete()->cascadeOnUpdate();
             $table->string('title', 150);
             $table->string('slug', 180)->unique();
             $table->text('description');
@@ -48,7 +49,7 @@ return new class extends Migration
             $table->string('city', 100);
             $table->string('province', 100);
             $table->string('featured_image')->nullable();
-            $table->enum('status', ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented'])->default('Available');
+            $table->enum('status', ['Draft', 'Available', 'Sold', 'Rented', 'Inactive', 'Pending Sold', 'Pending Rented', 'Pending Review', 'Reserved'])->default('Available');
             $table->timestamp('listed_at')->nullable();
             $table->timestamps();
             $table->index('city');

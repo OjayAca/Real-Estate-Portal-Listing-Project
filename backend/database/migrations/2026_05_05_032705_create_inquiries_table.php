@@ -13,7 +13,8 @@ return new class extends Migration {
         Schema::create('inquiries', function (Blueprint $table) {
             $table->id('inquiry_id');
             $table->foreignId('buyer_id')->constrained('users', 'id')->cascadeOnDelete();
-            $table->foreignId('agent_id')->constrained('agents', 'agent_id')->cascadeOnDelete();
+            $table->foreignId('agent_id')->nullable()->constrained('agents', 'agent_id')->cascadeOnDelete();
+            $table->foreignId('owner_id')->nullable()->constrained('users', 'id')->cascadeOnDelete();
             $table->foreignId('property_id')->nullable()->constrained('properties', 'property_id')->nullOnDelete();
             $table->string('buyer_name', 120);
             $table->string('buyer_email', 180);

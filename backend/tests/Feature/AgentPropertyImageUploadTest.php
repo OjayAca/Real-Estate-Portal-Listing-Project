@@ -138,6 +138,16 @@ class AgentPropertyImageUploadTest extends TestCase
             'status' => 'Available',
             'listed_at' => now(),
         ]);
+        $property->verification()->create([
+            'authority_to_sell_confirmed_at' => now(),
+            'prc_license_number' => 'PRC-IMAGE-001',
+            'prc_license_expires_at' => now()->addYear()->toDateString(),
+            'prc_verification_status' => 'verified',
+            'legal_accuracy_accepted_at' => now(),
+            'legal_no_duplicate_accepted_at' => now(),
+            'legal_data_privacy_accepted_at' => now(),
+            'legal_terms_version' => 'listing_terms_v1',
+        ]);
 
         $response = $this->post(
             "/api/agent/properties/{$property->property_id}",

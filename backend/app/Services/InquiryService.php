@@ -25,7 +25,11 @@ class InquiryService
             return response()->json(['message' => 'This property is not accepting inquiries right now.'], 422);
         }
 
-        $property->loadMissing('agent.user');
+        $property->loadMissing(['agent.user', 'owner']);
+
+        if (! $property->agent && ! $property->owner) {
+            return response()->json(['message' => 'This property does not have an available contact.'], 422);
+        }
 
         $buyerData = [
             'buyer_name' => trim((string) ($data['buyer_name'] ?? '')) ?: $user->full_name,
@@ -36,7 +40,8 @@ class InquiryService
 
         $inquiry = Inquiry::create([
             'buyer_id' => $user->id,
-            'agent_id' => $property->agent->agent_id,
+            'agent_id' => $property->agent?->agent_id,
+            'owner_id' => $property->owner?->id,
             'property_id' => $property->property_id,
             'buyer_name' => $buyerData['buyer_name'],
             'buyer_email' => $buyerData['buyer_email'],
@@ -45,13 +50,17 @@ class InquiryService
             'status' => 'New',
         ]);
 
-        if ($property->agent?->email) {
-            Mail::to($property->agent->email)->send(new PropertyInquiryMail($property, $buyerData));
+        $recipientEmail = $property->agent?->email ?: $property->owner?->email;
+
+        if ($recipientEmail) {
+            Mail::to($recipientEmail)->send(new PropertyInquiryMail($property, $buyerData));
         }
 
-        if ($property->agent?->user) {
+        $recipientUser = $property->agent?->user ?: $property->owner;
+
+        if ($recipientUser) {
             $this->notifications->pushNotification(
-                $property->agent->user,
+                $recipientUser,
                 'property_inquiry_received',
                 'New Property Inquiry',
                 "{$buyerData['buyer_name']} asked about '{$property->title}'.",
@@ -72,7 +81,7 @@ class InquiryService
         }
 
         return response()->json([
-            'message' => 'Inquiry sent successfully to the agent via email.',
+            'message' => $property->owner ? 'Inquiry sent successfully to the owner via email.' : 'Inquiry sent successfully to the agent via email.',
         ], 201);
     }
 
@@ -132,7 +141,7 @@ class InquiryService
 
     public function adminIndex(): JsonResponse
     {
-        $inquiries = Inquiry::with(['property', 'agent.user'])
+        $inquiries = Inquiry::with(['property', 'agent.user', 'owner'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -154,7 +163,7 @@ class InquiryService
         }
 
         $inquiries = Inquiry::where('agent_id', $user->agent->agent_id)
-            ->with(['property', 'agent.user'])
+            ->with(['property', 'agent.user', 'owner'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -172,7 +181,25 @@ class InquiryService
     public function userIndex(User $user): JsonResponse
     {
         $inquiries = Inquiry::where('buyer_id', $user->id)
-            ->with(['property', 'agent.user'])
+            ->with(['property', 'agent.user', 'owner'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return response()->json([
+            'data' => collect($inquiries->items())->map(fn (Inquiry $i) => $this->formatInquiry($i)),
+            'meta' => [
+                'current_page' => $inquiries->currentPage(),
+                'last_page' => $inquiries->lastPage(),
+                'per_page' => $inquiries->perPage(),
+                'total' => $inquiries->total(),
+            ],
+        ]);
+    }
+
+    public function ownerIndex(User $user): JsonResponse
+    {
+        $inquiries = Inquiry::where('owner_id', $user->id)
+            ->with(['property', 'agent.user', 'owner'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
@@ -203,6 +230,22 @@ class InquiryService
         ]);
     }
 
+    public function ownerUpdateStatus(array $data, Inquiry $inquiry, User $user): JsonResponse
+    {
+        if ($inquiry->owner_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized owner inquiry action.'], 403);
+        }
+
+        $inquiry->update([
+            'status' => $data['status'],
+        ]);
+
+        return response()->json([
+            'message' => 'Inquiry status updated successfully.',
+            'inquiry' => $this->formatInquiry($inquiry->fresh(['property', 'agent.user', 'owner'])),
+        ]);
+    }
+
     /**
      * Format inquiry for response.
      */
@@ -221,6 +264,12 @@ class InquiryService
                 'agent_id' => $inquiry->agent->agent_id,
                 'full_name' => $inquiry->agent->user->full_name ?? 'Unknown Agent',
                 'agency_name' => $inquiry->agent->agency_name,
+            ] : null,
+            'owner' => $inquiry->owner ? [
+                'id' => $inquiry->owner->id,
+                'full_name' => $inquiry->owner->full_name,
+                'email' => $inquiry->owner->email,
+                'phone' => $inquiry->owner->phone,
             ] : null,
             'buyer' => [
                 'user_id' => $inquiry->buyer_id,

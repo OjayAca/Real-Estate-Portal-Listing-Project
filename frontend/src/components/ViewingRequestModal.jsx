@@ -60,11 +60,12 @@ export default function ViewingRequestModal({ property, onClose, onSuccess }) {
 
     setBusy(true);
     try {
+      const isOwnerPosted = property.contact_type === 'owner';
       await apiRequest(`/properties/${property.property_id}/viewing-requests`, {
         method: 'POST',
         body: form,
       });
-      if (onSuccess) onSuccess('Your viewing request has been submitted to the agent.');
+      if (onSuccess) onSuccess(`Your viewing request has been submitted to the ${isOwnerPosted ? 'owner' : 'agent'}.`);
       onClose();
     } catch (requestError) {
       setError(requestError.message || 'Unable to submit viewing request.');
@@ -76,6 +77,7 @@ export default function ViewingRequestModal({ property, onClose, onSuccess }) {
   if (!property) return null;
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const isOwnerPosted = property.contact_type === 'owner';
 
   return (
     <div
@@ -140,7 +142,7 @@ export default function ViewingRequestModal({ property, onClose, onSuccess }) {
 
           <label className="form-label-premium" style={{ marginTop: '1.5rem' }}>
             <span className="flex-row" style={{ gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <MessageSquare size={14} /> Message to Agent (Optional)
+              <MessageSquare size={14} /> Message to {isOwnerPosted ? 'Owner' : 'Agent'} (Optional)
             </span>
             <textarea
               className="premium-input"

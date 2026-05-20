@@ -1,4 +1,26 @@
 import { Building, Clock3, ChevronLeft, ChevronRight, SearchX } from 'lucide-react';
+import { API_BASE_URL } from '../../api/client';
+
+function formatVerificationStatus(value) {
+  return value ? value.replace(/_/g, ' ') : 'not submitted';
+}
+
+function verificationItems(entry) {
+  const verification = entry.verification || {};
+  if (entry.contact_type === 'owner') {
+    return [
+      ['Owner proof', verification.owner_proof_status === 'verified' ? 'verified' : formatVerificationStatus(verification.owner_proof_status)],
+      ['Mobile OTP', verification.phone_verified ? 'verified' : 'not verified'],
+      ['Legal terms', verification.legal_accuracy_accepted && verification.legal_no_duplicate_accepted && verification.legal_data_privacy_accepted ? 'accepted' : 'incomplete'],
+    ];
+  }
+
+  return [
+    ['Authority to Sell', verification.authority_to_sell_confirmed ? 'confirmed' : 'missing'],
+    ['PRC license', verification.prc_verification_status === 'verified' ? 'verified' : formatVerificationStatus(verification.prc_verification_status)],
+    ['Legal terms', verification.legal_accuracy_accepted && verification.legal_no_duplicate_accepted && verification.legal_data_privacy_accepted ? 'accepted' : 'incomplete'],
+  ];
+}
 
 export default function AdminPropertiesTab({ adminOverview, propertySearch, setPropertySearch, openAdminConfirm, onPageChange }) {
   if (!adminOverview) return null;
@@ -45,8 +67,63 @@ export default function AdminPropertiesTab({ adminOverview, propertySearch, setP
                   <Clock3 size={12} /> {entry.views_count || 0} views
                 </span>
               </div>
+              <div className="verification-review-list">
+                {verificationItems(entry).map(([label, value]) => (
+                  <span key={label}>{label}: <strong>{value}</strong></span>
+                ))}
+              </div>
+              {entry.verification?.approval_blockers?.length ? (
+                <p className="field-error">{entry.verification.approval_blockers.join(' ')}</p>
+              ) : null}
             </div>
             <div className="table-actions">
+              {entry.contact_type === 'owner' && entry.verification?.owner_proof_uploaded ? (
+                <a
+                  className="ghost-button"
+                  href={`${API_BASE_URL}/admin/properties/${entry.property_id}/verification/owner-proof`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Proof
+                </a>
+              ) : null}
+              {entry.contact_type === 'owner' ? (
+                <select
+                  value={entry.verification?.owner_proof_status || 'pending'}
+                  aria-label={`Update owner proof verification for ${entry.title}`}
+                  onChange={(event) => {
+                    openAdminConfirm({
+                      title: 'Update Owner Proof',
+                      message: `Mark ownership proof for "${entry.title}" as ${event.target.value}?`,
+                      path: `/admin/properties/${entry.property_id}/verification`,
+                      body: { owner_proof_status: event.target.value },
+                      tone: 'warning',
+                    });
+                  }}
+                >
+                  <option value="pending">Proof Pending</option>
+                  <option value="verified">Proof Verified</option>
+                  <option value="rejected">Proof Rejected</option>
+                </select>
+              ) : (
+                <select
+                  value={entry.verification?.prc_verification_status || 'pending'}
+                  aria-label={`Update PRC verification for ${entry.title}`}
+                  onChange={(event) => {
+                    openAdminConfirm({
+                      title: 'Update PRC Verification',
+                      message: `Mark PRC license for "${entry.title}" as ${event.target.value}?`,
+                      path: `/admin/properties/${entry.property_id}/verification`,
+                      body: { prc_verification_status: event.target.value },
+                      tone: 'warning',
+                    });
+                  }}
+                >
+                  <option value="pending">PRC Pending</option>
+                  <option value="verified">PRC Verified</option>
+                  <option value="rejected">PRC Rejected</option>
+                </select>
+              )}
               <select
                 value={entry.status}
                 aria-label={`Update status for ${entry.title}`}
@@ -72,6 +149,7 @@ export default function AdminPropertiesTab({ adminOverview, propertySearch, setP
                 <option value="Inactive">Inactive</option>
                 <option value="Pending Sold">Pending Sold</option>
                 <option value="Pending Rented">Pending Rented</option>
+                <option value="Pending Review">Pending Review</option>
               </select>
             </div>
           </div>

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import InlineMessage from './InlineMessage';
 
-export default function InquiryManager({ authFetch, isAdmin = false }) {
+export default function InquiryManager({ authFetch, isAdmin = false, endpoint, updateBasePath = '/agent/inquiries', ownerMode = false }) {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,8 +30,7 @@ export default function InquiryManager({ authFetch, isAdmin = false }) {
   const fetchInquiries = useCallback(async () => {
     setLoading(true);
     try {
-      const endpoint = isAdmin ? '/admin/inquiries' : '/agent/inquiries';
-      const data = await authFetch(endpoint);
+      const data = await authFetch(endpoint || (isAdmin ? '/admin/inquiries' : '/agent/inquiries'));
       setInquiries(data.data || []);
       setError('');
     } catch (err) {
@@ -39,7 +38,7 @@ export default function InquiryManager({ authFetch, isAdmin = false }) {
     } finally {
       setLoading(false);
     }
-  }, [authFetch, isAdmin]);
+  }, [authFetch, endpoint, isAdmin]);
 
   useEffect(() => {
     fetchInquiries();
@@ -48,7 +47,7 @@ export default function InquiryManager({ authFetch, isAdmin = false }) {
   const handleUpdateStatus = async (inquiryId, status) => {
     setActionBusy(inquiryId);
     try {
-      const response = await authFetch(`/agent/inquiries/${inquiryId}`, {
+      const response = await authFetch(`${updateBasePath}/${inquiryId}`, {
         method: 'PATCH',
         body: { status },
       });
@@ -99,7 +98,9 @@ export default function InquiryManager({ authFetch, isAdmin = false }) {
           </p>
           <h2>Property Inquiries</h2>
           <p className="agent-manager-copy">
-            Track and respond to potential buyers interested in your listings.
+            {ownerMode
+              ? 'Track buyer messages for your owner-posted listings.'
+              : 'Track and respond to potential buyers interested in your listings.'}
           </p>
         </div>
         
@@ -219,7 +220,7 @@ export default function InquiryManager({ authFetch, isAdmin = false }) {
                     {isAdmin && (
                       <div className="admin-view-note">
                         <p className="eyebrow">Agent Assigned</p>
-                        <p>{inquiry.agent?.full_name} ({inquiry.agent?.agency_name})</p>
+                        <p>{inquiry.agent?.full_name || inquiry.owner?.full_name} ({inquiry.agent?.agency_name || 'Owner-posted'})</p>
                       </div>
                     )}
                   </div>

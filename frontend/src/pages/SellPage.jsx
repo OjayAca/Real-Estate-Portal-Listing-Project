@@ -1,247 +1,139 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Sparkles } from 'lucide-react';
 import { apiRequest } from '../api/client';
-import { ArrowRight, CheckCircle2, ClipboardCheck, Home, MapPin, Minus, Plus, ShieldCheck, Sparkles } from 'lucide-react';
+import AgentPropertyForm from '../components/dashboard/AgentPropertyForm';
 import InlineMessage from '../components/InlineMessage';
-
-const PROPERTY_TYPES = ['House', 'Condo', 'Lot', 'Apartment', 'Townhouse', 'Commercial'];
-const HOME_CONDITIONS = [
-  'Excellent - like new, move-in ready',
-  'Good - well maintained, minor cosmetic needs',
-  'Fair - functional, but needs updates',
-  'Poor - needs major repairs/renovation',
-  'New Construction',
-];
-
-const emptyLeadForm = {
-  full_name: '',
-  email: '',
-  phone: '',
-  property_type: 'House',
-  property_address: '',
-  bedrooms: 1,
-  bathrooms: 1,
-  home_size: '',
-  lot_size: '',
-  condition_of_home: 'Good - well maintained, minor cosmetic needs',
-  expected_price: '',
-  notes: '',
-};
-
-function getFieldError(errors, field) {
-  return errors[field]?.[0] || '';
-}
+import { useAuth } from '../context/AuthContext';
 
 export default function SellPage() {
-  const [values, setValues] = useState(emptyLeadForm);
+  const { authFetch, loading: authLoading, user } = useAuth();
+  const navigate = useNavigate();
+  const [amenities, setAmenities] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState('info');
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const updateValue = (field, nextValue) => {
-    setValues((current) => ({ ...current, [field]: nextValue }));
-  };
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate('/login', { replace: true, state: { from: { pathname: '/sell' } } });
+    }
+  }, [authLoading, navigate, user]);
 
-  const adjustCount = (field, delta) => {
-    setValues((current) => ({
-      ...current,
-      [field]: Math.max(0, (current[field] || 0) + delta),
-    }));
-  };
+  useEffect(() => {
+    apiRequest('/amenities')
+      .then((data) => setAmenities(data.data || []))
+      .catch(() => setAmenities([]));
+  }, []);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const submitOwnerListing = async (values) => {
     setBusy(true);
     setFieldErrors({});
     setMessage('');
-    setSubmitted(false);
 
     try {
-      await apiRequest('/seller-leads', {
+      const formData = new FormData();
+      const appendValue = (key, value) => {
+        if (value === '' || value === null || value === undefined) return;
+        formData.append(key, String(value));
+      };
+
+      appendValue('title', values.title.trim());
+      appendValue('description', values.description.trim());
+      appendValue('property_type', values.property_type);
+      appendValue('listing_purpose', values.listing_purpose);
+      appendValue('price', values.price === '' ? null : Number(values.price));
+      appendValue('bedrooms', values.bedrooms === '' ? null : Number(values.bedrooms));
+      appendValue('bathrooms', values.bathrooms === '' ? null : Number(values.bathrooms));
+      appendValue('parking_spaces', values.parking_spaces === '' ? null : Number(values.parking_spaces));
+      appendValue('area_sqm', values.area_sqm === '' ? null : Number(values.area_sqm));
+      appendValue('address_line', values.address_line.trim());
+      appendValue('city', values.city.trim());
+      appendValue('province', values.province.trim());
+      appendValue('status', values.status || 'Pending Review');
+
+      if (values.amenity_ids.length > 0) {
+        values.amenity_ids.forEach((amenityId) => formData.append('amenity_ids[]', String(Number(amenityId))));
+      }
+
+      if (values.featured_image_file) {
+        formData.append('featured_image_upload', values.featured_image_file);
+      }
+
+      const response = await authFetch('/owner/properties', {
         method: 'POST',
-        body: {
-          ...values,
-          home_size: values.home_size === '' ? null : Number(values.home_size),
-          lot_size: values.lot_size === '' ? null : Number(values.lot_size),
-          expected_price: values.expected_price === '' ? null : Number(values.expected_price),
-        },
+        body: formData,
       });
+
       setSubmitted(true);
-      setValues(emptyLeadForm);
-      setMessage('Your request was received. An EstateFlow agent will review the property details and follow up.');
+      setMessage(response.message);
       setMessageTone('success');
+      navigate('/my-listings');
     } catch (error) {
-      setFieldErrors(error.details || {});
-      setMessage(error.message || 'Unable to submit your request right now.');
+      if (error.details) {
+        setFieldErrors(Object.fromEntries(
+          Object.entries(error.details).map(([field, messages]) => [field, Array.isArray(messages) ? messages[0] : messages]),
+        ));
+      }
+      setMessage(error.message || 'Unable to submit your owner listing right now.');
       setMessageTone('error');
     } finally {
       setBusy(false);
     }
   };
 
+  if (authLoading || !user) {
+    return <p className="empty-copy">Redirecting to sign in...</p>;
+  }
+
+  if (user.role !== 'user') {
+    return (
+      <div className="page-shell animate-enter">
+        <section className="section-panel">
+          <p className="eyebrow">Owner Listings</p>
+          <h2>Client account required</h2>
+          <p className="agent-manager-copy">Owner-posted listings are available from client accounts.</p>
+        </section>
+      </div>
+    );
+  }
+
   return (
-    <div className="sell-page animate-enter">
-      <section className="sell-hero">
-        <div className="sell-hero-copy">
-          <p className="eyebrow">Sell With EstateFlow</p>
-          <h1>Get your property priced, positioned, and introduced to qualified buyers.</h1>
-          <p>
-            Share the basics and we will route your home to an agent who can evaluate local demand, pricing, and launch timing.
-          </p>
-          <div className="sell-trust-strip">
-            <span><ShieldCheck size={16} aria-hidden="true" /> Verified agent network</span>
-            <span><MapPin size={16} aria-hidden="true" /> Local market context</span>
-            <span><ClipboardCheck size={16} aria-hidden="true" /> Clear next steps</span>
-          </div>
-        </div>
-
-        <form className="seller-lead-form" onSubmit={handleSubmit}>
-          <div className="seller-lead-form-header">
-            <p className="eyebrow">Seller Consultation</p>
-            <h2>Tell us about the property</h2>
-          </div>
-
-          <InlineMessage
-            icon={submitted ? CheckCircle2 : Sparkles}
-            message={message}
-            tone={messageTone}
-            onDismiss={() => setMessage('')}
-          />
-
-          <div className="two-up seller-form-grid">
-            <label>
-              Full Name
-              <input id="full_name" name="full_name" required value={values.full_name} onChange={(event) => updateValue('full_name', event.target.value)} autoComplete="name" />
-              {getFieldError(fieldErrors, 'full_name') ? <span className="field-error">{getFieldError(fieldErrors, 'full_name')}</span> : null}
-            </label>
-            <label>
-              Email
-              <input id="email" name="email" required type="email" value={values.email} onChange={(event) => updateValue('email', event.target.value)} autoComplete="email" />
-              {getFieldError(fieldErrors, 'email') ? <span className="field-error">{getFieldError(fieldErrors, 'email')}</span> : null}
-            </label>
-            <label>
-              Phone
-              <input id="phone" name="phone" required value={values.phone} onChange={(event) => updateValue('phone', event.target.value)} autoComplete="tel" />
-              {getFieldError(fieldErrors, 'phone') ? <span className="field-error">{getFieldError(fieldErrors, 'phone')}</span> : null}
-            </label>
-            <label>
-              Property Type
-              <select id="property_type" name="property_type" value={values.property_type} onChange={(event) => updateValue('property_type', event.target.value)}>
-                {PROPERTY_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
-              </select>
-              {getFieldError(fieldErrors, 'property_type') ? <span className="field-error">{getFieldError(fieldErrors, 'property_type')}</span> : null}
-            </label>
-          </div>
-
-          <label>
-            Property Address
-            <input id="property_address" name="property_address" required value={values.property_address} onChange={(event) => updateValue('property_address', event.target.value)} autoComplete="street-address" />
-            {getFieldError(fieldErrors, 'property_address') ? <span className="field-error">{getFieldError(fieldErrors, 'property_address')}</span> : null}
-          </label>
-
-          <div className="two-up seller-form-grid">
-            <div className="label">
-              Bedrooms
-              <div className="seller-form-counter">
-                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bedrooms', -1)} disabled={values.bedrooms <= 0}>
-                  <Minus size={16} />
-                </button>
-                <span>{values.bedrooms}</span>
-                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bedrooms', 1)}>
-                  <Plus size={16} />
-                </button>
-              </div>
-              {getFieldError(fieldErrors, 'bedrooms') ? <span className="field-error">{getFieldError(fieldErrors, 'bedrooms')}</span> : null}
-            </div>
-
-            <div className="label">
-              Bathrooms
-              <div className="seller-form-counter">
-                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bathrooms', -1)} disabled={values.bathrooms <= 0}>
-                  <Minus size={16} />
-                </button>
-                <span>{values.bathrooms}</span>
-                <button type="button" className="seller-form-counter-btn" onClick={() => adjustCount('bathrooms', 1)}>
-                  <Plus size={16} />
-                </button>
-              </div>
-              {getFieldError(fieldErrors, 'bathrooms') ? <span className="field-error">{getFieldError(fieldErrors, 'bathrooms')}</span> : null}
-            </div>
-
-            <label>
-              Home Size
-              <div className="seller-form-input-unit">
-                <input id="home_size" name="home_size" type="number" min="1" value={values.home_size} onChange={(event) => updateValue('home_size', event.target.value)} placeholder="0" />
-                <span className="unit">sqm</span>
-              </div>
-              {getFieldError(fieldErrors, 'home_size') ? <span className="field-error">{getFieldError(fieldErrors, 'home_size')}</span> : null}
-            </label>
-
-            <label>
-              Lot Size
-              <div className="seller-form-input-unit">
-                <input id="lot_size" name="lot_size" type="number" min="1" value={values.lot_size} onChange={(event) => updateValue('lot_size', event.target.value)} placeholder="0" />
-                <span className="unit">sqm</span>
-              </div>
-              {getFieldError(fieldErrors, 'lot_size') ? <span className="field-error">{getFieldError(fieldErrors, 'lot_size')}</span> : null}
-            </label>
-
-            <label>
-              Condition of Home
-              <select id="condition_of_home" name="condition_of_home" value={values.condition_of_home} onChange={(event) => updateValue('condition_of_home', event.target.value)}>
-                {HOME_CONDITIONS.map((cond) => <option key={cond} value={cond}>{cond}</option>)}
-              </select>
-              {getFieldError(fieldErrors, 'condition_of_home') ? <span className="field-error">{getFieldError(fieldErrors, 'condition_of_home')}</span> : null}
-            </label>
-
-            <label>
-              Expected Price
-              <input id="expected_price" name="expected_price" min="1" type="number" value={values.expected_price} onChange={(event) => updateValue('expected_price', event.target.value)} placeholder="Optional" />
-              {getFieldError(fieldErrors, 'expected_price') ? <span className="field-error">{getFieldError(fieldErrors, 'expected_price')}</span> : null}
-            </label>
-          </div>
-
-          <label>
-            Notes
-            <textarea id="notes" name="notes" rows={4} value={values.notes} onChange={(event) => updateValue('notes', event.target.value)} placeholder="Renovations, occupancy status, documents, or pricing questions." />
-            {getFieldError(fieldErrors, 'notes') ? <span className="field-error">{getFieldError(fieldErrors, 'notes')}</span> : null}
-          </label>
-
-          <button className="primary-button seller-submit" disabled={busy} type="submit">
-            {busy ? 'Submitting...' : 'Request Seller Review'}
-            <ArrowRight size={16} aria-hidden="true" />
-          </button>
-        </form>
+    <div className="page-shell animate-enter">
+      <section className="section-panel dashboard-hero">
+        <p className="eyebrow">Sell With EstateFlow</p>
+        <h2 style={{ fontSize: '2.5rem', fontWeight: 300, color: 'var(--brand-base)', marginBottom: '0.5rem' }}>
+          Submit your property for review
+        </h2>
+        <p style={{ fontWeight: 300 }}>
+          Owner-posted listings are reviewed by an administrator before they appear publicly. Buyers will see your real owner contact details after approval.
+        </p>
+        <InlineMessage
+          icon={submitted ? CheckCircle2 : Sparkles}
+          message={message}
+          tone={messageTone}
+          onDismiss={() => setMessage('')}
+        />
       </section>
 
-      <section className="page-shell sell-info-grid">
-        <div>
-          <p className="eyebrow">Process</p>
-          <h2>From valuation to launch</h2>
-          <div className="sell-process-list">
-            {[
-              ['1', 'Share the property basics and your selling timeline.'],
-              ['2', 'An agent reviews comparable listings, location demand, and presentation needs.'],
-              ['3', 'You receive a recommended pricing and launch path before going live.'],
-            ].map(([step, copy]) => (
-              <div className="sell-process-row" key={step}>
-                <span>{step}</span>
-                <p>{copy}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="sell-evaluation-panel">
-          <p className="eyebrow">Evaluation Focus</p>
-          <h2>What agents evaluate</h2>
-          <div className="sell-evaluation-list">
-            <span><Home size={16} aria-hidden="true" /> Property condition, type, and usable area</span>
-            <span><MapPin size={16} aria-hidden="true" /> Location strength and nearby demand drivers</span>
-            <span><Sparkles size={16} aria-hidden="true" /> Pricing signals, staging needs, and listing readiness</span>
-          </div>
-        </div>
+      <section className="section-panel agent-manager-panel">
+        <AgentPropertyForm
+          amenities={amenities}
+          busy={busy}
+          defaultStatus="Pending Review"
+          fieldErrors={fieldErrors}
+          formMessage={messageTone === 'error' ? message : ''}
+          formMessageTone={messageTone}
+          initialProperty={null}
+          mode="create"
+          onCancel={() => navigate('/my-listings')}
+          onMessageDismiss={() => setMessage('')}
+          onSubmit={submitOwnerListing}
+          ownerMode
+        />
       </section>
     </div>
   );

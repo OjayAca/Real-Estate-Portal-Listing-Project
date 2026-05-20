@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('viewing_requests', function (Blueprint $table) {
             $table->id('viewing_request_id');
             $table->foreignId('buyer_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('agent_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('agent_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('owner_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('property_id')->references('property_id')->on('properties')->onDelete('cascade');
             $table->date('requested_date');
             $table->time('requested_time');

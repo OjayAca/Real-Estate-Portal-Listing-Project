@@ -11,6 +11,7 @@ class ViewingRequest extends Model
     protected $fillable = [
         'buyer_id',
         'agent_id',
+        'owner_id',
         'property_id',
         'requested_date',
         'requested_time',
@@ -29,6 +30,11 @@ class ViewingRequest extends Model
     public function agent()
     {
         return $this->belongsTo(Agent::class, 'agent_id', 'agent_id');
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function property()
