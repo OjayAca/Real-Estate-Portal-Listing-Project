@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { KeyRound, UserPlus, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, ShieldCheck, UserPlus } from 'lucide-react';
 
 const initialState = {
   first_name: '',
@@ -191,9 +191,9 @@ export default function AuthPage({ mode }) {
                   }}
                   type="button"
                 >
-                  {mode === 'login'
-                    ? (showLoginPassword ? 'Hide' : 'Show')
-                    : (showRegisterPassword ? 'Hide' : 'Show')}
+                  {(mode === 'login' ? showLoginPassword : showRegisterPassword)
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -219,7 +219,9 @@ export default function AuthPage({ mode }) {
                     onClick={() => setShowRegisterConfirmPassword((current) => !current)}
                     type="button"
                   >
-                    {showRegisterConfirmPassword ? 'Hide' : 'Show'}
+                    {showRegisterConfirmPassword
+                      ? <EyeOff size={18} aria-hidden="true" />
+                      : <Eye size={18} aria-hidden="true" />}
                   </button>
                 </div>
               </div>

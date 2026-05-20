@@ -7,6 +7,8 @@ import {
   Bell,
   Bookmark,
   Contact,
+  Eye,
+  EyeOff,
   Heart,
   LockKeyhole,
   Palette,
@@ -326,7 +328,9 @@ export default function AccountSettingsPage() {
                   onClick={() => setShowCurrentPassword((current) => !current)}
                   type="button"
                 >
-                  {showCurrentPassword ? 'Hide' : 'Show'}
+                  {showCurrentPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
               {errors.current_password ? <span className="field-error">{errors.current_password[0]}</span> : null}
@@ -341,7 +345,9 @@ export default function AccountSettingsPage() {
                   onClick={() => setShowNewPassword((current) => !current)}
                   type="button"
                 >
-                  {showNewPassword ? 'Hide' : 'Show'}
+                  {showNewPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
               {errors.password ? <span className="field-error">{errors.password[0]}</span> : null}
@@ -356,7 +362,9 @@ export default function AccountSettingsPage() {
                   onClick={() => setShowConfirmPassword((current) => !current)}
                   type="button"
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
+                  {showConfirmPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </label>

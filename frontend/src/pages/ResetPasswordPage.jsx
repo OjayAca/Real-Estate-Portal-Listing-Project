@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { KeyRound, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, ShieldCheck } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -87,7 +87,9 @@ export default function ResetPasswordPage() {
                   onClick={() => setShowPassword((current) => !current)}
                   type="button"
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -109,7 +111,9 @@ export default function ResetPasswordPage() {
                   onClick={() => setShowConfirmPassword((current) => !current)}
                   type="button"
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
+                  {showConfirmPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </div>

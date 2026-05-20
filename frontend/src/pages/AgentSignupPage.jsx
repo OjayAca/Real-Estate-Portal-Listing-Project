@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, FileText, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Eye, EyeOff, FileText, ShieldCheck, UserPlus, UserRound, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const ACCEPTED_PROFILE_TYPES = ['image/jpeg', 'image/png'];
@@ -259,7 +259,9 @@ export default function AgentSignupPage() {
                   onClick={() => setShowPassword((current) => !current)}
                   type="button"
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
               {firstFieldError('password') ? <span className="field-error">{firstFieldError('password')}</span> : null}
@@ -285,7 +287,9 @@ export default function AgentSignupPage() {
                   onClick={() => setShowConfirmPassword((current) => !current)}
                   type="button"
                 >
-                  {showConfirmPassword ? 'Hide' : 'Show'}
+                  {showConfirmPassword
+                    ? <EyeOff size={18} aria-hidden="true" />
+                    : <Eye size={18} aria-hidden="true" />}
                 </button>
               </div>
             </div>

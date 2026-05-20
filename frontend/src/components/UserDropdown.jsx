@@ -17,6 +17,7 @@ function getDashboardLabel(role) {
 export default function UserDropdown({ user, onLogout, userStatusLabel }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const showRoleLabel = user.role === 'agent' || user.role === 'admin';
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -41,7 +42,7 @@ export default function UserDropdown({ user, onLogout, userStatusLabel }) {
         </div>
         <div className="user-dropdown-info">
           <span className="user-dropdown-name">{user.full_name}</span>
-          <small className="user-dropdown-role">{userStatusLabel}</small>
+          {showRoleLabel ? <small className="user-dropdown-role">{userStatusLabel}</small> : null}
         </div>
         <ChevronDown size={16} className={`dropdown-chevron ${isOpen ? 'rotated' : ''}`} />
       </button>
